@@ -1,0 +1,1509 @@
+const express = require('express');
+const { body, query, validationResult } = require('express-validator');
+const db = require('../config/database');
+const { authenticateToken, requireSeller } = require('../middleware/auth');
+const { s3ProductsUpload } = require('../config/s3Upload');
+
+const router = express.Router();
+
+// Create new product
+router.post('/products', [
+  authenticateToken,
+  requireSeller,
+  s3ProductsUpload.fields([
+    { name: 'images', maxCount: 10 },
+    { name: 'videos', maxCount: 2 }
+  ]),
+  body('name').trim().isLength({ min: 2 }),
+  body('description').trim().isLength({ min: 10 }),
+  body('price').custom((value) => {
+    if (value === undefined || value === null || value === '') {
+      throw new Error('Price is required');
+    }
+    const numValue = parseFloat(value);
+    if (isNaN(numValue)) {
+      throw new Error('Price must be a valid number');
+    }
+    if (numValue < 0.01) {
+      throw new Error('Price must be at least 0.01');
+    }
+    return true;
+  }),
+  body('actual_buy_price').optional().custom((value) => {
+    if (value === undefined || value === null || value === '') {
+      return true; // Optional field, skip validation if empty
+    }
+    const numValue = parseFloat(value);
+    if (isNaN(numValue)) {
+      throw new Error('Buy price must be a valid number');
+    }
+    if (numValue < 0) {
+      throw new Error('Buy price must be non-negative');
+    }
+    return true;
+  }),
+  body('category').trim().isLength({ min: 2 }),
+  body('stock_quantity').custom((value) => {
+    if (value === undefined || value === null || value === '') {
+      throw new Error('Stock quantity is required');
+    }
+    const numValue = parseInt(value, 10);
+    if (isNaN(numValue)) {
+      throw new Error('Stock quantity must be a valid integer');
+    }
+    if (numValue < 0) {
+      throw new Error('Stock quantity must be non-negative');
+    }
+    return true;
+  }),
+  body('sizes').optional().custom((value) => {
+    if (!value) return true; // Optional field
+    try {
+      const parsed = typeof value === 'string' ? JSON.parse(value) : value;
+      if (!Array.isArray(parsed)) {
+        throw new Error('Sizes must be an array');
+      }
+      return true;
+    } catch (error) {
+      throw new Error('Invalid sizes format');
+    }
+  }),
+  body('product_id').optional().trim(),
+  body('other_details').optional().trim(),
+  body('cod_eligible').optional().custom((value) => {
+    if (value === undefined || value === null || value === '') {
+      return true; // Optional field, skip validation if empty
+    }
+    // Handle boolean values that come as strings from FormData
+    if (value === 'true' || value === 'false' || value === true || value === false) {
+      return true;
+    }
+    throw new Error('COD eligible must be a boolean value');
+  }),
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { 
+      name, 
+      description, 
+      price, 
+      actual_buy_price, 
+      category, 
+      stock_quantity, 
+      sizes,
+      product_id,
+      other_details,
+      cod_eligible = true 
+    } = req.body;
+    
+    const files = req.files;
+    const seller_id = req.user.id;
+
+    // Process uploaded images
+    const images = [];
+    if (files && files.images) {
+      for (let i = 0; i < files.images.length; i++) {
+        const imageFile = files.images[i];
+        const imageDataKey = `imageData_${i}`;
+        let imageData = {};
+        
+        try {
+          imageData = req.body[imageDataKey] ? JSON.parse(req.body[imageDataKey]) : {};
+        } catch (e) {
+          imageData = {};
+        }
+
+        // Handle both S3 and local file storage
+        const fileUrl = imageFile.location || `/uploads/products/${imageFile.filename}`;
+
+        images.push({
+          id: Date.now() + '_' + i,
+          url: fileUrl,
+          alt: imageData.alt || imageFile.originalname,
+          isPrimary: imageData.isPrimary || false
+        });
+      }
+    }
+
+    // Process uploaded videos
+    const videos = [];
+    if (files && files.videos) {
+      for (let i = 0; i < files.videos.length; i++) {
+        const videoFile = files.videos[i];
+        const videoDataKey = `videoData_${i}`;
+        let videoData = {};
+        
+        try {
+          videoData = req.body[videoDataKey] ? JSON.parse(req.body[videoDataKey]) : {};
+        } catch (e) {
+          videoData = {};
+        }
+
+        // Handle both S3 and local file storage
+        const fileUrl = videoFile.location || `/uploads/products/${videoFile.filename}`;
+
+        videos.push({
+          id: Date.now() + '_video_' + i,
+          url: fileUrl,
+          title: videoData.title || videoFile.originalname
+        });
+      }
+    }
+
+    // Ensure at least one image is marked as primary
+    if (images.length > 0 && !images.some(img => img.isPrimary)) {
+      images[0].isPrimary = true;
+    }
+
+    // Legacy image_url for backward compatibility (use primary image)
+    const primaryImage = images.find(img => img.isPrimary);
+    const image_url = primaryImage ? primaryImage.url : null;
+
+    // Auto-generate product_id if not provided
+    let finalProductId = product_id;
+    if (!finalProductId) {
+      // We'll update this after getting the product ID from database
+      finalProductId = null;
+    }
+
+    // Process sizes - if no sizes provided, create default "One Size" entry
+    let finalSizes = [];
+    let productMarketPrice = 0;
+    
+    // Parse sizes if it's a JSON string (from FormData)
+    let parsedSizes = sizes;
+    if (typeof sizes === 'string') {
+      try {
+        parsedSizes = JSON.parse(sizes);
+      } catch (error) {
+        console.error('Error parsing sizes JSON:', error);
+        parsedSizes = [];
+      }
+    }
+    
+    if (parsedSizes && Array.isArray(parsedSizes) && parsedSizes.length > 0) {
+      finalSizes = parsedSizes.filter(size => size.size && size.size.trim()).map(size => {
+        const sizePrice = parseFloat(size.price) || 0;
+        const providedMarketPrice = parseFloat(size.market_price) || 0;
+        const sizeBuyPrice = parseFloat(size.actual_buy_price) || 0;
+        
+        // Calculate a reasonable market price if not provided or is 0
+        let calculatedMarketPrice = providedMarketPrice;
+        if (calculatedMarketPrice <= 0 || calculatedMarketPrice <= sizePrice) {
+          if (sizeBuyPrice > 0) {
+            // Use buy price + 50% markup as market price
+            calculatedMarketPrice = Math.max(sizePrice, sizeBuyPrice * 1.5);
+          } else {
+            // Default to 25% markup over selling price for discount display
+            calculatedMarketPrice = sizePrice * 1.25;
+          }
+        }
+        
+        return {
+          size: size.size.trim(),
+          quantity: parseInt(size.quantity) || 0,
+          price: sizePrice,
+          market_price: calculatedMarketPrice,
+          actual_buy_price: sizeBuyPrice,
+          cod_eligible: size.cod_eligible !== undefined ? size.cod_eligible : true
+        };
+      });
+      
+      // For products with sizes, set product-level market price to the highest market price among sizes
+      if (finalSizes.length > 0) {
+        const marketPrices = finalSizes.map(size => size.market_price || 0).filter(mp => mp > 0);
+        if (marketPrices.length > 0) {
+          productMarketPrice = Math.max(...marketPrices);
+        } else {
+          // Fallback if no valid market prices (shouldn't happen with new logic)
+          productMarketPrice = Math.max(...finalSizes.map(size => size.price)) * 1.25;
+        }
+      }
+    }
+    
+    // If no valid sizes provided, create default size with total stock quantity
+    if (finalSizes.length === 0) {
+      // For products without custom sizes, use a reasonable market price if not provided
+      const defaultMarketPrice = actual_buy_price && actual_buy_price > 0 
+        ? Math.max(parseFloat(price), parseFloat(actual_buy_price) * 1.5)  // At least 50% markup over buy price
+        : parseFloat(price) * 1.25; // Default to 25% markup for discount display
+        
+      finalSizes = [{
+        size: 'One Size',
+        quantity: parseInt(stock_quantity) || 0,
+        price: parseFloat(price) || 0,
+        market_price: defaultMarketPrice,
+        actual_buy_price: parseFloat(actual_buy_price) || 0,
+        cod_eligible: cod_eligible !== false
+      }];
+      // Set product market price to the same as the default size market price
+      productMarketPrice = finalSizes[0].market_price;
+    }
+    
+    // Calculate total stock from sizes
+    const totalStock = finalSizes.reduce((total, size) => total + size.quantity, 0);
+
+    const newProduct = await db.query(
+      `INSERT INTO products (
+        name, description, price, actual_buy_price, category, 
+        stock_quantity, sizes, seller_id, image_url, images, videos, 
+        product_id, is_active, cod_eligible, market_price
+      )
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) 
+       RETURNING id, name, description, price, actual_buy_price, category, 
+                 stock_quantity, sizes, image_url, images, videos, product_id, 
+                 is_active, created_at, cod_eligible, market_price`,
+      [
+        name, 
+        description, 
+        price, 
+        actual_buy_price || null,
+        category, 
+        totalStock, // Use calculated total stock
+        JSON.stringify(finalSizes), // Store sizes as JSONB
+        seller_id, 
+        image_url,
+        JSON.stringify(images),
+        JSON.stringify(videos),
+        finalProductId,
+        totalStock > 0, // Auto-set active status based on total stock
+        cod_eligible,
+        productMarketPrice
+      ]
+    );
+
+    // If product_id was auto-generated, update the record
+    if (!product_id) {
+      const autoProductId = `PROD-${String(newProduct.rows[0].id).padStart(6, '0')}`;
+      await db.query(
+        'UPDATE products SET product_id = $1 WHERE id = $2',
+        [autoProductId, newProduct.rows[0].id]
+      );
+      newProduct.rows[0].product_id = autoProductId;
+    }
+
+    res.status(201).json({
+      message: 'Product created successfully',
+      product: {
+        ...newProduct.rows[0],
+        other_details: other_details || null
+      }
+    });
+
+  } catch (error) {
+    console.error('Product creation error:', error);
+    res.status(500).json({ 
+      message: 'Server error creating product', 
+      error: error.message 
+    });
+  }
+});
+
+// Get seller's products
+router.get('/products', [
+  authenticateToken,
+  requireSeller,
+  query('page').optional().isInt({ min: 1 }),
+  query('limit').optional().isInt({ min: 1, max: 100 }),
+], async (req, res) => {
+  try {
+    const seller_id = req.user.id;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+    const offset = (page - 1) * limit;
+
+    const products = await db.query(
+      `SELECT id, name, description, price, category, stock_quantity, sizes,
+              image_url, images, product_id, is_active, created_at, updated_at, cod_eligible, market_price
+       FROM products 
+       WHERE seller_id = $1
+       ORDER BY created_at DESC
+       LIMIT $2 OFFSET $3`,
+      [seller_id, limit, offset]
+    );
+
+    // Get total count
+    const totalCount = await db.query(
+      'SELECT COUNT(*) as total FROM products WHERE seller_id = $1',
+      [seller_id]
+    );
+
+    // Process products to ensure proper JSON parsing
+    const processedProducts = products.rows.map(product => {
+      let parsedSizes = product.sizes;
+      let parsedImages = product.images;
+      
+      // Parse sizes if it's a string
+      if (typeof product.sizes === 'string' && product.sizes) {
+        try {
+          parsedSizes = JSON.parse(product.sizes);
+        } catch (e) {
+          console.error('Error parsing sizes for product', product.id, ':', e);
+          parsedSizes = [];
+        }
+      }
+      
+      // Parse images if it's a string
+      if (typeof product.images === 'string' && product.images) {
+        try {
+          parsedImages = JSON.parse(product.images);
+        } catch (e) {
+          console.error('Error parsing images for product', product.id, ':', e);
+          parsedImages = [];
+        }
+      }
+      
+      return {
+        ...product,
+        sizes: parsedSizes,
+        images: parsedImages
+      };
+    });
+
+    res.json({
+      products: processedProducts,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(totalCount.rows[0].total / limit),
+        totalProducts: parseInt(totalCount.rows[0].total),
+        hasNextPage: page < Math.ceil(totalCount.rows[0].total / limit),
+        hasPrevPage: page > 1
+      }
+    });
+
+  } catch (error) {
+    console.error('Products fetch error:', error);
+    res.status(500).json({ message: 'Server error fetching products' });
+  }
+});
+
+// Update product with images support
+router.put('/products/:id', [
+  authenticateToken,
+  requireSeller,
+  s3ProductsUpload.fields([
+    { name: 'images', maxCount: 10 },
+    { name: 'videos', maxCount: 2 }
+  ]),
+  body('name').optional().trim().isLength({ min: 2 }),
+  body('description').optional().trim().isLength({ min: 10 }),
+  body('price').optional().custom((value) => {
+    if (value === undefined || value === null || value === '') {
+      return true; // Optional field, skip validation if empty
+    }
+    const numValue = parseFloat(value);
+    if (isNaN(numValue)) {
+      throw new Error('Price must be a valid number');
+    }
+    if (numValue < 0.01) {
+      throw new Error('Price must be at least 0.01');
+    }
+    return true;
+  }),
+  body('category').optional().trim().isLength({ min: 2 }),
+  body('stock_quantity').optional().custom((value) => {
+    if (value === undefined || value === null || value === '') {
+      return true; // Optional field, skip validation if empty
+    }
+    const numValue = parseInt(value, 10);
+    if (isNaN(numValue)) {
+      throw new Error('Stock quantity must be a valid integer');
+    }
+    if (numValue < 0) {
+      throw new Error('Stock quantity must be non-negative');
+    }
+    return true;
+  }),
+  body('product_id').optional().trim(),
+  body('actual_buy_price').optional().custom((value) => {
+    if (value === undefined || value === null || value === '') {
+      return true; // Optional field, skip validation if empty
+    }
+    const numValue = parseFloat(value);
+    if (isNaN(numValue)) {
+      throw new Error('Buy price must be a valid number');
+    }
+    if (numValue < 0) {
+      throw new Error('Buy price must be non-negative');
+    }
+    return true;
+  }),
+  body('other_details').optional().trim(),
+  body('image_url').optional().trim(),
+  body('existingImages').optional(),
+  body('deletedImages').optional(),
+  body('cod_eligible').optional().custom((value) => {
+    if (value === undefined || value === null || value === '') {
+      return true; // Optional field, skip validation if empty
+    }
+    // Handle boolean values that come as strings from FormData
+    if (value === 'true' || value === 'false' || value === true || value === false) {
+      return true;
+    }
+    throw new Error('COD eligible must be a boolean value');
+  }),
+], async (req, res) => {
+  try {
+    // Log incoming data for debugging
+    console.log('🔍 Product update request received:', {
+      productId: req.params.id,
+      priceValue: req.body.price,
+      priceType: typeof req.body.price,
+      priceAsFloat: parseFloat(req.body.price),
+      isNaN: isNaN(parseFloat(req.body.price)),
+      contentType: req.headers['content-type'],
+      allFields: Object.keys(req.body)
+    });
+    
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      console.log('🚨 Validation errors for product update:', {
+        errors: errors.array(),
+        requestBody: req.body,
+        contentType: req.headers['content-type'],
+        hasFiles: !!req.files
+      });
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const product_id = req.params.id;
+    const seller_id = req.user.id;
+    const { 
+      name, 
+      description, 
+      price, 
+      category, 
+      stock_quantity,
+      product_id: productIdField,
+      actual_buy_price,
+      other_details,
+      image_url: imageUrlField,
+      existingImages,
+      deletedImages,
+      cod_eligible
+    } = req.body;
+
+    // Check if product belongs to seller
+    const productCheck = await db.query(
+      'SELECT id, images FROM products WHERE id = $1 AND seller_id = $2',
+      [product_id, seller_id]
+    );
+
+    if (productCheck.rows.length === 0) {
+      return res.status(404).json({ message: 'Product not found or unauthorized' });
+    }
+
+    const currentProduct = productCheck.rows[0];
+
+    // Handle image management
+    let updatedImages = [];
+    
+    // Start with existing images (if any)
+    let existingImagesArray = [];
+    try {
+      existingImagesArray = existingImages ? JSON.parse(existingImages) : [];
+    } catch (e) {
+      console.log('Error parsing existing images:', e);
+    }
+
+    // Filter out deleted images
+    let deletedImagesArray = [];
+    try {
+      deletedImagesArray = deletedImages ? JSON.parse(deletedImages) : [];
+    } catch (e) {
+      console.log('Error parsing deleted images:', e);
+    }
+
+    console.log('Processing image deletions:', { deletedImagesArray, existingImagesLength: existingImagesArray.length });
+
+    // Keep existing images that weren't deleted
+    updatedImages = existingImagesArray.filter((img, index) => {
+      // Check deletion by ID (exact match only)
+      const deletedById = img.id && deletedImagesArray.includes(img.id.toString());
+      // Check deletion by index
+      const deletedByIndex = deletedImagesArray.includes(`index_${index}`);
+      // Check deletion by index as string (for backward compatibility)
+      const deletedByIndexString = deletedImagesArray.includes(index.toString());
+      
+      const shouldKeep = !deletedById && !deletedByIndex && !deletedByIndexString;
+      
+      if (!shouldKeep) {
+        console.log('Deleting image:', { 
+          img: { id: img.id, url: img.url }, 
+          index, 
+          deletedById, 
+          deletedByIndex, 
+          deletedByIndexString,
+          deletedImagesArray 
+        });
+      }
+      
+      return shouldKeep;
+    });
+
+    // Add new uploaded images
+    if (req.files && req.files.images) {
+      const newImages = req.files.images.map((file, index) => ({
+        url: file.location, // S3 URL from multer-s3
+        alt: req.body[`imageAlt_${index}`] || '',
+        order: updatedImages.length + index
+      }));
+      updatedImages = [...updatedImages, ...newImages];
+    }
+
+    // Build dynamic update query
+    let updateFields = [];
+    let queryParams = [];
+    let paramCount = 0;
+
+    if (name) {
+      paramCount++;
+      updateFields.push(`name = $${paramCount}`);
+      queryParams.push(name);
+    }
+    if (description) {
+      paramCount++;
+      updateFields.push(`description = $${paramCount}`);
+      queryParams.push(description);
+    }
+    if (price) {
+      paramCount++;
+      updateFields.push(`price = $${paramCount}`);
+      queryParams.push(price);
+    }
+    if (category) {
+      paramCount++;
+      updateFields.push(`category = $${paramCount}`);
+      queryParams.push(category);
+    }
+    if (stock_quantity !== undefined) {
+      paramCount++;
+      updateFields.push(`stock_quantity = $${paramCount}`);
+      queryParams.push(stock_quantity);
+    }
+    if (productIdField) {
+      paramCount++;
+      updateFields.push(`product_id = $${paramCount}`);
+      queryParams.push(productIdField);
+    }
+    if (actual_buy_price !== undefined) {
+      paramCount++;
+      updateFields.push(`actual_buy_price = $${paramCount}`);
+      queryParams.push(actual_buy_price);
+    }
+    if (other_details) {
+      paramCount++;
+      updateFields.push(`other_details = $${paramCount}`);
+      queryParams.push(other_details);
+    }
+    if (cod_eligible !== undefined) {
+      paramCount++;
+      updateFields.push(`cod_eligible = $${paramCount}`);
+      queryParams.push(cod_eligible);
+    }
+    
+    // Update images array
+    if (updatedImages.length > 0 || deletedImagesArray.length > 0) {
+      paramCount++;
+      updateFields.push(`images = $${paramCount}`);
+      queryParams.push(JSON.stringify(updatedImages));
+      console.log('Updating images in database:', { 
+        originalLength: currentProduct.images?.length || 0, 
+        finalLength: updatedImages.length,
+        deletedCount: deletedImagesArray.length 
+      });
+    }
+    
+    // Handle legacy image_url if provided
+    if (imageUrlField) {
+      paramCount++;
+      updateFields.push(`image_url = $${paramCount}`);
+      queryParams.push(imageUrlField);
+    }
+
+    if (updateFields.length === 0) {
+      return res.status(400).json({ message: 'No fields to update' });
+    }
+
+    updateFields.push('updated_at = CURRENT_TIMESTAMP');
+    queryParams.push(product_id, seller_id);
+
+    const updateQuery = `
+      UPDATE products SET ${updateFields.join(', ')}
+      WHERE id = $${paramCount + 1} AND seller_id = $${paramCount + 2}
+      RETURNING id, name, description, price, category, stock_quantity, product_id, 
+                actual_buy_price, other_details, image_url, images, updated_at, cod_eligible
+    `;
+
+    const updatedProduct = await db.query(updateQuery, queryParams);
+
+    res.json({
+      message: 'Product updated successfully',
+      product: updatedProduct.rows[0]
+    });
+
+  } catch (error) {
+    console.error('Product update error:', error);
+    res.status(500).json({ message: 'Server error updating product' });
+  }
+});
+
+// Toggle product active status
+router.patch('/products/:id/toggle', [
+  authenticateToken,
+  requireSeller
+], async (req, res) => {
+  try {
+    const product_id = req.params.id;
+    const seller_id = req.user.id;
+
+    const updatedProduct = await db.query(
+      `UPDATE products SET 
+       is_active = NOT is_active, 
+       updated_at = CURRENT_TIMESTAMP
+       WHERE id = $1 AND seller_id = $2
+       RETURNING id, name, is_active`,
+      [product_id, seller_id]
+    );
+
+    if (updatedProduct.rows.length === 0) {
+      return res.status(404).json({ message: 'Product not found or unauthorized' });
+    }
+
+    res.json({
+      message: 'Product status updated successfully',
+      product: updatedProduct.rows[0]
+    });
+
+  } catch (error) {
+    console.error('Product status update error:', error);
+    res.status(500).json({ message: 'Server error updating product status' });
+  }
+});
+
+// Get orders for seller's products
+router.get('/orders', [
+  authenticateToken,
+  requireSeller,
+  query('status').optional().isIn(['pending', 'processing', 'shipped', 'delivered', 'cancelled']),
+  query('page').optional().isInt({ min: 1 }),
+  query('limit').optional().isInt({ min: 1, max: 100 }),
+], async (req, res) => {
+  try {
+    const seller_id = req.user.id;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const offset = (page - 1) * limit;
+    const status = req.query.status;
+
+    let whereClause = 'WHERE p.seller_id = $1';
+    let queryParams = [seller_id];
+    let paramCount = 1;
+
+    if (status) {
+      paramCount++;
+      whereClause += ` AND o.status = $${paramCount}`;
+      queryParams.push(status);
+    }
+
+    queryParams.push(limit, offset);
+
+    const ordersQuery = `
+      SELECT 
+        o.id as order_id, o.total_amount, o.status, o.shipping_address::text as shipping_address, o.created_at,
+        u.full_name as customer_name, u.email as customer_email,
+        json_agg(
+          json_build_object(
+            'product_id', p.id,
+            'product_name', p.name,
+            'quantity', oi.quantity,
+            'price', oi.price,
+            'total', oi.total,
+            'selected_size', COALESCE(oi.selected_size, 'One Size'),
+            'price_edited_by_seller', COALESCE(oi.price_edited_by_seller, false),
+            'quantity_edited_by_seller', COALESCE(oi.quantity_edited_by_seller, false),
+            'buy_price_edited_by_seller', COALESCE(oi.buy_price_edited_by_seller, false),
+            'other_profit_loss', COALESCE(oi.other_profit_loss, 0),
+            'other_profit_loss_edited_by_seller', COALESCE(oi.other_profit_loss_edited_by_seller, false),
+            'edited_at', oi.edited_at
+          )
+        ) as items
+      FROM orders o
+      JOIN order_items oi ON o.id = oi.order_id
+      JOIN products p ON oi.product_id = p.id
+      JOIN users u ON o.customer_id = u.id
+      ${whereClause}
+      GROUP BY o.id, o.total_amount, o.status, o.shipping_address, o.created_at, u.full_name, u.email
+      ORDER BY o.created_at DESC
+      LIMIT $${paramCount + 1} OFFSET $${paramCount + 2}
+    `;
+
+    const orders = await db.query(ordersQuery, queryParams);
+
+    // Get total count
+    const countQuery = `
+      SELECT COUNT(DISTINCT o.id) as total
+      FROM orders o
+      JOIN order_items oi ON o.id = oi.order_id
+      JOIN products p ON oi.product_id = p.id
+      ${whereClause}
+    `;
+
+    const totalCount = await db.query(countQuery, queryParams.slice(0, paramCount));
+
+    res.json({
+      orders: orders.rows,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(totalCount.rows[0].total / limit),
+        totalOrders: parseInt(totalCount.rows[0].total),
+        hasNextPage: page < Math.ceil(totalCount.rows[0].total / limit),
+        hasPrevPage: page > 1
+      }
+    });
+
+  } catch (error) {
+    console.error('Seller orders fetch error:', error);
+    res.status(500).json({ message: 'Server error fetching orders' });
+  }
+});
+
+// Update order status
+router.patch('/orders/:id/status', [
+  authenticateToken,
+  requireSeller,
+  body('status').isIn(['pending', 'processing', 'shipped', 'delivered', 'cancelled']),
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const order_id = req.params.id;
+    const seller_id = req.user.id;
+    const { status } = req.body;
+
+    // Check if order contains seller's products
+    const orderCheck = await db.query(
+      `SELECT DISTINCT o.id
+       FROM orders o
+       JOIN order_items oi ON o.id = oi.order_id
+       JOIN products p ON oi.product_id = p.id
+       WHERE o.id = $1 AND p.seller_id = $2`,
+      [order_id, seller_id]
+    );
+
+    if (orderCheck.rows.length === 0) {
+      return res.status(404).json({ message: 'Order not found or unauthorized' });
+    }
+
+    const updatedOrder = await db.query(
+      'UPDATE orders SET status = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 RETURNING id, status',
+      [status, order_id]
+    );
+
+    res.json({
+      message: 'Order status updated successfully',
+      order: updatedOrder.rows[0]
+    });
+
+  } catch (error) {
+    console.error('Order status update error:', error);
+    res.status(500).json({ message: 'Server error updating order status' });
+  }
+});
+
+// Update order details (price, quantity, etc.) with edit tracking
+router.patch('/orders/:id/details', [
+  authenticateToken,
+  requireSeller,
+  body('product_price').optional().isFloat({ min: 0 }),
+  body('actual_buy_price').optional().isFloat({ min: 0 }),
+  body('quantity').optional().isInt({ min: 1 }),
+  body('other_profit_loss').optional().isFloat(),
+  body('edited_by_seller').isBoolean(),
+  body('edited_at').isISO8601(),
+], async (req, res) => {
+  const client = await db.getClient();
+  
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    await client.query('BEGIN');
+
+    const order_id = req.params.id;
+    const seller_id = req.user.id;
+    const { product_price, actual_buy_price, quantity, other_profit_loss, edited_by_seller, edited_at } = req.body;
+
+    // Check if order contains seller's products
+    const orderCheck = await client.query(
+      `SELECT DISTINCT o.id, oi.id as item_id, oi.product_id, p.id as product_id
+       FROM orders o
+       JOIN order_items oi ON o.id = oi.order_id
+       JOIN products p ON oi.product_id = p.id
+       WHERE o.id = $1 AND p.seller_id = $2`,
+      [order_id, seller_id]
+    );
+
+    if (orderCheck.rows.length === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ message: 'Order not found or unauthorized' });
+    }
+
+    // Update order item details
+    const updates = [];
+    const params = [];
+    let paramCount = 0;
+
+    if (product_price !== undefined) {
+      paramCount++;
+      updates.push(`price = $${paramCount}`);
+      params.push(product_price);
+      
+      paramCount++;
+      updates.push(`price_edited_by_seller = $${paramCount}`);
+      params.push(edited_by_seller);
+    }
+
+    if (quantity !== undefined) {
+      paramCount++;
+      updates.push(`quantity = $${paramCount}`);
+      params.push(quantity);
+      
+      paramCount++;
+      updates.push(`quantity_edited_by_seller = $${paramCount}`);
+      params.push(edited_by_seller);
+    }
+
+    if (actual_buy_price !== undefined) {
+      // Update product's actual buy price in sizes
+      await client.query(
+        `UPDATE products SET sizes = jsonb_set(sizes, '{0,actual_buy_price}', $1::text::jsonb)
+         WHERE id = $2 AND seller_id = $3`,
+        [actual_buy_price, orderCheck.rows[0].product_id, seller_id]
+      );
+      
+      paramCount++;
+      updates.push(`buy_price_edited_by_seller = $${paramCount}`);
+      params.push(edited_by_seller);
+    }
+
+    if (other_profit_loss !== undefined) {
+      paramCount++;
+      updates.push(`other_profit_loss = $${paramCount}`);
+      params.push(other_profit_loss);
+      
+      paramCount++;
+      updates.push(`other_profit_loss_edited_by_seller = $${paramCount}`);
+      params.push(edited_by_seller);
+    }
+
+    if (updates.length > 0) {
+      paramCount++;
+      updates.push(`edited_at = $${paramCount}`);
+      params.push(edited_at);
+      
+      paramCount++;
+      params.push(order_id);
+
+      const updateQuery = `
+        UPDATE order_items 
+        SET ${updates.join(', ')}, total = price * quantity
+        WHERE order_id = $${paramCount}
+        RETURNING *`;
+
+      await client.query(updateQuery, params);
+
+      // Recalculate order total
+      await client.query(
+        `UPDATE orders 
+         SET total_amount = (
+           SELECT SUM(oi.price * oi.quantity) 
+           FROM order_items oi 
+           WHERE oi.order_id = $1
+         ),
+         updated_at = CURRENT_TIMESTAMP
+         WHERE id = $1`,
+        [order_id]
+      );
+    }
+
+    await client.query('COMMIT');
+
+    res.json({
+      message: 'Order details updated successfully',
+      order_id: order_id
+    });
+
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Order details update error:', error);
+    res.status(500).json({ message: 'Server error updating order details' });
+  } finally {
+    client.release();
+  }
+});
+
+// Bulk update products
+router.patch('/products/bulk', [
+  authenticateToken,
+  requireSeller,
+  body('productIds').isArray().notEmpty(),
+  body('updates').isObject().notEmpty(),
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { productIds, updates } = req.body;
+    const seller_id = req.user.id;
+
+    // Validate that all products belong to seller
+    const productCheck = await db.query(
+      'SELECT id FROM products WHERE id = ANY($1) AND seller_id = $2',
+      [productIds, seller_id]
+    );
+
+    if (productCheck.rows.length !== productIds.length) {
+      return res.status(404).json({ message: 'Some products not found or unauthorized' });
+    }
+
+    // Build dynamic update query
+    let updateFields = [];
+    let queryParams = [];
+    let paramCount = 0;
+
+    if (updates.stock_quantity !== undefined) {
+      paramCount++;
+      updateFields.push(`stock_quantity = $${paramCount}`);
+      queryParams.push(updates.stock_quantity);
+    }
+    if (updates.price !== undefined) {
+      paramCount++;
+      updateFields.push(`price = $${paramCount}`);
+      queryParams.push(updates.price);
+    }
+    if (updates.category !== undefined) {
+      paramCount++;
+      updateFields.push(`category = $${paramCount}`);
+      queryParams.push(updates.category);
+    }
+    if (updates.is_active !== undefined) {
+      paramCount++;
+      updateFields.push(`is_active = $${paramCount}`);
+      queryParams.push(updates.is_active);
+    }
+
+    if (updateFields.length === 0) {
+      return res.status(400).json({ message: 'No valid fields to update' });
+    }
+
+    updateFields.push('updated_at = CURRENT_TIMESTAMP');
+    queryParams.push(productIds, seller_id);
+
+    const updateQuery = `
+      UPDATE products SET ${updateFields.join(', ')}
+      WHERE id = ANY($${paramCount + 1}) AND seller_id = $${paramCount + 2}
+      RETURNING id, name, price, category, stock_quantity, is_active, updated_at
+    `;
+
+    const updatedProducts = await db.query(updateQuery, queryParams);
+
+    res.json({
+      message: 'Products updated successfully',
+      products: updatedProducts.rows,
+      updatedCount: updatedProducts.rows.length
+    });
+
+  } catch (error) {
+    console.error('Bulk products update error:', error);
+    res.status(500).json({ message: 'Server error updating products' });
+  }
+});
+
+// Get products with advanced filtering
+router.get('/products/search', [
+  authenticateToken,
+  requireSeller,
+  query('page').optional().isInt({ min: 1 }),
+  query('limit').optional().isInt({ min: 1, max: 100 }),
+  query('product_id').optional().trim(),
+  query('name').optional().trim(),
+  query('category').optional().trim(),
+  query('is_active').optional().isBoolean(),
+  query('min_stock').optional().isInt({ min: 0 }),
+  query('max_stock').optional().isInt({ min: 0 }),
+], async (req, res) => {
+  try {
+    const seller_id = req.user.id;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+    const offset = (page - 1) * limit;
+
+    let whereClause = 'WHERE seller_id = $1';
+    let queryParams = [seller_id];
+    let paramCount = 1;
+
+    // Add filters
+    if (req.query.product_id) {
+      paramCount++;
+      whereClause += ` AND product_id ILIKE $${paramCount}`;
+      queryParams.push(`%${req.query.product_id}%`);
+    }
+    if (req.query.name) {
+      paramCount++;
+      whereClause += ` AND name ILIKE $${paramCount}`;
+      queryParams.push(`%${req.query.name}%`);
+    }
+    if (req.query.category) {
+      paramCount++;
+      whereClause += ` AND category = $${paramCount}`;
+      queryParams.push(req.query.category);
+    }
+    if (req.query.is_active !== undefined) {
+      paramCount++;
+      whereClause += ` AND is_active = $${paramCount}`;
+      queryParams.push(req.query.is_active === 'true');
+    }
+    if (req.query.min_stock !== undefined) {
+      paramCount++;
+      whereClause += ` AND stock_quantity >= $${paramCount}`;
+      queryParams.push(parseInt(req.query.min_stock));
+    }
+    if (req.query.max_stock !== undefined) {
+      paramCount++;
+      whereClause += ` AND stock_quantity <= $${paramCount}`;
+      queryParams.push(parseInt(req.query.max_stock));
+    }
+
+    const products = await db.query(
+      `SELECT id, product_id, name, description, price, actual_buy_price, 
+              category, stock_quantity, sizes, image_url, images, is_active, 
+              created_at, updated_at, cod_eligible
+       FROM products 
+       ${whereClause}
+       ORDER BY created_at DESC
+       LIMIT $${paramCount + 1} OFFSET $${paramCount + 2}`,
+      [...queryParams, limit, offset]
+    );
+
+    // Get total count with same filters
+    const totalCount = await db.query(
+      `SELECT COUNT(*) as total FROM products ${whereClause}`,
+      queryParams
+    );
+
+    res.json({
+      products: products.rows,
+      pagination: {
+        currentPage: page,
+        totalPages: Math.ceil(totalCount.rows[0].total / limit),
+        totalProducts: parseInt(totalCount.rows[0].total),
+        hasNextPage: page < Math.ceil(totalCount.rows[0].total / limit),
+        hasPrevPage: page > 1
+      },
+      filters: req.query
+    });
+
+  } catch (error) {
+    console.error('Products search error:', error);
+    res.status(500).json({ message: 'Server error searching products' });
+  }
+});
+
+// Update product sizes
+router.put('/products/:id/sizes', [
+  authenticateToken,
+  requireSeller,
+  body('sizes').isArray().withMessage('Sizes must be an array'),
+  body('sizes.*.size').trim().notEmpty().withMessage('Size name is required'),
+  body('sizes.*.quantity').isInt({ min: 0 }).withMessage('Size quantity must be non-negative'),
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const productId = req.params.id;
+    const { sizes } = req.body;
+    const seller_id = req.user.id;
+
+    // Verify product belongs to seller
+    const productCheck = await db.query(
+      'SELECT id FROM products WHERE id = $1 AND seller_id = $2',
+      [productId, seller_id]
+    );
+
+    if (productCheck.rows.length === 0) {
+      return res.status(404).json({ message: 'Product not found or access denied' });
+    }
+
+    // Process and validate sizes
+    const validSizes = sizes.filter(size => size.size && size.size.trim()).map(size => ({
+      size: size.size.trim(),
+      quantity: parseInt(size.quantity) || 0
+    }));
+
+    if (validSizes.length === 0) {
+      return res.status(400).json({ message: 'At least one valid size is required' });
+    }
+
+    // Calculate total stock
+    const totalStock = validSizes.reduce((total, size) => total + size.quantity, 0);
+
+    // Update product sizes and stock
+    await db.query(
+      `UPDATE products 
+       SET sizes = $1, stock_quantity = $2, is_active = $3, updated_at = CURRENT_TIMESTAMP
+       WHERE id = $4`,
+      [JSON.stringify(validSizes), totalStock, totalStock > 0, productId]
+    );
+
+    res.json({
+      message: 'Product sizes updated successfully',
+      sizes: validSizes,
+      total_stock: totalStock
+    });
+
+  } catch (error) {
+    console.error('Size update error:', error);
+    res.status(500).json({ message: 'Server error updating product sizes' });
+  }
+});
+
+// Update specific size quantity (for quick inventory adjustments)
+router.patch('/products/:id/sizes/:size', [
+  authenticateToken,
+  requireSeller
+], async (req, res) => {
+  try {
+    console.log('=== PATCH /products/:id/sizes/:size ===');
+    console.log('Product ID:', req.params.id);
+    console.log('Size:', req.params.size);
+    console.log('Request body:', req.body);
+    console.log('User:', req.user);
+
+    // Manual validation
+    const { quantity, price, market_price, actual_buy_price } = req.body;
+    
+    if (quantity !== undefined && (isNaN(quantity) || quantity < 0)) {
+      return res.status(400).json({ 
+        errors: [{ 
+          field: 'quantity', 
+          message: 'Quantity must be a non-negative number' 
+        }] 
+      });
+    }
+    
+    if (price !== undefined && (isNaN(price) || price < 0)) {
+      return res.status(400).json({ 
+        errors: [{ 
+          field: 'price', 
+          message: 'Price must be a non-negative number' 
+        }] 
+      });
+    }
+    
+    if (market_price !== undefined && (isNaN(market_price) || market_price < 0)) {
+      return res.status(400).json({ 
+        errors: [{ 
+          field: 'market_price', 
+          message: 'Market price must be a non-negative number' 
+        }] 
+      });
+    }
+    
+    if (actual_buy_price !== undefined && (isNaN(actual_buy_price) || actual_buy_price < 0)) {
+      return res.status(400).json({ 
+        errors: [{ 
+          field: 'actual_buy_price', 
+          message: 'Actual buy price must be a non-negative number' 
+        }] 
+      });
+    }
+
+    const productId = req.params.id;
+    const sizeName = decodeURIComponent(req.params.size);
+    const seller_id = req.user.id;
+
+    // Verify product belongs to seller
+    const productCheck = await db.query(
+      'SELECT id, sizes FROM products WHERE id = $1 AND seller_id = $2',
+      [productId, seller_id]
+    );
+
+    if (productCheck.rows.length === 0) {
+      return res.status(404).json({ message: 'Product not found or access denied' });
+    }
+
+    const currentSizes = productCheck.rows[0].sizes || [];
+    
+    // Update the sizes array with new quantity, price, market_price, and/or actual_buy_price
+    let updated = false;
+    const updatedSizes = currentSizes.map(sizeData => {
+      if (sizeData.size === sizeName) {
+        updated = true;
+        const updatedSize = { ...sizeData };
+        if (quantity !== undefined) {
+          updatedSize.quantity = quantity;
+        }
+        if (price !== undefined) {
+          updatedSize.price = price;
+        }
+        if (market_price !== undefined) {
+          updatedSize.market_price = market_price;
+        }
+        if (actual_buy_price !== undefined) {
+          updatedSize.actual_buy_price = actual_buy_price;
+        }
+        return updatedSize;
+      }
+      return sizeData;
+    });
+
+    if (!updated) {
+      return res.status(404).json({ message: 'Size not found for this product' });
+    }
+
+    // Calculate new total stock
+    const totalStock = updatedSizes.reduce((sum, size) => sum + (size.quantity || 0), 0);
+
+    // Update the product in database
+    await db.query(
+      'UPDATE products SET sizes = $1, stock_quantity = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3',
+      [JSON.stringify(updatedSizes), totalStock, productId]
+    );
+
+    res.json({
+      message: 'Size updated successfully',
+      sizes: updatedSizes,
+      total_stock: totalStock
+    });
+
+  } catch (error) {
+    console.error('Size update error:', error);
+    res.status(500).json({ message: 'Server error updating size' });
+  }
+});
+
+// Get product sizes for seller
+router.get('/products/:id/sizes', [
+  authenticateToken,
+  requireSeller
+], async (req, res) => {
+  try {
+    const productId = req.params.id;
+    const seller_id = req.user.id;
+
+    const result = await db.query(
+      'SELECT sizes FROM products WHERE id = $1 AND seller_id = $2',
+      [productId, seller_id]
+    );
+
+    if (result.rows.length === 0) {
+      return res.status(404).json({ message: 'Product not found or access denied' });
+    }
+
+    res.json({ sizes: result.rows[0].sizes || [] });
+
+  } catch (error) {
+    console.error('Product sizes fetch error:', error);
+    res.status(500).json({ message: 'Server error fetching product sizes' });
+  }
+});
+
+// Get product offers for a specific product
+router.get('/products/:id/offers', [
+  authenticateToken,
+  requireSeller,
+], async (req, res) => {
+  try {
+    const product_id = req.params.id;
+    const seller_id = req.user.id;
+
+    // Check if product belongs to seller
+    const productCheck = await db.query(
+      'SELECT id FROM products WHERE id = $1 AND seller_id = $2',
+      [product_id, seller_id]
+    );
+
+    if (productCheck.rows.length === 0) {
+      return res.status(404).json({ message: 'Product not found or unauthorized' });
+    }
+
+    const result = await db.query(`
+      SELECT o.offer_code, o.name, o.description
+      FROM product_offers po
+      JOIN offers o ON po.offer_code = o.offer_code
+      WHERE po.product_id = $1 AND o.is_active = true
+      ORDER BY o.name
+    `, [product_id]);
+
+    res.json({ success: true, offers: result.rows });
+  } catch (error) {
+    console.error('Error fetching product offers:', error);
+    res.status(500).json({ success: false, message: 'Server error fetching product offers' });
+  }
+});
+
+// Update product offers
+router.put('/products/:id/offers', [
+  authenticateToken,
+  requireSeller,
+  body('offers').isArray().withMessage('Offers must be an array'),
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const product_id = req.params.id;
+    const seller_id = req.user.id;
+    const { offers } = req.body;
+
+    // Check if product belongs to seller
+    const productCheck = await db.query(
+      'SELECT id FROM products WHERE id = $1 AND seller_id = $2',
+      [product_id, seller_id]
+    );
+
+    if (productCheck.rows.length === 0) {
+      return res.status(404).json({ message: 'Product not found or unauthorized' });
+    }
+
+    // Start transaction
+    await db.query('BEGIN');
+
+    try {
+      // Remove existing offers for this product
+      await db.query('DELETE FROM product_offers WHERE product_id = $1', [product_id]);
+
+      // Add new offers
+      if (offers && offers.length > 0) {
+        const values = offers.map((offer, index) => `($1, $${index + 2})`).join(', ');
+        const params = [product_id, ...offers];
+        
+        await db.query(
+          `INSERT INTO product_offers (product_id, offer_code) VALUES ${values}`,
+          params
+        );
+      }
+
+      await db.query('COMMIT');
+
+      // Fetch updated offers
+      const result = await db.query(`
+        SELECT o.offer_code, o.name, o.description
+        FROM product_offers po
+        JOIN offers o ON po.offer_code = o.offer_code
+        WHERE po.product_id = $1 AND o.is_active = true
+        ORDER BY o.name
+      `, [product_id]);
+
+      res.json({ 
+        success: true, 
+        message: 'Product offers updated successfully',
+        offers: result.rows 
+      });
+    } catch (error) {
+      await db.query('ROLLBACK');
+      throw error;
+    }
+  } catch (error) {
+    console.error('Error updating product offers:', error);
+    res.status(500).json({ success: false, message: 'Server error updating product offers' });
+  }
+});
+
+// Update COD eligibility for a specific size
+router.put('/products/:productId/sizes/:size/cod-eligibility', [
+  authenticateToken,
+  requireSeller,
+  body('cod_eligible').isBoolean(),
+], async (req, res) => {
+  try {
+    const { productId, size } = req.params;
+    const { cod_eligible } = req.body;
+    const seller_id = req.user.id;
+
+    // Verify product belongs to seller
+    const product = await db.query(
+      'SELECT sizes FROM products WHERE id = $1 AND seller_id = $2',
+      [productId, seller_id]
+    );
+
+    if (product.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Product not found or access denied' });
+    }
+
+    const sizes = product.rows[0].sizes || [];
+    const updatedSizes = sizes.map(sizeData => {
+      if (sizeData.size === size) {
+        return { ...sizeData, cod_eligible };
+      }
+      return sizeData;
+    });
+
+    // Update the product with new sizes array
+    await db.query(
+      'UPDATE products SET sizes = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 AND seller_id = $3',
+      [JSON.stringify(updatedSizes), productId, seller_id]
+    );
+
+    res.json({ 
+      success: true, 
+      message: `COD eligibility for size ${size} updated successfully`,
+      cod_eligible 
+    });
+
+  } catch (error) {
+    console.error('Error updating size COD eligibility:', error);
+    res.status(500).json({ success: false, message: 'Server error updating COD eligibility' });
+  }
+});
+
+// Get COD eligibility for all sizes of a product
+router.get('/products/:productId/cod-eligibility', [
+  authenticateToken,
+  requireSeller,
+], async (req, res) => {
+  try {
+    const { productId } = req.params;
+    const seller_id = req.user.id;
+
+    const product = await db.query(
+      'SELECT sizes FROM products WHERE id = $1 AND seller_id = $2',
+      [productId, seller_id]
+    );
+
+    if (product.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Product not found or access denied' });
+    }
+
+    const sizes = product.rows[0].sizes || [];
+    const codEligibility = sizes.reduce((acc, sizeData) => {
+      acc[sizeData.size] = sizeData.cod_eligible || false;
+      return acc;
+    }, {});
+
+    res.json({ success: true, cod_eligibility: codEligibility });
+
+  } catch (error) {
+    console.error('Error fetching COD eligibility:', error);
+    res.status(500).json({ success: false, message: 'Server error fetching COD eligibility' });
+  }
+});
+
+module.exports = router;
