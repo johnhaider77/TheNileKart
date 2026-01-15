@@ -1,0 +1,31 @@
+{
+  "name": "thenilekart",
+  "version": "1.0.0",
+  "description": "TheNileKart E-commerce Platform",
+  "main": "index.js",
+  "scripts": {
+    "prestart": "./cleanup.sh",
+    "start": "concurrently --kill-others --prefix-colors \"bgBlue.bold,bgMagenta.bold\" --names \"BACKEND,FRONTEND\" \"npm run backend\" \"npm run frontend\"",
+    "start:safe": "concurrently --kill-others --success first --prefix-colors \"bgBlue.bold,bgMagenta.bold\" --names \"BACKEND,FRONTEND\" \"npm run backend\" \"npm run frontend\"",
+    "dev": "concurrently --kill-others --prefix-colors \"bgBlue.bold,bgMagenta.bold\" --names \"BACKEND,FRONTEND\" \"npm run backend:dev\" \"npm run frontend\"",
+    "backend": "cd backend && npm start",
+    "backend:dev": "cd backend && npm run dev",
+    "frontend": "cd frontend && npm start",
+    "install-all": "npm install && cd frontend && npm install && cd ../backend && npm install",
+    "build": "cd frontend && npm run build",
+    "clean": "rm -rf node_modules frontend/node_modules backend/node_modules",
+    "clean-install": "npm run clean && npm run install-all",
+    "cleanup": "./cleanup.sh"
+  },
+  "keywords": [
+    "ecommerce",
+    "react",
+    "nodejs",
+    "postgresql"
+  ],
+  "author": "TheNileKart Team",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
