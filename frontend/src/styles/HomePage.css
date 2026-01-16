@@ -1,0 +1,318 @@
+/* HomePage.css */
+.home-page {
+  background: var(--background-primary);
+  min-height: 100vh;
+}
+
+/* Search spinner animation */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Hero Section */
+.hero-section {
+  background: white;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.banner-section {
+  margin-bottom: 0.25rem; /* Minimal gap between banner and search */
+}
+
+/* Search Section */
+.search-section {
+  padding: 0.125rem 0 0.25rem; /* Almost no padding */
+}
+
+.search-container {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.search-bar {
+  display: flex;
+  gap: 0.5rem;
+  background: white;
+  padding: 0.5rem;
+  border-radius: 10px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.search-input {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 1rem;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #007bff;
+}
+
+.category-select {
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: white;
+  font-size: 1rem;
+  min-width: 200px;
+}
+
+.search-button {
+  background: #007bff;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.search-button:hover {
+  background: #0056b3;
+}
+
+/* Products Sections */
+.products-section {
+  margin: 0.75rem 0; /* Minimal spacing between sections */
+}
+
+.section-title {
+  font-size: 1.8rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem; /* Minimal bottom margin */
+  color: var(--text-primary);
+  text-align: left;
+}
+
+/* Horizontal Scroll Container for Product Cards */
+.products-scroll-container {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+}
+
+.products-scroll {
+  display: flex;
+  gap: 1rem;
+  padding: 0.5rem 0 1rem;
+  /* Enable manual scrolling */
+  overflow-x: auto;
+  overflow-y: hidden;
+  scroll-behavior: smooth;
+  /* Hide scrollbar by default but allow scrolling */
+  scrollbar-width: thin;
+  scrollbar-color: rgba(0, 123, 255, 0.3) transparent;
+  -webkit-overflow-scrolling: touch;
+  /* Ensure container takes full width for scrolling */
+  width: 100%;
+}
+
+/* Always show subtle scrollbars for manual control */
+.products-scroll::-webkit-scrollbar {
+  height: 4px;
+  display: block;
+}
+
+.products-scroll::-webkit-scrollbar-track {
+  background: rgba(0, 123, 255, 0.05);
+  border-radius: 2px;
+}
+
+.products-scroll::-webkit-scrollbar-thumb {
+  background: rgba(0, 123, 255, 0.2);
+  border-radius: 2px;
+}
+
+.products-scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 123, 255, 0.4);
+}
+
+/* Show more prominent scrollbar when user is actively scrolling */
+.products-scroll.user-scrolling::-webkit-scrollbar {
+  height: 6px;
+}
+
+.products-scroll.user-scrolling::-webkit-scrollbar-thumb {
+  background: rgba(0, 123, 255, 0.4);
+}
+
+/* Animation wrapper - separate from scroll container */
+.products-scroll-inner {
+  display: flex;
+  gap: 1rem;
+  min-width: fit-content;
+}
+
+/* Conditional marquee animations - only when not manually scrolling */
+.products-scroll.marquee-preferred:not(.user-scrolling) .products-scroll-inner {
+  animation: marquee-slow 45s linear infinite;
+}
+
+.products-scroll.marquee-trending:not(.user-scrolling) .products-scroll-inner {
+  animation: marquee-normal 30s linear infinite;
+}
+
+/* Pause animation on hover */
+.products-scroll:hover:not(.user-scrolling) .products-scroll-inner {
+  animation-play-state: paused;
+}
+
+/* Disable animation completely when user is manually scrolling */
+.products-scroll.user-scrolling .products-scroll-inner {
+  animation: none !important;
+}
+
+/* Slower marquee animation for preferred products - starts immediately visible */
+@keyframes marquee-slow {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%); /* Move only half the distance for seamless loop */
+  }
+}
+
+/* Normal speed marquee animation for trending products */
+@keyframes marquee-normal {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%); /* Move only half the distance for seamless loop */
+  }
+}
+
+
+
+/* Trending Badge */
+.trending-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  animation: pulse 2s infinite;
+  z-index: 5;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Categories Section */
+.categories-section {
+  margin: 0.75rem 0; /* Minimal margin */
+  background: var(--background-surface);
+  padding: 1rem; /* Reduced internal padding */
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+}
+
+.categories-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.5rem;
+}
+
+.category-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1.5rem;
+  background: var(--background-card);
+  border-radius: 12px;
+  text-decoration: none;
+  color: var(--text-primary);
+  transition: all 0.3s ease;
+  border: 2px solid transparent;
+}
+
+.category-tile:hover {
+  background: var(--background-surface);
+  border-color: var(--primary-color);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+  color: var(--primary-color);
+}
+
+.category-icon {
+  font-size: 2.5rem;
+  margin-bottom: 1rem;
+}
+
+.category-name {
+  font-size: 1rem;
+  font-weight: 500;
+  text-align: center;
+  line-height: 1.3;
+  margin: 0;
+}
+
+/* Mobile Responsive */
+@media (max-width: 768px) {
+  .search-bar {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .search-input, .category-select {
+    width: 100%;
+  }
+
+  .section-title {
+    font-size: 1.5rem;
+  }
+
+  .categories-grid {
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem;
+  }
+
+  .category-tile {
+    padding: 1rem;
+  }
+
+  .category-icon {
+    font-size: 2rem;
+  }
+
+  .category-name {
+    font-size: 0.9rem;
+  }
+
+  .categories-section {
+    margin: 2rem 0;
+    padding: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .hero-section .container {
+    padding: 0 1rem;
+  }
+
+  .search-container {
+    padding: 0 0.5rem;
+  }
+
+  .categories-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
