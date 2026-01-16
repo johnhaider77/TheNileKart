@@ -1,0 +1,95 @@
+/* Modern App Styles - Pink Canvas Theme */
+
+.App {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--background-primary);
+  position: relative;
+  /* Ensure App doesn't block scrolling */
+  overflow: visible;
+  touch-action: auto;
+}
+
+.main-content {
+  flex: 1;
+  padding-top: 70px; /* Account for fixed navbar */
+  position: relative;
+  z-index: 1;
+  /* Remove min-height constraint to allow proper mobile scrolling */
+  /* Simplified touch action for better compatibility */
+  touch-action: auto;
+  -webkit-overflow-scrolling: touch;
+  overflow: visible;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .main-content {
+    padding-top: 64px;
+    /* Remove min-height constraint to allow proper mobile scrolling */
+    /* Force scrolling to work on mobile */
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+    touch-action: auto !important;
+  }
+}
+
+/* Modern layout utilities */
+.page-container {
+  padding: var(--spacing-2xl) 0;
+}
+
+@media (max-width: 768px) {
+  .page-container {
+    padding: var(--spacing-lg) 0;
+  }
+}
+
+.page-header {
+  text-align: center;
+  margin-bottom: var(--spacing-2xl);
+}
+
+.page-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-sm);
+}
+
+.page-subtitle {
+  color: var(--text-secondary);
+  font-size: 1.25rem;
+}
+
+@media (max-width: 768px) {
+  .page-title {
+    font-size: 2rem;
+  }
+  
+  .page-subtitle {
+    font-size: 1.125rem;
+  }
+}
+
+/* Modern loading states */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 50vh;
+  gap: var(--spacing-lg);
+}
+
+.loading-text {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+/* Enhanced mobile scrolling */
+.smooth-scroll {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}

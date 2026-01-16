@@ -1,0 +1,459 @@
+/* Seller Dashboard Styles */
+.dashboard-stats {
+  gap: 1rem;
+  margin-bottom: 2rem;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+}
+
+/* Live Metrics Section */
+.live-metrics-section {
+  margin: 3rem 0;
+  padding: 2rem;
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+}
+
+.section-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #2d3748;
+  margin-bottom: 0.5rem;
+  text-align: center;
+}
+
+.section-subtitle {
+  font-size: 1.1rem;
+  color: #718096;
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.metrics-container {
+  background: white;
+  border-radius: 8px;
+  padding: 1rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.07);
+}
+
+/* Compact card styling for smaller standard space */
+.compact-card {
+  min-height: 120px;
+  max-width: 200px;
+  transition: all 0.3s ease;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.compact-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+/* Clickable card styling */
+.clickable-card {
+  cursor: pointer;
+  user-select: none;
+}
+
+.clickable-card:hover {
+  background-color: #f8f9fa;
+}
+
+.clickable-card:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Stat card content */
+.compact-card .card-body {
+  padding: 1rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+}
+
+.stat-icon {
+  font-size: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.stat-number {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #2c5aa0;
+  margin: 0.25rem 0;
+}
+
+.clickable-number {
+  transition: color 0.3s ease;
+}
+
+.clickable-card:hover .clickable-number {
+  color: #1e4080;
+  text-decoration: underline;
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  color: #666;
+  text-align: center;
+  line-height: 1.2;
+  margin: 0;
+}
+
+/* Grid responsive adjustments */
+@media (max-width: 1200px) {
+  .dashboard-stats {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .compact-card {
+    max-width: none;
+    min-height: 100px;
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 800px;
+  max-height: 90vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.modal-header h2 {
+  margin: 0;
+  color: #333;
+}
+
+.modal-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  padding: 0;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: background-color 0.3s ease;
+}
+
+.modal-close:hover {
+  background-color: #f5f5f5;
+}
+
+.modal-filters {
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #e0e0e0;
+  background-color: #f8f9fa;
+}
+
+.filter-row {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.filter-row:last-child {
+  margin-bottom: 0;
+}
+
+.filter-row .form-control {
+  flex: 1;
+  padding: 0.5rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1.5rem;
+}
+
+/* Product/Order Items */
+.seller-dashboard .products-list,
+.seller-dashboard .orders-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 0.5rem;
+}
+
+.seller-dashboard .product-item,
+.seller-dashboard .order-item {
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 1.25rem;
+  background-color: #fafafa;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  transition: all 0.2s ease;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.seller-dashboard .product-item:hover,
+.seller-dashboard .order-item:hover {
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+  transform: translateY(-1px);
+}
+
+.seller-dashboard .product-info h4,
+.seller-dashboard .order-header h4 {
+  margin: 0 0 0.75rem 0;
+  color: #333;
+  font-size: 1.1rem;
+  font-weight: 600;
+  line-height: 1.3;
+  word-break: break-word;
+}
+
+.seller-dashboard .product-info p,
+.seller-dashboard .order-item p {
+  margin: 0.5rem 0;
+  color: #666;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  word-wrap: break-word;
+  hyphens: auto;
+}
+
+.order-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 0.75rem;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.status-badge {
+  padding: 0.4rem 0.8rem;
+  border-radius: 16px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-width: fit-content;
+}
+
+.status-pending {
+  background-color: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffeaa7;
+}
+
+.status-processing {
+  background-color: #cce5ff;
+  color: #004085;
+  border: 1px solid #74b9ff;
+}
+
+.status-shipped {
+  background-color: #d4edda;
+  color: #155724;
+  border: 1px solid #00b894;
+}
+
+.status-delivered {
+  background-color: #d1ecf1;
+  color: #0c5460;
+  border: 1px solid #00cec9;
+}
+
+.status-cancelled {
+  background-color: #f8d7da;
+  color: #721c24;
+  border: 1px solid #fd79a8;
+}
+
+.order-items {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #e0e0e0;
+}
+
+.order-item-detail {
+  padding: 0.5rem 0;
+  font-size: 0.85rem;
+  color: #555;
+  line-height: 1.4;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  padding: 0.5rem 0.75rem;
+  margin: 0.25rem 0;
+  border-left: 3px solid #007bff;
+  word-break: break-word;
+}
+
+/* Responsive modal */
+@media (max-width: 768px) {
+  .modal-content {
+    width: 95%;
+    margin: 1rem;
+    max-height: 85vh;
+    overflow-y: auto;
+  }
+  
+  .filter-row {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  
+  .modal-header {
+    padding: 1rem;
+    flex-wrap: wrap;
+  }
+  
+  .modal-header h2 {
+    font-size: 1.25rem;
+    margin: 0;
+    word-break: break-word;
+  }
+  
+  .modal-close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    font-size: 1.5rem;
+  }
+  
+  .modal-body {
+    padding: 1rem;
+    max-height: calc(85vh - 140px);
+    overflow-y: auto;
+  }
+  
+  /* Mobile specific order item styles */
+  .order-item {
+    padding: 1rem;
+    margin-bottom: 0.75rem;
+  }
+  
+  .order-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+  
+  .order-header h4 {
+    font-size: 1rem;
+    margin: 0;
+    width: 100%;
+    word-break: break-word;
+  }
+  
+  .status-badge {
+    align-self: flex-start;
+    font-size: 0.7rem;
+    padding: 0.3rem 0.6rem;
+  }
+  
+  .order-item p {
+    font-size: 0.85rem;
+    margin: 0.4rem 0;
+    line-height: 1.5;
+  }
+  
+  .order-item-detail {
+    font-size: 0.8rem;
+    padding: 0.6rem 0.75rem;
+    margin: 0.4rem 0;
+    border-radius: 6px;
+  }
+  
+  .orders-list {
+    max-height: 300px;
+    padding-right: 0.25rem;
+  }
+}
+
+/* Extra small mobile devices */
+@media (max-width: 480px) {
+  .modal-content {
+    width: 98%;
+    margin: 0.5rem;
+  }
+  
+  .order-header h4 {
+    font-size: 0.95rem;
+  }
+  
+  .order-item p {
+    font-size: 0.8rem;
+  }
+  
+  .order-item-detail {
+    font-size: 0.75rem;
+    padding: 0.5rem 0.6rem;
+  }
+  
+  .status-badge {
+    font-size: 0.65rem;
+    padding: 0.25rem 0.5rem;
+  }
+}
+
+/* Clickable number styling */
+.clickable-number {
+  transition: all 0.2s ease;
+  border-radius: 4px;
+  padding: 0.2rem 0.4rem;
+}
+
+.clickable-card:hover .clickable-number {
+  background: rgba(255, 255, 255, 0.1);
+  transform: scale(1.05);
+}

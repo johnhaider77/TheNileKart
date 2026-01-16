@@ -1,0 +1,400 @@
+/* Financial Outlay Modal Specific Styles */
+.financial-modal {
+  max-width: 95vw;
+  max-height: 90vh;
+  width: 1200px;
+}
+
+.financial-modal .financial-outlay-section {
+  height: calc(90vh - 15vh) !important;
+  overflow-y: auto !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 1rem !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Modal Filters Styling */
+.financial-modal .modal-filters {
+  padding: 0.5rem 1rem !important;
+  background: #f8fafc !important;
+  border-bottom: 1px solid #e2e8f0 !important;
+  height: 10vh !important;
+  min-height: 80px !important;
+  max-height: 120px !important;
+  flex-shrink: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: space-between !important;
+}
+
+.financial-modal .modal-filters .filter-row {
+  display: flex !important;
+  gap: 1rem !important;
+  margin-bottom: 0.5rem !important;
+  align-items: center !important;
+  flex-wrap: wrap !important;
+  height: calc(5vh - 10px) !important;
+  min-height: 30px !important;
+}
+
+.financial-modal .modal-filters .filter-row:last-child {
+  margin-bottom: 0 !important;
+}
+
+.financial-modal .modal-filters .filter-row .form-control {
+  flex: 1 !important;
+  min-width: 120px !important;
+  padding: 0.4rem !important;
+  border: 1px solid #ddd !important;
+  border-radius: 4px !important;
+  font-size: 0.9rem !important;
+  height: 35px !important;
+  box-sizing: border-box !important;
+}
+
+.financial-modal .modal-filters .filter-row .form-control[type="date"] {
+  min-width: 110px !important;
+  max-width: 140px !important;
+  flex: 0 1 auto !important;
+  height: 35px !important;
+  box-sizing: border-box !important;
+}
+
+.financial-summary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 0;
+  flex-shrink: 0;
+  min-height: 100px;
+}
+
+.financial-summary h3 {
+  margin: 0 0 1rem 0;
+  font-size: 1.3rem;
+  font-weight: 600;
+}
+
+.summary-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.stat-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.stat-item:last-child {
+  border-bottom: none;
+}
+
+.stat-item span:first-child {
+  font-weight: 500;
+}
+
+.stat-item span:last-child {
+  font-weight: 700;
+}
+
+.stat-item .profit {
+  color: #4ade80;
+}
+
+.stat-item .loss {
+  color: #f87171;
+}
+
+.financial-table-container {
+  overflow-x: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  flex: 1;
+  min-height: calc(75vh - 200px);
+  max-height: calc(85vh - 200px);
+  overflow-y: auto;
+}
+
+.financial-table {
+  width: 100%;
+  min-width: 1100px;
+  border-collapse: collapse;
+  background: white;
+}
+
+.financial-table th {
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  color: white;
+  padding: 0.75rem;
+  text-align: left;
+  font-weight: 600;
+  font-size: 0.875rem;
+  border-bottom: 2px solid #e5e7eb;
+  position: sticky;
+  top: 0;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s ease;
+}
+
+.financial-table th:hover {
+  background: linear-gradient(135deg, #3730a3 0%, #6b21a8 100%);
+}
+
+.financial-table td {
+  padding: 0.75rem;
+  border-bottom: 1px solid #f3f4f6;
+  font-size: 0.875rem;
+  vertical-align: middle;
+}
+
+.financial-table tr:hover {
+  background-color: #f9fafb;
+}
+
+.financial-table tr:nth-child(even) {
+  background-color: #fafafa;
+}
+
+.financial-table tr:nth-child(even):hover {
+  background-color: #f3f4f6;
+}
+
+.financial-table .profit {
+  color: #059669;
+  font-weight: 600;
+}
+
+.financial-table .loss {
+  color: #dc2626;
+  font-weight: 600;
+}
+
+.edit-input {
+  width: 80px;
+  padding: 0.25rem;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 0.875rem;
+}
+
+.edit-actions {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.save-btn, .cancel-btn, .edit-btn {
+  padding: 0.25rem 0.5rem;
+  border: none;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.save-btn {
+  background: #10b981;
+  color: white;
+}
+
+.save-btn:hover {
+  background: #059669;
+}
+
+.cancel-btn {
+  background: #6b7280;
+  color: white;
+}
+
+.cancel-btn:hover {
+  background: #4b5563;
+}
+
+.edit-btn {
+  background: #3b82f6;
+  color: white;
+}
+
+.edit-btn:hover {
+  background: #2563eb;
+}
+
+.edit-btn:disabled {
+  background: #d1d5db;
+  color: #9ca3af;
+  cursor: not-allowed;
+}
+
+/* Edit marker styling */
+.edit-marker {
+  color: #f59e0b;
+  font-size: 0.8rem;
+  margin-left: 0.25rem;
+  display: inline-block;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+.edit-marker:hover {
+  transform: scale(1.2);
+}
+
+/* Responsive design for financial modal */
+@media (max-width: 1024px) {
+  .financial-modal {
+    width: 95vw;
+    margin: 1rem;
+  }
+  
+  .financial-table-container {
+    max-height: 40vh;
+  }
+  
+  .summary-stats {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .financial-summary {
+    padding: 1rem;
+  }
+  
+  .financial-summary h3 {
+    font-size: 1.1rem;
+  }
+  
+  .financial-table th,
+  .financial-table td {
+    padding: 0.5rem 0.25rem;
+    font-size: 0.75rem;
+  }
+  
+  .financial-table {
+    min-width: 800px;
+  }
+
+  /* Mobile-specific filter modal styles */
+  .financial-modal .modal-filters {
+    padding: 0.5rem !important;
+    min-height: 100px !important;
+    max-height: 140px !important;
+    height: auto !important;
+  }
+  
+  .financial-modal .modal-filters .filter-row {
+    gap: 0.25rem !important;
+    margin-bottom: 0.5rem !important;
+  }
+  
+  .financial-modal .modal-filters .filter-row .form-control {
+    min-width: 80px !important;
+    max-width: none !important;
+    font-size: 0.85rem !important;
+    padding: 0.3rem !important;
+    height: 32px !important;
+  }
+  
+  .financial-modal .modal-filters .filter-row .form-control[type="date"] {
+    min-width: 90px !important;
+    max-width: 120px !important;
+    flex: 1 1 45% !important;
+  }
+  
+  .financial-modal .btn-group {
+    margin-top: 0.25rem !important;
+    gap: 0.25rem !important;
+  }
+  
+  .financial-modal .btn-group .btn {
+    padding: 0.3rem 0.5rem !important;
+    font-size: 0.75rem !important;
+    min-width: 60px !important;
+    height: 32px !important;
+  }
+  
+  .edit-input {
+    width: 60px;
+  }
+  
+  .other-profit-input {
+    width: 80px;
+  }
+}
+
+/* Other Profit/Loss input styling */
+.other-profit-input {
+  width: 100px;
+  padding: 0.25rem;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 0.875rem;
+  text-align: center;
+}
+
+.other-profit-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1);
+}
+
+/* Modal overlay adjustments for financial modal */
+.modal-overlay {
+  padding: 1rem;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  overflow-y: auto;
+}
+
+.financial-modal .modal-body {
+  padding: 1rem !important;
+  height: calc(90vh - 15vh) !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
+  box-sizing: border-box !important;
+}
+
+/* Additional button group styles to prevent conflicts */
+.financial-modal .btn-group .btn {
+  height: 35px !important;
+  border: 1px solid #ddd !important;
+  background: white !important;
+  border-radius: 4px !important;
+  color: #333 !important;
+  cursor: pointer !important;
+  transition: all 0.2s ease !important;
+}
+
+.financial-modal .btn-group .btn.active {
+  background-color: #007bff !important;
+  color: white !important;
+  border-color: #007bff !important;
+}
+
+.financial-modal .btn-group .btn:hover {
+  background-color: #f5f5f5 !important;
+  border-color: #999 !important;
+}
+
+/* Prevent overlapping issues */
+.financial-modal .modal-filters + .financial-outlay-section {
+  margin-top: 0 !important;
+  border-top: none !important;
+}

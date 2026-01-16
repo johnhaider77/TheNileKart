@@ -1,0 +1,287 @@
+.payment-error-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+}
+
+.payment-error-container {
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1);
+  max-width: 600px;
+  width: 100%;
+  padding: 40px;
+  text-align: center;
+}
+
+.error-icon {
+  margin-bottom: 30px;
+}
+
+.error-circle {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 32px rgba(255, 107, 107, 0.3);
+}
+
+.error-x {
+  color: white;
+  font-size: 36px;
+  font-weight: bold;
+}
+
+.error-content {
+  text-align: left;
+}
+
+.error-title {
+  font-size: 32px;
+  font-weight: 700;
+  color: #2d3748;
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.error-subtitle {
+  font-size: 18px;
+  color: #718096;
+  margin-bottom: 30px;
+  text-align: center;
+}
+
+.error-details {
+  background: #fef5e7;
+  border-left: 4px solid #f6ad55;
+  padding: 16px;
+  margin-bottom: 24px;
+  border-radius: 4px;
+}
+
+.error-details h3 {
+  margin-top: 0;
+  margin-bottom: 8px;
+  color: #c53030;
+  font-size: 16px;
+}
+
+.error-message {
+  color: #744210;
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+
+.error-code {
+  color: #744210;
+  font-family: monospace;
+  font-size: 14px;
+  margin: 0;
+}
+
+.order-info {
+  background: #e6fffa;
+  border-left: 4px solid #38b2ac;
+  padding: 16px;
+  margin-bottom: 24px;
+  border-radius: 4px;
+}
+
+.order-info h3 {
+  margin-top: 0;
+  margin-bottom: 8px;
+  color: #285e61;
+  font-size: 16px;
+}
+
+.order-info p {
+  color: #2d3748;
+  margin: 4px 0;
+  font-weight: 500;
+}
+
+.common-issues {
+  margin-bottom: 32px;
+}
+
+.common-issues h3 {
+  color: #2d3748;
+  font-size: 18px;
+  margin-bottom: 12px;
+}
+
+.common-issues ul {
+  list-style: none;
+  padding: 0;
+}
+
+.common-issues li {
+  background: #f7fafc;
+  border-left: 3px solid #4299e1;
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  border-radius: 4px;
+}
+
+.common-issues strong {
+  color: #2b6cb0;
+}
+
+.action-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 32px;
+}
+
+.btn {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-decoration: none;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(102, 126, 234, 0.3);
+}
+
+.btn-secondary {
+  background: #4299e1;
+  color: white;
+}
+
+.btn-secondary:hover {
+  background: #3182ce;
+  transform: translateY(-2px);
+}
+
+.btn-outline {
+  background: transparent;
+  border: 2px solid #e2e8f0;
+  color: #4a5568;
+}
+
+.btn-outline:hover {
+  background: #f7fafc;
+  border-color: #cbd5e0;
+}
+
+.button-icon {
+  font-size: 18px;
+}
+
+.help-section {
+  border-top: 1px solid #e2e8f0;
+  padding-top: 24px;
+  text-align: center;
+}
+
+.help-section h3 {
+  color: #2d3748;
+  margin-bottom: 12px;
+}
+
+.contact-options {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.contact-link {
+  color: #4299e1;
+  text-decoration: none;
+  font-weight: 500;
+  padding: 8px 16px;
+  border-radius: 6px;
+  background: #ebf8ff;
+  transition: background-color 0.2s;
+}
+
+.contact-link:hover {
+  background: #bee3f8;
+}
+
+.payment-error-loading {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.loading-spinner {
+  color: white;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+@media (max-width: 768px) {
+  .payment-error-container {
+    padding: 24px;
+    margin: 10px;
+  }
+
+  .error-title {
+    font-size: 28px;
+  }
+
+  .error-subtitle {
+    font-size: 16px;
+  }
+
+  .action-buttons {
+    gap: 8px;
+  }
+
+  .btn {
+    padding: 10px 20px;
+    font-size: 14px;
+  }
+
+  .contact-options {
+    gap: 6px;
+  }
+
+  .common-issues li {
+    padding: 10px 12px;
+    font-size: 14px;
+  }
+}
+
+@media (min-width: 768px) {
+  .action-buttons {
+    flex-direction: row;
+    justify-content: center;
+  }
+
+  .contact-options {
+    flex-direction: row;
+    justify-content: center;
+    gap: 16px;
+  }
+}
