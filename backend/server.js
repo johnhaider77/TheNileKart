@@ -50,6 +50,7 @@ app.use(cors({
   origin: [
     'http://localhost:3000',
     'http://192.168.1.137:3000',
+    'http://3.29.235.62:3000',
     process.env.FRONTEND_URL
   ].filter(Boolean),
   credentials: true,
@@ -63,6 +64,7 @@ const io = socketIo(server, {
     origin: [
       'http://localhost:3000',
       'http://192.168.1.137:3000',
+      'http://3.29.235.62:3000',
       process.env.FRONTEND_URL
     ].filter(Boolean),
     methods: ["GET", "POST"],
