@@ -103,13 +103,16 @@ router.delete('/offers/:offerCode', authenticateToken, async (req, res) => {
 // Get all banners (public endpoint for displaying on product listing)
 router.get('/banners', async (req, res) => {
   try {
+    console.log('📍 /api/banners endpoint called');
     const result = await db.query(
       'SELECT b.*, o.name as offer_name FROM banners b JOIN offers o ON b.offer_page_url = o.offer_code WHERE b.is_active = true AND o.is_active = true ORDER BY b.display_order ASC, b.created_at DESC'
     );
+    console.log('✅ Banners fetched successfully:', result.rows.length);
     res.json({ success: true, banners: result.rows });
   } catch (error) {
-    console.error('Error fetching banners:', error);
-    res.status(500).json({ success: false, message: 'Failed to fetch banners' });
+    console.error('❌ Error fetching banners:', error.message);
+    console.error('📊 Error details:', error);
+    res.status(500).json({ success: false, message: 'Failed to fetch banners', error: error.message });
   }
 });
 

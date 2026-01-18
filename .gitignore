@@ -54,6 +54,7 @@ jspm_packages/
 .env.development.local
 .env.test.local
 .env.production.local
+.env.production
 
 # parcel-bundler cache (https://parceljs.org/)
 .cache
@@ -114,3 +115,14 @@ backend/uploads/*
 *.pem
 *.key
 *.crt
+# Deployment scripts (contains environment-specific paths)
+deploy-frontend.sh
+ec2-restart-frontend.sh
+ec2-restart-prod.sh
+ec2-startup-frontend.sh
+init-rds.sh
+migrate-to-rds.sh
+setup-domain-ssl-complete.sh
+setup-domain-ssl.sh
+start-frontend-3000.sh
+test-db-ec2.sh

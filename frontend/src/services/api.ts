@@ -4,16 +4,19 @@ import axios from 'axios';
 const getApiBaseUrl = () => {
   // Use environment variable if available
   if (process.env.REACT_APP_API_URL) {
-    return process.env.REACT_APP_API_URL.replace('/api', '');
+    // REACT_APP_API_URL is like: https://www.thenilekart.com/api
+    // We need to keep it as is - axios will append /api routes to this
+    return process.env.REACT_APP_API_URL;
   }
   
-  // Fallback: try to use the same host as the frontend
+  // Fallback: try to use the same host as the frontend (with HTTPS on production)
   if (window.location.hostname !== 'localhost') {
-    return `http://${window.location.hostname}:5000`;
+    const protocol = window.location.protocol; // http: or https:
+    return `${protocol}//${window.location.hostname}/api`;
   }
   
   // Default to localhost for development
-  return 'http://localhost:5000';
+  return 'http://localhost:5000/api';
 };
 
 const API_BASE_URL = getApiBaseUrl();

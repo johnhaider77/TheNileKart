@@ -7,8 +7,9 @@ const path = require('path');
 const http = require('http');
 const socketIo = require('socket.io');
 
-// Load environment variables
-dotenv.config();
+// Load environment variables - use .env.production in production
+const envFile = process.env.NODE_ENV === 'production' ? '.env.production' : '.env';
+dotenv.config({ path: path.join(__dirname, envFile) });
 
 // Import database connection
 const db = require('./config/database');
@@ -106,6 +107,17 @@ setInterval(async () => {
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
+// Serve static frontend files from build directory
+const frontendBuildPath = path.join(__dirname, '..', 'frontend', 'build');
+try {
+  if (require('fs').existsSync(frontendBuildPath)) {
+    app.use(express.static(frontendBuildPath));
+    console.log('📦 Serving frontend from:', frontendBuildPath);
+  }
+} catch (err) {
+  console.log('⚠️  Frontend build directory not found, API-only mode');
+}
+
 // Static files with CORS headers
 app.use('/uploads', (req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*');
@@ -141,17 +153,42 @@ app.use((err, req, res, next) => {
   });
 });
 
-// 404 handler
-app.use('*', (req, res) => {
-  res.status(404).json({ message: 'Endpoint not found' });
+// Serve index.html for React Router (must be after API routes)
+const frontendIndexPath = path.join(__dirname, '..', 'frontend', 'build', 'index.html');
+app.get('*', (req, res) => {
+  // If it's not an API route and frontend exists, serve index.html
+  if (!req.path.startsWith('/api') && require('fs').existsSync(frontendIndexPath)) {
+    res.sendFile(frontendIndexPath);
+  } else {
+    res.status(404).json({ message: 'Endpoint not found' });
+  }
 });
 
-// Start server
+// Start server on port 5000 for API
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`🚀 Server running on port ${PORT}`);
+  console.log(`🚀 Backend API running on port ${PORT}`);
   console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`🌐 Server accessible at http://0.0.0.0:${PORT}`);
+  console.log(`🌐 API accessible at http://0.0.0.0:${PORT}`);
   console.log(`🔌 Socket.IO enabled for real-time metrics`);
+});
+
+// Create separate Express app for frontend on port 3000
+const express2 = require('express');
+const frontendApp = express2();
+const frontendPort = 3000;
+
+// Serve static frontend files
+frontendApp.use(express2.static(frontendBuildPath));
+
+// Serve index.html for all routes (React Router)
+frontendApp.get('*', (req, res) => {
+  res.sendFile(frontendIndexPath);
+});
+
+// Start frontend server on port 3000
+frontendApp.listen(frontendPort, '0.0.0.0', () => {
+  console.log(`⚛️  Frontend server running on port ${frontendPort}`);
+  console.log(`🌐 Frontend accessible at http://0.0.0.0:${frontendPort}`);
 });
 
 module.exports = app;

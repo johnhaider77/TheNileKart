@@ -42,9 +42,25 @@ const LiveMetricsDashboard: React.FC = () => {
   const [isConnected, setIsConnected] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  // Get API base URL
+  const getApiUrl = () => {
+    if (process.env.REACT_APP_API_URL) {
+      // REACT_APP_API_URL is like: https://www.thenilekart.com/api
+      // We need the base URL for Socket.IO: https://www.thenilekart.com
+      return process.env.REACT_APP_API_URL.replace('/api', '');
+    } else if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+      const protocol = window.location.protocol;
+      return `${protocol}//${window.location.hostname}`;
+    } else {
+      return 'http://localhost:5000';
+    }
+  };
+
+  const apiUrl = getApiUrl();
+
   useEffect(() => {
     // Initialize Socket.IO connection
-    const newSocket = io('http://localhost:5000', {
+    const newSocket = io(apiUrl, {
       withCredentials: true
     });
 
@@ -90,12 +106,15 @@ const LiveMetricsDashboard: React.FC = () => {
 
   const fetchMetrics = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/metrics/live-metrics', {
+      const response = await fetch(`${apiUrl}/api/metrics/live-metrics`, {
         credentials: 'include'
       });
       if (response.ok) {
         const data = await response.json();
+        console.log('📊 Live metrics fetched:', data);
         setMetrics(data);
+      } else {
+        console.error('Failed to fetch metrics:', response.status);
       }
     } catch (error) {
       console.error('Error fetching metrics:', error);
@@ -106,7 +125,7 @@ const LiveMetricsDashboard: React.FC = () => {
 
   const fetchPaymentErrors = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/metrics/payment-errors', {
+      const response = await fetch(`${apiUrl}/api/metrics/payment-errors`, {
         credentials: 'include'
       });
       if (response.ok) {
