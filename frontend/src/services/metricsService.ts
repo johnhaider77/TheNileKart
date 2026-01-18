@@ -24,8 +24,18 @@ class MetricsService {
   private apiBaseUrl: string;
   private currentPageType: string | null = null;
 
-  constructor(apiBaseUrl: string = 'http://localhost:5000/api') {
-    this.apiBaseUrl = apiBaseUrl;
+  constructor(apiBaseUrl?: string) {
+    // Get API URL from environment variable or detect from window location
+    if (apiBaseUrl) {
+      this.apiBaseUrl = apiBaseUrl;
+    } else if (process.env.REACT_APP_API_URL) {
+      this.apiBaseUrl = process.env.REACT_APP_API_URL;
+    } else if (typeof window !== 'undefined' && window.location.hostname !== 'localhost') {
+      const protocol = window.location.protocol;
+      this.apiBaseUrl = `${protocol}//${window.location.hostname}/api`;
+    } else {
+      this.apiBaseUrl = 'http://localhost:5000/api';
+    }
     this.initializeSession();
     this.setupPageUnloadHandler();
   }
@@ -97,7 +107,8 @@ class MetricsService {
         })
       });
 
-      console.log('📊 Page visit tracked:', data.pageType, data.pageIdentifier);
+      const identifier = data.pageIdentifier ? ` - ${data.pageIdentifier}` : '';
+      console.log(`📊 Page visit tracked: ${data.pageType}${identifier}`);
     } catch (error) {
       console.error('Failed to track page visit:', error);
     }

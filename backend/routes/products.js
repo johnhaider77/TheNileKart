@@ -146,7 +146,7 @@ router.get('/preferred', authenticateToken, async (req, res) => {
       FROM orders o
       JOIN order_items oi ON o.id = oi.order_id
       JOIN products p ON oi.product_id = p.id
-      WHERE o.user_id = $1 AND o.created_at >= CURRENT_DATE - INTERVAL '30 days'
+      WHERE o.customer_id = $1 AND o.created_at >= CURRENT_DATE - INTERVAL '30 days'
       GROUP BY p.category
       ORDER BY category_count DESC
       LIMIT 3
@@ -171,7 +171,7 @@ router.get('/preferred', authenticateToken, async (req, res) => {
           SELECT DISTINCT oi.product_id
           FROM orders o
           JOIN order_items oi ON o.id = oi.order_id
-          WHERE o.user_id = $1
+          WHERE o.customer_id = $1
         )
         ORDER BY p.created_at DESC, RANDOM()
         LIMIT 10
