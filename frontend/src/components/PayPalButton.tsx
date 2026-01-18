@@ -357,10 +357,10 @@ const PayPalButton: React.FC<PayPalButtonProps> = ({
       
       console.log('Using PayPal client ID:', clientId.substring(0, 10) + '...' + clientId.substring(clientId.length - 4));
       
-      // Simplified PayPal SDK configuration - just the basics for PayPal login
-      let sdkUrl = `https://www.paypal.com/sdk/js?client-id=${clientId}&currency=USD&intent=capture&components=buttons&disable-funding=credit,card,paylater,venmo`;
+      // PayPal SDK configuration with hosted fields for card payments
+      let sdkUrl = `https://www.paypal.com/sdk/js?client-id=${clientId}&currency=USD&intent=capture&components=buttons,hosted-fields&disable-funding=paylater,venmo`;
       
-      console.log('Using simplified PayPal SDK configuration - PayPal account login only');
+      console.log('Using PayPal SDK configuration with hosted fields for card payments');
       
       script.src = sdkUrl;
       script.async = true;
@@ -517,6 +517,8 @@ const PayPalButton: React.FC<PayPalButtonProps> = ({
         typeof window.paypal.HostedFields.render === 'function') {
       console.log('PayPal HostedFields is available');
       setHostedFieldsAvailable(true);
+      // Automatically show card form in production/live mode
+      setShowCardForm(true);
       // Also immediately set card form ready for faster UI update
       setCardFormReady(true);
       return true;
@@ -624,14 +626,17 @@ const PayPalButton: React.FC<PayPalButtonProps> = ({
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       
       if (errorMessage.includes('not eligible') || errorMessage.includes('HOSTEDFIELDS_NOT_ELIGIBLE')) {
-        setCardFormError('Card payments are not available in sandbox mode. Please use PayPal account login instead.');
+        console.log('PayPal Hosted Fields not eligible - This is normal in development/sandbox mode');
+        // Don't show error message in sandbox, just disable the card form
+        setShowCardForm(false);
         setHostedFieldsAvailable(false);
-        setShowCardForm(false); // Hide the card form entirely
-        console.log('PayPal Hosted Fields not eligible - this is normal in development/sandbox mode');
+        setCardFormReady(false);
       } else if (errorMessage.includes('not available')) {
         setCardFormError('Card payment is not available at the moment. Please try PayPal account login or Cash on Delivery.');
+        setShowCardForm(false);
       } else {
         setCardFormError('Unable to load secure card form. Please try PayPal account login or Cash on Delivery.');
+        setShowCardForm(false);
       }
       
       // Reset states
