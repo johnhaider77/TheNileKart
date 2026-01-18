@@ -358,9 +358,9 @@ const PayPalButton: React.FC<PayPalButtonProps> = ({
       console.log('Using PayPal client ID:', clientId.substring(0, 10) + '...' + clientId.substring(clientId.length - 4));
       
       // PayPal SDK configuration with hosted fields for card payments
-      let sdkUrl = `https://www.paypal.com/sdk/js?client-id=${clientId}&currency=USD&intent=capture&components=buttons,hosted-fields&disable-funding=paylater,venmo`;
+      let sdkUrl = `https://www.paypal.com/sdk/js?client-id=${clientId}&currency=AED&intent=capture&components=buttons,hosted-fields&disable-funding=paylater,venmo`;
       
-      console.log('Using PayPal SDK configuration with hosted fields for card payments');
+      console.log('Using PayPal SDK configuration with hosted fields for card payments in AED');
       
       script.src = sdkUrl;
       script.async = true;

@@ -170,43 +170,13 @@ const PaymentOptions: React.FC<PaymentOptionsProps> = ({
             <label htmlFor="paypal-radio" className="payment-method-label">
               <div className="payment-method-title">
                 <span className="payment-icon">💳</span>
-                <span>Pay Online with PayPal</span>
+                <span>Pay Online</span>
               </div>
-              <p className="payment-method-description">
-                Secure online payment • Credit Card • Debit Card • Net Banking • Digital Wallets
-              </p>
             </label>
           </div>
           
           {selectedPaymentMethod === 'paypal' && (
             <div className="payment-method-content">
-              <div className="paypal-info">
-                <div className="payment-options-grid">
-                  <div className="payment-option">
-                    <span className="option-icon">💳</span>
-                    <span>Credit Cards</span>
-                  </div>
-                  <div className="payment-option">
-                    <span className="option-icon">🏧</span>
-                    <span>Debit Cards</span>
-                  </div>
-                  <div className="payment-option">
-                    <span className="option-icon">🏛️</span>
-                    <span>Net Banking</span>
-                  </div>
-                  <div className="payment-option">
-                    <span className="option-icon">📱</span>
-                    <span>Digital Wallets</span>
-                  </div>
-                </div>
-                
-                <div className="security-info">
-                  <p>🔒 Secure payment powered by PayPal</p>
-                  <p>💰 Pay ${amount.toFixed(2)} securely online</p>
-                  <p>⚡ Instant payment processing</p>
-                </div>
-              </div>
-              
               <div className="paypal-button-wrapper">
                 <PaymentErrorBoundary
                   onError={(error: Error) => {
