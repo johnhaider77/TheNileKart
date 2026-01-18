@@ -144,14 +144,13 @@ const PayPalButton: React.FC<PayPalButtonProps> = ({
 
   // Detect if we're in sandbox/development mode
   const isSandboxMode = () => {
-    // Check if client ID contains sandbox indicators or is a known test client ID
+    // Check if client ID contains sandbox indicators
     const clientId = process.env.REACT_APP_PAYPAL_CLIENT_ID || 'missing';
     return (
       clientId.includes('sb-') || // Sandbox client IDs often contain 'sb-'
       clientId.includes('test') || 
       process.env.NODE_ENV === 'development' ||
-      window.location.hostname === 'localhost' ||
-      clientId === 'AdDtfr_P4XNO3lLxmk4x7vbltnscMWnCDEMVd3fE6HPEOpnSu8bV6GAobHwM-W95CRojTtu2UZwvquVl' // Known sandbox ID
+      window.location.hostname === 'localhost'
     );
   };
 
@@ -1017,37 +1016,271 @@ const PayPalButton: React.FC<PayPalButtonProps> = ({
     }
   }, [items, shippingAddress]); // Keep original dependencies
 
-  // Simple useLayoutEffect - only for initial setup
+  // Simple useLayoutEffect - only initialize hosted fields directly for card payment
   useLayoutEffect(() => {
-    console.log('PayPal useLayoutEffect triggered:', { refReady, disabled, buttonsRendered, isLoading });
+    console.log('Card payment form triggered - initializing hosted fields');
     
-    // Only initialize if ref is ready and not already rendered
-    if (refReady && !disabled && !buttonsRendered && !loadError) {
-      console.log('Initializing PayPal buttons...');
-      initializePayPal().catch(error => {
-        console.error('Failed to initialize PayPal:', error);
+    // Directly initialize hosted fields without PayPal buttons
+    if (!disabled && !cardFormReady && hostedFieldsAvailable) {
+      console.log('Initializing card form...');
+      setShowCardForm(true);
+      initializeHostedFields().catch(error => {
+        console.error('Failed to initialize card form:', error);
       });
     }
-  }, [refReady, disabled, buttonsRendered, loadError, initializePayPal]);
+  }, [disabled, cardFormReady, hostedFieldsAvailable]);
 
-  if (disabled) {
-    return (
-      <div style={{ 
-        padding: '12px', 
-        textAlign: 'center', 
-        background: '#f5f5f5', 
-        borderRadius: '8px',
-        color: '#666' 
-      }}>
-        Payment processing is currently disabled
-      </div>
-    );
-  }
+  // Show only card form - no PayPal buttons or fallbacks
+  return (
+    <div style={{ width: '100%' }}>
+      {isLoading && (
+        <div style={{
+          padding: '16px',
+          textAlign: 'center',
+          background: '#e3f2fd',
+          borderRadius: '8px',
+          color: '#1565c0',
+          fontSize: '0.95rem'
+        }}>
+          <div style={{ marginBottom: '8px' }}>Loading secure payment form...</div>
+          <div style={{ fontSize: '0.85rem', color: '#0d47a1' }}>Please wait while we prepare your card form</div>
+        </div>
+      )}
 
-  // Show mobile fallback if PayPal has compatibility issues
-  if (shouldShowMobileFallback()) {
-    return (
-      <div style={{
+      {loadError && (
+        <div style={{ 
+          padding: '12px', 
+          textAlign: 'center', 
+          background: '#ffebee', 
+          borderRadius: '8px',
+          color: '#c62828',
+          border: '1px solid #ffcdd2',
+          marginBottom: '12px'
+        }}>
+          <div style={{ marginBottom: '8px' }}>
+            <strong>Payment Service Error</strong>
+          </div>
+          <div style={{ fontSize: '0.9rem' }}>
+            {loadError}
+          </div>
+          <button 
+            onClick={() => {
+              console.log('Retrying card form...');
+              setLoadError(null);
+              setCardFormReady(false);
+              setTimeout(() => {
+                initializeHostedFields();
+              }, 500);
+            }}
+            style={{
+              marginTop: '8px',
+              padding: '6px 12px',
+              background: '#1976d2',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '0.9rem'
+            }}
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
+      {/* Card Payment Form - Always visible */}
+      {hostedFieldsAvailable && (
+        <div style={{
+          border: '2px solid #0070f3',
+          borderRadius: '12px',
+          padding: '20px',
+          background: 'linear-gradient(135deg, #f8fffe 0%, #f0f9ff 100%)'
+        }}>
+          <div ref={cardFormRef}>
+            {cardFormError ? (
+              <div>
+                <div style={{
+                  padding: '12px',
+                  background: '#ffebee',
+                  border: '1px solid #ffcdd2',
+                  borderRadius: '6px',
+                  color: '#c62828',
+                  marginBottom: '12px',
+                  fontSize: '0.9rem'
+                }}>
+                  {cardFormError}
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* Card Form Fields */}
+                <div style={{ marginBottom: '16px' }}>
+                  <label style={{ 
+                    display: 'block', 
+                    marginBottom: '6px', 
+                    fontWeight: '600', 
+                    color: '#333',
+                    fontSize: '0.9rem'
+                  }}>
+                    Card Number *
+                  </label>
+                  <div 
+                    id="card-number" 
+                    style={{
+                      height: '44px',
+                      border: '1px solid #ddd',
+                      borderRadius: '6px',
+                      padding: '10px',
+                      background: 'white'
+                    }}
+                  />
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+                  <div>
+                    <label style={{ 
+                      display: 'block', 
+                      marginBottom: '6px', 
+                      fontWeight: '600', 
+                      color: '#333',
+                      fontSize: '0.9rem'
+                    }}>
+                      Expiration Date *
+                    </label>
+                    <div 
+                      id="expiration-date"
+                      style={{
+                        height: '44px',
+                        border: '1px solid #ddd',
+                        borderRadius: '6px',
+                        padding: '10px',
+                        background: 'white'
+                      }}
+                    />
+                  </div>
+
+                  <div>
+                    <label style={{ 
+                      display: 'block', 
+                      marginBottom: '6px', 
+                      fontWeight: '600', 
+                      color: '#333',
+                      fontSize: '0.9rem'
+                    }}>
+                      Security Code *
+                    </label>
+                    <div 
+                      id="cvv"
+                      style={{
+                        height: '44px',
+                        border: '1px solid #ddd',
+                        borderRadius: '6px',
+                        padding: '10px',
+                        background: 'white'
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* Complete Payment Button */}
+                {cardFormReady && (
+                  <button
+                    onClick={async () => {
+                      try {
+                        if (!hostedFieldsInstance.current) {
+                          throw new Error('Card form is not ready');
+                        }
+
+                        const { nonce } = await hostedFieldsInstance.current.request();
+                        
+                        // Submit payment
+                        const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://www.thenilekart.com'}/paypal/process-card`, {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${localStorage.getItem('token')}`
+                          },
+                          body: JSON.stringify({
+                            payment_method_nonce: nonce,
+                            amount: parseFloat(amount.toFixed(2)),
+                            items,
+                            device_type: isMobile() ? 'mobile' : 'desktop',
+                            shipping_address: {
+                              full_name: shippingAddress.full_name || shippingAddress.fullName || 
+                                       `${shippingAddress.firstName || ''} ${shippingAddress.lastName || ''}`.trim(),
+                              address_line1: shippingAddress.address_line1 || shippingAddress.addressLine1 || shippingAddress.street,
+                              address_line2: shippingAddress.address_line2 || shippingAddress.addressLine2 || '',
+                              city: shippingAddress.city,
+                              state: shippingAddress.state || shippingAddress.region,
+                              postal_code: shippingAddress.postal_code || shippingAddress.postalCode || shippingAddress.zipCode,
+                              country: shippingAddress.country || 'US'
+                            }
+                          })
+                        });
+
+                        if (!response.ok) {
+                          const errorData = await response.json().catch(() => ({ message: 'Payment processing failed' }));
+                          throw new Error(errorData.message || 'Payment failed');
+                        }
+
+                        const result = await response.json();
+                        onSuccess(result, { status: 'COMPLETED' });
+                      } catch (error) {
+                        onError(error);
+                      }
+                    }}
+                    style={{
+                      width: '100%',
+                      padding: '14px',
+                      background: '#28a745',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '8px',
+                      fontSize: '1rem',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      transition: 'background 0.2s ease'
+                    }}
+                    onMouseOver={(e) => (e.target as HTMLButtonElement).style.background = '#218838'}
+                    onMouseOut={(e) => (e.target as HTMLButtonElement).style.background = '#28a745'}
+                  >
+                    Complete Payment
+                  </button>
+                )}
+                
+                {!cardFormReady && (
+                  <div style={{
+                    padding: '12px',
+                    textAlign: 'center',
+                    background: '#fff3cd',
+                    borderRadius: '6px',
+                    color: '#856404',
+                    fontSize: '0.9rem'
+                  }}>
+                    Setting up secure card form...
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      )}
+
+      {!hostedFieldsAvailable && !isLoading && (
+        <div style={{
+          padding: '16px',
+          textAlign: 'center',
+          background: '#f5f5f5',
+          borderRadius: '8px',
+          color: '#666',
+          fontSize: '0.95rem'
+        }}>
+          <div style={{ marginBottom: '8px' }}>Preparing payment form...</div>
+          <div style={{ fontSize: '0.85rem' }}>Please wait a moment</div>
+        </div>
+      )}
+    </div>
+  );
         padding: '16px',
         textAlign: 'center',
         background: 'linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%)',
@@ -1214,30 +1447,10 @@ const PayPalButton: React.FC<PayPalButtonProps> = ({
     );
   }
 
+  // Render only the credit card form when "Pay Online" is selected
   return (
-    <div className="paypal-button-container">
-      {/* Always render the PayPal container to ensure ref is available */}
-      <div 
-        ref={paypalRefCallback} 
-        style={{ 
-          minHeight: '40px',
-          width: '100%',
-          display: isLoading ? 'none' : 'block' // Hide when loading but keep in DOM
-        }}
-      >
-        {!buttonsRendered && !isLoading && (
-          <div style={{ 
-            color: '#888', 
-            fontSize: '0.9rem',
-            fontStyle: 'italic',
-            textAlign: 'center',
-            padding: '20px'
-          }}>
-            PayPal button will appear here...
-          </div>
-        )}
-      </div>
-      
+    <div className="paypal-button-container" style={{ width: '100%' }}>
+      {/* Show loading state while initializing hosted fields */}
       {isLoading && (
         <div style={{ 
           padding: '20px', 
@@ -1245,363 +1458,204 @@ const PayPalButton: React.FC<PayPalButtonProps> = ({
           background: '#f9f9f9',
           borderRadius: '8px'
         }}>
-          Loading PayPal...
+          <div style={{ fontSize: '0.9rem', color: '#666' }}>Loading secure card payment form...</div>
         </div>
       )}
-      
-      {!isLoading && !loadError && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {/* Payment Methods Information */}
+
+      {/* Show error if PayPal initialization fails */}
+      {loadError && (
+        <div style={{ 
+          padding: '12px', 
+          textAlign: 'center', 
+          background: '#ffebee', 
+          borderRadius: '8px',
+          color: '#c62828',
+          border: '1px solid #ffcdd2',
+          marginBottom: '12px'
+        }}>
+          <strong>Payment Error:</strong> {loadError}
+        </div>
+      )}
+
+      {/* Credit Card Form - Main Payment Interface */}
+      {!isLoading && (
+        <div style={{
+          border: '2px solid #0070f3',
+          borderRadius: '12px',
+          padding: '20px',
+          background: 'linear-gradient(135deg, #f8fffe 0%, #f0f9ff 100%)'
+        }}>
           <div style={{
-            background: isSandboxMode() ? '#fff3cd' : '#f0f9ff',
-            padding: '12px 16px',
-            borderRadius: '8px',
-            border: `1px solid ${isSandboxMode() ? '#ffc107' : '#0070f3'}`,
-            fontSize: '0.9rem'
+            display: 'flex',
+            alignItems: 'center',
+            marginBottom: '20px',
+            gap: '8px'
           }}>
-            <div style={{ marginBottom: '8px', fontWeight: '600', color: isSandboxMode() ? '#856404' : '#0070f3' }}>
-              💳 Available Payment Methods{isSandboxMode() ? ' (Sandbox Mode):' : ':'}
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-              <span style={{ 
-                background: '#0070f3', 
-                color: 'white', 
-                padding: '4px 8px', 
-                borderRadius: '4px', 
-                fontSize: '0.8rem' 
-              }}>
-                PayPal Account Login
-              </span>
-              {!isSandboxMode() && (
-                <>
-                  <span style={{ 
-                    background: '#28a745', 
-                    color: 'white', 
-                    padding: '4px 8px', 
-                    borderRadius: '4px', 
-                    fontSize: '0.8rem' 
-                  }}>
-                    Credit/Debit Cards
-                  </span>
-                  {isApplePayEligible() && (
-                    <span style={{ 
-                      background: '#007aff', 
-                      color: 'white', 
-                      padding: '4px 8px', 
-                      borderRadius: '4px', 
-                      fontSize: '0.8rem' 
-                    }}>
-                      🍎 Apple Pay
-                    </span>
-                  )}
-                  {isSamsungPayEligible() && (
-                    <span style={{ 
-                      background: '#4285f4', 
-                      color: 'white', 
-                      padding: '4px 8px', 
-                      borderRadius: '4px', 
-                      fontSize: '0.8rem' 
-                    }}>
-                      📱 Samsung Pay
-                    </span>
-                  )}
-                </>
-              )}
-            </div>
-            {isSandboxMode() && (
-              <div style={{ 
-                marginTop: '8px', 
-                fontSize: '0.75rem', 
-                color: '#856404',
-                fontStyle: 'italic' 
-              }}>
-                ℹ️ In sandbox mode, only PayPal account payments are available for testing
-              </div>
-            )}
+            <span style={{ fontSize: '1.3rem' }}>💳</span>
+            <h3 style={{ margin: 0, color: '#0070f3', fontSize: '1.15rem', fontWeight: 600 }}>
+              Pay with Card
+            </h3>
           </div>
 
-          {/* Card Payment Section - Only show if hosted fields are available and no ineligibility error */}
-          {showCardForm && hostedFieldsAvailable && (
+          {cardFormError ? (
             <div style={{
-              border: '2px solid #0070f3',
-              borderRadius: '12px',
-              padding: '20px',
-              background: 'linear-gradient(135deg, #f8fffe 0%, #f0f9ff 100%)'
+              padding: '12px',
+              background: '#ffebee',
+              border: '1px solid #ffcdd2',
+              borderRadius: '6px',
+              color: '#c62828',
+              marginBottom: '12px',
+              fontSize: '0.9rem'
             }}>
-              <div style={{
-                display: 'flex',
-                alignItems: 'center',
-                marginBottom: '16px',
-                gap: '8px'
+              <strong>❌ Error:</strong> {cardFormError}
+              <div style={{ marginTop: '8px', fontSize: '0.85rem' }}>
+                Please check your card details and try again.
+              </div>
+            </div>
+          ) : null}
+
+          {/* Card Form Fields */}
+          <div ref={cardFormRef} style={{ width: '100%' }}>
+            {/* Card Number */}
+            <div style={{ marginBottom: '16px' }}>
+              <label style={{ 
+                display: 'block', 
+                marginBottom: '8px', 
+                fontWeight: '600',
+                color: '#333',
+                fontSize: '0.95rem'
               }}>
-                <span style={{ fontSize: '1.2rem' }}>💳</span>
-                <h3 style={{ margin: 0, color: '#0070f3', fontSize: '1.1rem' }}>Pay with Card</h3>
+                Card Number <span style={{ color: '#c62828' }}>*</span>
+              </label>
+              <div id="card-number" style={{
+                border: '2px solid #e1e5e9',
+                borderRadius: '6px',
+                padding: '12px 14px',
+                background: 'white',
+                minHeight: '20px',
+                fontSize: '1rem',
+                fontFamily: 'monospace'
+              }}></div>
+            </div>
+
+            {/* Expiry and CVV Row */}
+            <div style={{ 
+              display: 'flex', 
+              gap: '12px',
+              marginBottom: '20px',
+              flexDirection: isMobile() ? 'column' : 'row'
+            }}>
+              <div style={{ flex: 1 }}>
+                <label style={{ 
+                  display: 'block', 
+                  marginBottom: '8px', 
+                  fontWeight: '600',
+                  color: '#333',
+                  fontSize: '0.95rem'
+                }}>
+                  Expiry Date <span style={{ color: '#c62828' }}>*</span>
+                </label>
+                <div id="expiration-date" style={{
+                  border: '2px solid #e1e5e9',
+                  borderRadius: '6px',
+                  padding: '12px 14px',
+                  background: 'white',
+                  minHeight: '20px',
+                  fontSize: '1rem',
+                  fontFamily: 'monospace'
+                }}></div>
               </div>
-            
-            {!showCardForm ? (
-              <div>
-                {hostedFieldsAvailable ? (
-                  <button
-                    onClick={() => {
-                      setShowCardForm(true);
-                      setCardFormError(null);
-                      setTimeout(() => initializeHostedFields(), 100);
-                    }}
-                    style={{
-                      width: '100%',
-                      padding: '12px',
-                      background: '#0070f3',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '8px',
-                      fontSize: '1rem',
-                      fontWeight: '600',
-                      cursor: 'pointer',
-                      transition: 'background 0.2s ease'
-                    }}
-                    onMouseOver={(e) => (e.target as HTMLButtonElement).style.background = '#0051cc'}
-                    onMouseOut={(e) => (e.target as HTMLButtonElement).style.background = '#0070f3'}
-                  >
-                    Enter Card Details
-                  </button>
-                ) : (
-                  <div style={{
-                    padding: '12px',
-                    textAlign: 'center',
-                    background: '#fff3cd',
-                    borderRadius: '8px',
-                    color: '#856404',
-                    fontSize: '0.9rem'
-                  }}>
-                    <div style={{ marginBottom: '8px' }}>
-                      🔄 Loading secure card payment...
-                    </div>
-                    <div style={{ fontSize: '0.8rem' }}>
-                      Card payment will be available in a moment
-                    </div>
-                  </div>
-                )}
+
+              <div style={{ flex: 1 }}>
+                <label style={{ 
+                  display: 'block', 
+                  marginBottom: '8px', 
+                  fontWeight: '600',
+                  color: '#333',
+                  fontSize: '0.95rem'
+                }}>
+                  CVV <span style={{ color: '#c62828' }}>*</span>
+                </label>
+                <div id="cvv" style={{
+                  border: '2px solid #e1e5e9',
+                  borderRadius: '6px',
+                  padding: '12px 14px',
+                  background: 'white',
+                  minHeight: '20px',
+                  fontSize: '1rem',
+                  fontFamily: 'monospace'
+                }}></div>
               </div>
+            </div>
+
+            {/* Submit Button */}
+            {cardFormReady ? (
+              <button
+                onClick={async () => {
+                  try {
+                    if (hostedFieldsInstance.current) {
+                      const result = await hostedFieldsInstance.current.submit();
+                      console.log('Payment successful:', result);
+                      onSuccess(result, { orderID: result.orderID });
+                    }
+                  } catch (error) {
+                    console.error('Payment failed:', error);
+                    const errorMessage = error instanceof Error ? error.message : 'Payment processing failed';
+                    setCardFormError(errorMessage);
+                    onError(error);
+                  }
+                }}
+                style={{
+                  width: '100%',
+                  padding: '14px 16px',
+                  background: '#28a745',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontSize: '1rem',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+                onMouseOver={(e) => {
+                  (e.target as HTMLButtonElement).style.background = '#218838';
+                  (e.target as HTMLButtonElement).style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
+                }}
+                onMouseOut={(e) => {
+                  (e.target as HTMLButtonElement).style.background = '#28a745';
+                  (e.target as HTMLButtonElement).style.boxShadow = 'none';
+                }}
+              >
+                ✓ Complete Payment
+              </button>
             ) : (
-              <div ref={cardFormRef}>
-                {cardFormError ? (
-                  <div>
-                    <div style={{
-                      padding: '12px',
-                      background: '#ffebee',
-                      border: '1px solid #ffcdd2',
-                      borderRadius: '6px',
-                      color: '#c62828',
-                      marginBottom: '12px',
-                      fontSize: '0.9rem'
-                    }}>
-                      {cardFormError}
-                    </div>
-                    <button
-                      onClick={() => {
-                        setShowCardForm(false);
-                        setCardFormError(null);
-                        setCardFormReady(false);
-                        // Retry checking for HostedFields
-                        setTimeout(() => checkHostedFieldsAvailability(), 200); // Reduced from 500ms
-                      }}
-                      style={{
-                        width: '100%',
-                        padding: '10px',
-                        background: '#6c757d',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '6px',
-                        fontSize: '0.9rem',
-                        cursor: 'pointer'
-                      }}
-                    >
-                      ← Back to Payment Options
-                    </button>
-                  </div>
-                ) : (
-                  <>
-                    <div style={{ marginBottom: '16px' }}>
-                      <label style={{ 
-                        display: 'block', 
-                        marginBottom: '6px', 
-                        fontWeight: '500',
-                        color: '#333',
-                        fontSize: '0.9rem'
-                      }}>
-                        Card Number *
-                      </label>
-                      <div id="card-number" style={{
-                        border: '2px solid #e1e5e9',
-                        borderRadius: '6px',
-                        padding: '12px',
-                        background: 'white',
-                        minHeight: '20px'
-                      }}></div>
-                    </div>
-                    
-                    <div style={{ 
-                      display: 'flex', 
-                      gap: '12px',
-                      marginBottom: '16px',
-                      flexDirection: isMobile() ? 'column' : 'row'
-                    }}>
-                      <div style={{ flex: isMobile() ? 'none' : 1 }}>
-                        <label style={{ 
-                          display: 'block', 
-                          marginBottom: '6px', 
-                          fontWeight: '500',
-                          color: '#333',
-                          fontSize: '0.9rem'
-                        }}>
-                          Expiry Date *
-                        </label>
-                        <div id="expiration-date" style={{
-                          border: '2px solid #e1e5e9',
-                          borderRadius: '6px',
-                          padding: '12px',
-                          background: 'white',
-                          minHeight: '20px'
-                        }}></div>
-                      </div>
-                      
-                      <div style={{ flex: isMobile() ? 'none' : 1 }}>
-                        <label style={{ 
-                          display: 'block', 
-                          marginBottom: '6px', 
-                          fontWeight: '500',
-                          color: '#333',
-                          fontSize: '0.9rem'
-                        }}>
-                          CVV *
-                        </label>
-                        <div id="cvv" style={{
-                          border: '2px solid #e1e5e9',
-                          borderRadius: '6px',
-                          padding: '12px',
-                          background: 'white',
-                          minHeight: '20px'
-                        }}></div>
-                      </div>
-                    </div>
-                    
-                    {cardFormReady && (
-                      <button
-                        onClick={async () => {
-                          try {
-                            if (hostedFieldsInstance.current) {
-                              const result = await hostedFieldsInstance.current.submit();
-                              console.log('Payment successful:', result);
-                              onSuccess(result, { orderID: result.orderID });
-                            }
-                          } catch (error) {
-                            console.error('Payment failed:', error);
-                            setCardFormError('Payment failed. Please check your card details and try again.');
-                            onError(error);
-                          }
-                        }}
-                        style={{
-                          width: '100%',
-                          padding: '14px',
-                          background: '#28a745',
-                          color: 'white',
-                          border: 'none',
-                          borderRadius: '8px',
-                          fontSize: '1rem',
-                          fontWeight: '600',
-                          cursor: 'pointer',
-                          transition: 'background 0.2s ease'
-                        }}
-                        onMouseOver={(e) => (e.target as HTMLButtonElement).style.background = '#218838'}
-                        onMouseOut={(e) => (e.target as HTMLButtonElement).style.background = '#28a745'}
-                      >
-                        Complete Payment
-                      </button>
-                    )}
-                    
-                    {!cardFormReady && (
-                      <div style={{
-                        padding: '12px',
-                        textAlign: 'center',
-                        background: '#fff3cd',
-                        borderRadius: '6px',
-                        color: '#856404',
-                        fontSize: '0.9rem'
-                      }}>
-                        Loading secure card form...
-                      </div>
-                    )}
-                  </>
-                )}
+              <div style={{
+                padding: '14px 16px',
+                textAlign: 'center',
+                background: '#fff3cd',
+                borderRadius: '8px',
+                color: '#856404',
+                fontSize: '0.9rem',
+                fontWeight: '500'
+              }}>
+                🔄 Initializing secure payment form...
               </div>
             )}
-          </div>
-          )}
-          
-          {/* PayPal Account Section */}
-          <div style={{
-            border: '2px solid #ffc439',
-            borderRadius: '12px',
-            padding: '20px',
-            background: 'linear-gradient(135deg, #fffbf0 0%, #fff8e7 100%)'
-          }}>
+
+            {/* Security Note */}
             <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              marginBottom: '16px',
-              gap: '8px'
-            }}>
-              <span style={{ fontSize: '1.2rem' }}>🏛️</span>
-              <h3 style={{ margin: 0, color: '#b8860b', fontSize: '1.1rem' }}>Pay with PayPal Account</h3>
-            </div>
-            
-            <div style={{ 
-              color: '#888', 
-              fontSize: '0.9rem',
+              marginTop: '16px',
+              padding: '12px',
+              background: '#e8f5e9',
+              borderRadius: '6px',
+              fontSize: '0.85rem',
+              color: '#2e7d32',
               textAlign: 'center',
-              fontStyle: 'italic'
+              borderLeft: '3px solid #4caf50'
             }}>
-              PayPal buttons will load above once ready
+              🔒 Your card information is encrypted and secure. Never stored on our servers.
             </div>
           </div>
-        </div>
-      )}
-      
-      {/* Debug info for development */}
-      {process.env.NODE_ENV === 'development' && (
-        <div style={{ 
-          marginTop: '8px', 
-          fontSize: '0.7rem', 
-          color: '#999', 
-          textAlign: 'center',
-          fontFamily: 'monospace',
-          borderTop: '1px solid #eee',
-          paddingTop: '8px'
-        }}>
-          Debug: Loading: {isLoading.toString()} | Error: {!!loadError} | Rendered: {buttonsRendered.toString()}
-          <br/>
-          <button 
-            onClick={() => {
-              console.log('Manual PayPal restart triggered');
-              setLoadError(null);
-              setIsLoading(false);
-              setButtonsRendered(false);
-              setShowMobileFallback(false);
-              setTimeout(() => initializePayPal(), 100);
-            }}
-            style={{
-              marginTop: '4px',
-              padding: '2px 8px',
-              fontSize: '10px',
-              background: '#007bff',
-              color: 'white',
-              border: 'none',
-              borderRadius: '3px',
-              cursor: 'pointer'
-            }}
-          >
-            Force Restart PayPal
-          </button>
         </div>
       )}
     </div>
