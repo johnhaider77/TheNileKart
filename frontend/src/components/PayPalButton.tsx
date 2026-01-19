@@ -365,6 +365,8 @@ const PayPalButton: React.FC<PayPalButtonProps> = ({
       script.async = true;
       script.defer = true;
       
+      console.log('Appending PayPal SDK script to document...');
+      
       // Remove potentially problematic attributes that might cause user agent issues
       // script.crossOrigin = 'anonymous'; // Comment out as it might cause issues
       // script.setAttribute('data-partner-attribution-id', 'APPLEPAY_MP'); // Comment out
@@ -530,6 +532,11 @@ const PayPalButton: React.FC<PayPalButtonProps> = ({
   const initializeHostedFields = async () => {
     try {
       console.log('Initializing secure card form...');
+      console.log('window.paypal status:', { exists: !!window.paypal, type: typeof window.paypal });
+      
+      if (!window.paypal) {
+        throw new Error('PayPal SDK not loaded. Please refresh and try again.');
+      }
       
       // Wait for window.paypal.HostedFields to be available
       let attempts = 0;
@@ -538,18 +545,29 @@ const PayPalButton: React.FC<PayPalButtonProps> = ({
       const startTime = Date.now();
       
       // Direct check for HostedFields without relying on checkHostedFieldsAvailability
+      console.log('Starting HostedFields availability check...');
       while ((!window.paypal || !window.paypal.HostedFields) && attempts < maxAttempts) {
         attempts++;
-        if (Date.now() - startTime > timeoutMs) {
+        const elapsedMs = Date.now() - startTime;
+        if (elapsedMs > timeoutMs) {
+          console.error('Timeout waiting for HostedFields after', elapsedMs, 'ms');
+          console.log('window.paypal object:', Object.keys(window.paypal || {}));
           throw new Error('Payment form initialization timeout. Please refresh and try again.');
         }
-        console.log(`Waiting for HostedFields, attempt ${attempts}/${maxAttempts}`);
+        console.log(`Waiting for HostedFields, attempt ${attempts}/${maxAttempts}, elapsed ${elapsedMs}ms`);
         await new Promise(resolve => setTimeout(resolve, 300));
       }
       
       if (!window.paypal || !window.paypal.HostedFields) {
+        console.error('HostedFields not found after attempts:', { 
+          paypalExists: !!window.paypal,
+          hasHostedFields: !!(window.paypal && window.paypal.HostedFields),
+          paypalKeys: Object.keys(window.paypal || {})
+        });
         throw new Error('Payment service not available. Please refresh and try again.');
       }
+      
+      console.log('HostedFields is available, attempting to render...');
 
       const hostedFields = await window.paypal.HostedFields.render({
         createOrder: async () => {
@@ -622,12 +640,23 @@ const PayPalButton: React.FC<PayPalButtonProps> = ({
 
     } catch (error) {
       console.error('Error initializing card form:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('Full error details:', {
+        message: errorMessage,
+        errorType: error instanceof Error ? error.constructor.name : typeof error,
+        stack: error instanceof Error ? error.stack : undefined
+      });
       
-      // Always show error for any initialization failure
-      const userMessage = errorMessage.includes('timeout') 
-        ? 'Payment form is taking too long to load. Please refresh the page and try again.'
-        : 'Unable to load payment form. Please refresh and try again.';
+      // Show specific error messages based on what failed
+      let userMessage = 'Unable to load payment form. Please refresh and try again.';
+      
+      if (errorMessage.includes('timeout')) {
+        userMessage = 'Payment form is taking too long to load. Please refresh the page and try again.';
+      } else if (errorMessage.includes('not available')) {
+        userMessage = 'Payment service is currently unavailable. Please try again in a moment.';
+      } else if (errorMessage.includes('not loaded')) {
+        userMessage = 'Payment service failed to load. Please check your internet connection and refresh.';
+      }
       
       setCardFormError(userMessage);
       setShowCardForm(false);
