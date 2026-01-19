@@ -568,6 +568,23 @@ const PayPalButton: React.FC<PayPalButtonProps> = ({
       }
       
       console.log('HostedFields is available, attempting to render...');
+      
+      // Check if DOM elements exist for card form
+      const cardNumberEl = document.getElementById('card-number');
+      const expirationEl = document.getElementById('expiration-date');
+      const cvvEl = document.getElementById('cvv');
+      
+      console.log('DOM element check:', {
+        cardNumber: !!cardNumberEl,
+        expiration: !!expirationEl,
+        cvv: !!cvvEl
+      });
+      
+      if (!cardNumberEl || !expirationEl || !cvvEl) {
+        console.warn('Card form DOM elements not found yet, waiting...');
+        // Give it another second for DOM to be ready
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
 
       const hostedFields = await window.paypal.HostedFields.render({
         createOrder: async () => {
@@ -632,19 +649,21 @@ const PayPalButton: React.FC<PayPalButtonProps> = ({
         }
       });
 
+      console.log('HostedFields.render() completed successfully');
       hostedFieldsInstance.current = hostedFields;
       setCardFormReady(true);
       setCardFormError(null);
       setHostedFieldsAvailable(true);
-      console.log('PayPal hosted fields initialized successfully');
+      console.log('✅ PayPal hosted fields initialized successfully');
 
     } catch (error) {
-      console.error('Error initializing card form:', error);
+      console.error('❌ Error initializing card form:', error);
       const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error('Full error details:', {
+      console.error('Detailed error info:', {
         message: errorMessage,
-        errorType: error instanceof Error ? error.constructor.name : typeof error,
-        stack: error instanceof Error ? error.stack : undefined
+        type: error instanceof Error ? error.constructor.name : typeof error,
+        fullError: error,
+        stack: error instanceof Error ? error.stack : 'No stack trace'
       });
       
       // Show specific error messages based on what failed
