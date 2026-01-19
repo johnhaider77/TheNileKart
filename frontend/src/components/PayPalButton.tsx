@@ -530,19 +530,20 @@ const PayPalButton: React.FC<PayPalButtonProps> = ({
   const initializeHostedFields = async () => {
     try {
       console.log('Initializing secure card form...');
-
-      // Wait for HostedFields with timeout
+      
+      // Wait for window.paypal.HostedFields to be available
       let attempts = 0;
-      const maxAttempts = 5;
+      const maxAttempts = 20;
       const timeoutMs = 15000; // 15 second total timeout
       const startTime = Date.now();
       
-      while (!checkHostedFieldsAvailability() && attempts < maxAttempts) {
+      // Direct check for HostedFields without relying on checkHostedFieldsAvailability
+      while ((!window.paypal || !window.paypal.HostedFields) && attempts < maxAttempts) {
         attempts++;
         if (Date.now() - startTime > timeoutMs) {
           throw new Error('Payment form initialization timeout. Please refresh and try again.');
         }
-        console.log(`Waiting for card form, attempt ${attempts}/${maxAttempts}`);
+        console.log(`Waiting for HostedFields, attempt ${attempts}/${maxAttempts}`);
         await new Promise(resolve => setTimeout(resolve, 300));
       }
       
@@ -616,6 +617,7 @@ const PayPalButton: React.FC<PayPalButtonProps> = ({
       hostedFieldsInstance.current = hostedFields;
       setCardFormReady(true);
       setCardFormError(null);
+      setHostedFieldsAvailable(true);
       console.log('PayPal hosted fields initialized successfully');
 
     } catch (error) {
@@ -631,6 +633,7 @@ const PayPalButton: React.FC<PayPalButtonProps> = ({
       setShowCardForm(false);
       setHostedFieldsAvailable(false);
       setCardFormReady(false);
+      setIsLoading(false);
       
       // Call error callback to navigate back to checkout with error
       if (onError) {
@@ -1107,8 +1110,8 @@ const PayPalButton: React.FC<PayPalButtonProps> = ({
         </div>
       )}
 
-      {/* Card Payment Form - Always visible */}
-      {hostedFieldsAvailable && (
+      {/* Card Payment Form - Always visible when not loading */}
+      {!isLoading && !loadError && (
         <div style={{
           border: '2px solid #0070f3',
           borderRadius: '12px',
@@ -1282,47 +1285,6 @@ const PayPalButton: React.FC<PayPalButtonProps> = ({
               </>
             )}
           </div>
-        </div>
-      )}
-
-      {!hostedFieldsAvailable && !isLoading && !cardFormReady && !cardFormError && (
-        <div style={{
-          padding: '16px',
-          textAlign: 'center',
-          background: '#fff3cd',
-          borderRadius: '8px',
-          color: '#856404',
-          fontSize: '0.95rem'
-        }}>
-          <div style={{ marginBottom: '8px' }}>🔄 Loading secure payment form...</div>
-          <div style={{ fontSize: '0.85rem' }}>Please wait while we prepare your payment form.</div>
-          <button
-            onClick={() => {
-              console.log('Manual retry clicked');
-              setCardFormReady(false);
-              setHostedFieldsAvailable(false);
-              setIsLoading(true);
-              setTimeout(() => {
-                const isAvailable = checkHostedFieldsAvailability();
-                if (isAvailable) {
-                  initializeHostedFields();
-                }
-                setIsLoading(false);
-              }, 500);
-            }}
-            style={{
-              marginTop: '12px',
-              padding: '8px 16px',
-              background: '#856404',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontSize: '0.85rem'
-            }}
-          >
-            Retry
-          </button>
         </div>
       )}
     </div>
