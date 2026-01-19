@@ -103,9 +103,9 @@ setInterval(async () => {
   }
 }, 15000);
 
-// Body parsing middleware
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true }));
+// Body parsing middleware - increased limits for file uploads
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Serve static frontend files from build directory
 const frontendBuildPath = path.join(__dirname, '..', 'frontend', 'build');

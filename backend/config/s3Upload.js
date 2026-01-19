@@ -114,7 +114,7 @@ const s3ProductsUpload = multer({
   storage: getStorageConfig('products'),
   limits: {
     fileSize: file => {
-      return file.fieldname === 'videos' ? 100 * 1024 * 1024 : 10 * 1024 * 1024; // 100MB for videos, 10MB for images
+      return file.fieldname === 'videos' ? 200 * 1024 * 1024 : 50 * 1024 * 1024; // 200MB for videos, 50MB for images
     }
   },
   fileFilter: function (req, file, cb) {
@@ -140,7 +140,7 @@ const s3ProductsUpload = multer({
 const s3BannersUpload = multer({
   storage: getStorageConfig('banners'),
   limits: {
-    fileSize: 10 * 1024 * 1024 // 10MB limit for banner images
+    fileSize: 50 * 1024 * 1024 // 50MB limit for banner images
   },
   fileFilter: function (req, file, cb) {
     if (file.mimetype.startsWith('image/')) {
