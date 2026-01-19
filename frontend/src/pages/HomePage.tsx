@@ -129,6 +129,70 @@ const truncateProductName = (name: string, maxLength: number = 18): string => {
   return name.substring(0, maxLength) + '...';
 };
 
+// Footer Component for E-commerce
+const Footer: React.FC = () => {
+  return (
+    <footer className="site-footer">
+      <div className="container">
+        <div className="footer-content">
+          <div className="footer-section">
+            <div className="footer-logo">
+              <img src="/TheNileKart.jpeg" alt="TheNileKart" className="footer-logo-img" />
+              <h3>TheNileKart</h3>
+            </div>
+            <p>Your trusted marketplace for quality products from around the world.</p>
+            <div className="social-links">
+              <span>📧</span>
+              <span>📱</span>
+              <span>🐦</span>
+              <span>📘</span>
+            </div>
+          </div>
+          
+          <div className="footer-section">
+            <h4>Quick Links</h4>
+            <ul>
+              <li>About Us</li>
+              <li>Contact</li>
+              <li>FAQ</li>
+              <li>Support</li>
+            </ul>
+          </div>
+          
+          <div className="footer-section">
+            <h4>Categories</h4>
+            <ul>
+              <li>Mobiles & Tablets</li>
+              <li>Electronics</li>
+              <li>Fashion</li>
+              <li>Home & Kitchen</li>
+            </ul>
+          </div>
+          
+          <div className="footer-section">
+            <h4>Customer Service</h4>
+            <ul>
+              <li>Shipping Info</li>
+              <li>Returns</li>
+              <li>Order Tracking</li>
+              <li>Size Guide</li>
+            </ul>
+          </div>
+        </div>
+        
+        <div className="footer-bottom">
+          <p>&copy; 2025 TheNileKart. All rights reserved.</p>
+          <div className="footer-links">
+            <span>Privacy Policy</span>
+            <span>Terms of Service</span>
+            <span>Cookies</span>
+          </div>
+        </div>
+      </div>
+    </footer>
+  );
+};
+
 const HomePage: React.FC = () => {
   const { user } = useAuth();
   const { addToCart } = useCart();
@@ -1095,6 +1159,9 @@ const HomePage: React.FC = () => {
           onClose={() => setQuickViewProduct(null)}
         />
       )}
+
+      {/* Footer */}
+      <Footer />
     </div>
   );
 };
