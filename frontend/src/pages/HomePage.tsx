@@ -937,53 +937,71 @@ const HomePage: React.FC = () => {
                       images={(() => {
                         // Handle database products with JSONB images field
                         if (product.images && Array.isArray(product.images)) {
-                          return product.images.filter((img: any) => img && typeof img === 'string');
+                          const imageUrls = product.images.map((img: any) => {
+                            if (typeof img === 'string') {
+                              return img;
+                            }
+                            if (img.url) {
+                              // Add localhost prefix if URL doesn't start with http
+                              const fullUrl = img.url.startsWith('http') ? img.url : `http://localhost:5000${img.url}`;
+                              return fullUrl;
+                            }
+                            return img;
+                          });
+                          return imageUrls.length > 0 ? imageUrls : ['https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=300&h=200&fit=crop'];
                         }
-                        // Handle image_url field
-                        if (product.image_url && typeof product.image_url === 'string') {
-                          return [product.image_url];
+                        // Handle database products with single image_url
+                        if (product.image_url) {
+                          const imageUrl = product.image_url.startsWith('http') ? product.image_url : `http://localhost:5000${product.image_url}`;
+                          return [imageUrl];
                         }
-                        return [];
+                        // Fallback image
+                        return ['https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=300&h=200&fit=crop'];
                       })()}
                       productName={product.name}
                     />
                     
-                    <div className="card-body">
+                    {/* Sold Out Watermark */}
+                    {getActualStock(product) === 0 && (
+                      <div 
+                        className="absolute inset-0 flex items-center justify-center" 
+                        style={{
+                          zIndex: 10,
+                          borderRadius: '12px',
+                          pointerEvents: 'none'
+                        }}
+                      >
+                        <div
+                          style={{
+                            background: 'linear-gradient(135deg, rgba(255, 107, 107, 0.7), rgba(238, 90, 82, 0.7))',
+                            color: 'white',
+                            padding: '12px 24px',
+                            borderRadius: '8px',
+                            fontSize: '18px',
+                            fontWeight: 'bold',
+                            textTransform: 'uppercase',
+                            letterSpacing: '2px',
+                            border: '2px solid rgba(255, 255, 255, 0.8)',
+                            boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+                            textAlign: 'center',
+                            transform: 'rotate(-15deg)',
+                            backdropFilter: 'blur(2px)'
+                          }}
+                        >
+                          SOLD OUT
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Product Info */}
+                    <div className="card-body" style={{ padding: '6px 4px' }}>
                       <ProductName name={product.name} />
                       
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                        <p className="product-price">{getPriceDisplay(product)}</p>
-                        {getActualStock(product) > 0 && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleAddToCart(product);
-                            }}
-                            style={{
-                              background: animatingProduct === product.id ? '#27ae60' : '#007bff',
-                              color: 'white',
-                              border: 'none',
-                              padding: '0.4rem 0.8rem',
-                              borderRadius: '4px',
-                              cursor: 'pointer',
-                              fontSize: '0.75rem',
-                              fontWeight: '600',
-                              transition: 'all 0.3s ease',
-                              transform: animatingProduct === product.id ? 'scale(1.05)' : 'scale(1)'
-                            }}
-                          >
-                            {animatingProduct === product.id ? '✓ Added' : 'Add'}
-                          </button>
-                        )}
-                      </div>
-
-                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' }}>
-                        {getActualStock(product) === 0 && (
-                          <span style={{ color: '#e74c3c', fontSize: '0.75rem', fontWeight: '600' }}>
-                            Sold Out
-                          </span>
-                        )}
-                        {calculatePercentOff(product) > 0 && (
+                      <div className="flex items-center gap-1 mb-2" style={{ flexWrap: 'nowrap', overflow: 'hidden' }}>
+                        <span className="font-bold flex-shrink-0" style={{ fontSize: '11px', minWidth: 'auto' }}>
+                          {getPriceDisplay(product)}
+                        </span>
+                        {formatPercentOff(calculatePercentOff(product)) && (
                           <span 
                             className="font-semibold flex-shrink-0" 
                             style={{ 
@@ -1001,6 +1019,7 @@ const HomePage: React.FC = () => {
                             {formatPercentOff(calculatePercentOff(product))}
                           </span>
                         )}
+                        {/* Stock indicator */}
                         {getActualStock(product) > 0 && getActualStock(product) <= 5 && (
                           <span 
                             className="font-medium flex-shrink-0"
@@ -1017,6 +1036,7 @@ const HomePage: React.FC = () => {
                           </span>
                         )}
                       </div>
+
                     </div>
                   </div>
                 ))}
