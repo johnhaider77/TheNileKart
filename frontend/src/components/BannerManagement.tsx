@@ -58,6 +58,9 @@ const BannerManagement: React.FC = () => {
   });
 
   const [previewImage, setPreviewImage] = useState<string>('');
+  const [bannerError, setBannerError] = useState<string>('');
+  const [offerError, setOfferError] = useState<string>('');
+  const [successMessage, setSuccessMessage] = useState<string>('');
 
   useEffect(() => {
     fetchData();
@@ -87,8 +90,21 @@ const BannerManagement: React.FC = () => {
 
   const handleBannerSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setBannerError('');
+    setSuccessMessage('');
     
     try {
+      // Validate form
+      if (!bannerForm.title.trim()) {
+        setBannerError('Banner title is required');
+        return;
+      }
+      
+      if (!bannerForm.offer_page_url) {
+        setBannerError('Please select an offer');
+        return;
+      }
+      
       const formData = new FormData();
       formData.append('title', bannerForm.title);
       formData.append('subtitle', bannerForm.subtitle);
@@ -106,36 +122,64 @@ const BannerManagement: React.FC = () => {
         }
         
         await sellerAPI.updateBanner(editingBanner.id.toString(), formData);
+        setSuccessMessage('Banner updated successfully!');
       } else {
-        await sellerAPI.createBanner(formData);
+        const response = await sellerAPI.createBanner(formData);
+        console.log('Banner creation response:', response);
+        setSuccessMessage('Banner created successfully!');
       }
       
-      setIsModalOpen(false);
-      resetBannerForm();
-      fetchData();
-    } catch (error) {
+      setTimeout(() => {
+        setIsModalOpen(false);
+        resetBannerForm();
+        setSuccessMessage('');
+        fetchData();
+      }, 1000);
+    } catch (error: any) {
       console.error('Error saving banner:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to save banner';
+      setBannerError(errorMessage);
     }
   };
 
   const handleOfferSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setOfferError('');
+    setSuccessMessage('');
     
     try {
+      // Validate form
+      if (!offerForm.offer_code.trim()) {
+        setOfferError('Offer code is required');
+        return;
+      }
+      
+      if (!offerForm.name.trim()) {
+        setOfferError('Offer name is required');
+        return;
+      }
+      
       if (editingOffer) {
         await sellerAPI.updateOffer(editingOffer.offer_code, {
           ...offerForm,
           is_active: true,
         });
+        setSuccessMessage('Offer updated successfully!');
       } else {
         await sellerAPI.createOffer(offerForm);
+        setSuccessMessage('Offer created successfully!');
       }
       
-      setIsOfferModalOpen(false);
-      resetOfferForm();
-      fetchData();
-    } catch (error) {
+      setTimeout(() => {
+        setIsOfferModalOpen(false);
+        resetOfferForm();
+        setSuccessMessage('');
+        fetchData();
+      }, 1000);
+    } catch (error: any) {
       console.error('Error saving offer:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to save offer';
+      setOfferError(errorMessage);
     }
   };
 
@@ -327,6 +371,19 @@ const BannerManagement: React.FC = () => {
               <h3>{editingBanner ? 'Edit Banner' : 'Add Banner'}</h3>
               <button onClick={() => setIsModalOpen(false)} className="close-btn">&times;</button>
             </div>
+            
+            {bannerError && (
+              <div style={{ padding: '12px', marginBottom: '12px', backgroundColor: '#fee', border: '1px solid #fcc', color: '#c33', borderRadius: '4px', fontSize: '14px' }}>
+                ⚠️ {bannerError}
+              </div>
+            )}
+            
+            {successMessage && (
+              <div style={{ padding: '12px', marginBottom: '12px', backgroundColor: '#efe', border: '1px solid #cfc', color: '#3c3', borderRadius: '4px', fontSize: '14px' }}>
+                ✅ {successMessage}
+              </div>
+            )}
+            
             <form onSubmit={handleBannerSubmit}>
               <div className="form-group">
                 <label htmlFor="title">Banner Title *</label>
@@ -413,6 +470,19 @@ const BannerManagement: React.FC = () => {
               <h3>{editingOffer ? 'Edit Offer' : 'Add Offer'}</h3>
               <button onClick={() => setIsOfferModalOpen(false)} className="close-btn">&times;</button>
             </div>
+            
+            {offerError && (
+              <div style={{ padding: '12px', marginBottom: '12px', backgroundColor: '#fee', border: '1px solid #fcc', color: '#c33', borderRadius: '4px', fontSize: '14px' }}>
+                ⚠️ {offerError}
+              </div>
+            )}
+            
+            {successMessage && (
+              <div style={{ padding: '12px', marginBottom: '12px', backgroundColor: '#efe', border: '1px solid #cfc', color: '#3c3', borderRadius: '4px', fontSize: '14px' }}>
+                ✅ {successMessage}
+              </div>
+            )}
+            
             <form onSubmit={handleOfferSubmit}>
               <div className="form-group">
                 <label htmlFor="offer_code">Offer Code *</label>
