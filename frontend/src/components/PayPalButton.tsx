@@ -586,71 +586,87 @@ const PayPalButton: React.FC<PayPalButtonProps> = ({
         await new Promise(resolve => setTimeout(resolve, 1000));
       }
 
-      const hostedFields = await window.paypal.HostedFields.render({
-        createOrder: async () => {
-          // Create order through backend
-          const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000/api'}/paypal/create`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${localStorage.getItem('token')}`
-            },
-            body: JSON.stringify({
-              total_amount: parseFloat(amount.toFixed(2)),
-              items: items,
-              device_type: isMobile() ? 'mobile' : 'desktop',
-              shipping_address: {
-                full_name: shippingAddress.full_name || shippingAddress.fullName || 
-                         `${shippingAddress.firstName || ''} ${shippingAddress.lastName || ''}`.trim(),
-                address_line1: shippingAddress.address_line1 || shippingAddress.addressLine1 || shippingAddress.street,
-                address_line2: shippingAddress.address_line2 || shippingAddress.addressLine2 || '',
-                city: shippingAddress.city,
-                state: shippingAddress.state || shippingAddress.region,
-                postal_code: shippingAddress.postal_code || shippingAddress.postalCode || shippingAddress.zipCode,
-                country: shippingAddress.country || 'US'
+      try {
+        console.log('Starting HostedFields.render() call...');
+        
+        const hostedFields = await window.paypal.HostedFields.render({
+          createOrder: async () => {
+            try {
+              console.log('createOrder callback triggered');
+              const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000/api'}/paypal/create`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${localStorage.getItem('token')}`
+                },
+                body: JSON.stringify({
+                  total_amount: parseFloat(amount.toFixed(2)),
+                  items: items,
+                  device_type: isMobile() ? 'mobile' : 'desktop',
+                  shipping_address: {
+                    full_name: shippingAddress.full_name || shippingAddress.fullName || 
+                             `${shippingAddress.firstName || ''} ${shippingAddress.lastName || ''}`.trim(),
+                    address_line1: shippingAddress.address_line1 || shippingAddress.addressLine1 || shippingAddress.street,
+                    address_line2: shippingAddress.address_line2 || shippingAddress.addressLine2 || '',
+                    city: shippingAddress.city,
+                    state: shippingAddress.state || shippingAddress.region,
+                    postal_code: shippingAddress.postal_code || shippingAddress.postalCode || shippingAddress.zipCode,
+                    country: shippingAddress.country || 'US'
+                  }
+                })
+              });
+
+              if (!response.ok) {
+                const errorData = await response.json().catch(() => ({ message: 'Server connection failed' }));
+                throw new Error(errorData.message || 'Failed to create PayPal order');
               }
-            })
-          });
 
-          if (!response.ok) {
-            const errorData = await response.json().catch(() => ({ message: 'Server connection failed' }));
-            throw new Error(errorData.message || 'Failed to create PayPal order');
+              const orderData = await response.json();
+              console.log('Order created successfully:', orderData.id);
+              return orderData.id;
+            } catch (error) {
+              console.error('Error in createOrder callback:', error);
+              throw error;
+            }
+          },
+          styles: {
+            'input': {
+              'font-size': '16px',
+              'font-family': '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+              'color': '#333'
+            },
+            ':focus': {
+              'color': '#333'
+            },
+            '.invalid': {
+              'color': '#dc3545'
+            }
+          },
+          fields: {
+            number: {
+              selector: '#card-number',
+              placeholder: '1234 5678 9012 3456'
+            },
+            cvv: {
+              selector: '#cvv',
+              placeholder: '123'
+            },
+            expirationDate: {
+              selector: '#expiration-date',
+              placeholder: 'MM/YY'
+            }
           }
+        });
+        
+        console.log('HostedFields.render() returned successfully');
+        hostedFieldsInstance.current = hostedFields;
+      } catch (renderError) {
+        console.error('❌ Error during HostedFields.render():', renderError);
+        throw renderError;
+      }
+      
+      const hostedFields = hostedFieldsInstance.current;
 
-          const orderData = await response.json();
-          return orderData.id;
-        },
-        styles: {
-          'input': {
-            'font-size': '16px',
-            'font-family': '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-            'color': '#333'
-          },
-          ':focus': {
-            'color': '#333'
-          },
-          '.invalid': {
-            'color': '#dc3545'
-          }
-        },
-        fields: {
-          number: {
-            selector: '#card-number',
-            placeholder: '1234 5678 9012 3456'
-          },
-          cvv: {
-            selector: '#cvv',
-            placeholder: '123'
-          },
-          expirationDate: {
-            selector: '#expiration-date',
-            placeholder: 'MM/YY'
-          }
-        }
-      });
-
-      console.log('HostedFields.render() completed successfully');
-      hostedFieldsInstance.current = hostedFields;
       setCardFormReady(true);
       setCardFormError(null);
       setHostedFieldsAvailable(true);
