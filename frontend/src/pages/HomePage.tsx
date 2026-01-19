@@ -149,6 +149,12 @@ const HomePage: React.FC = () => {
   const [isUserScrollingPreferred, setIsUserScrollingPreferred] = useState(false);
   const [isUserScrollingTrending, setIsUserScrollingTrending] = useState(false);
 
+  // All products pagination state
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [allProductsPage, setAllProductsPage] = useState(1);
+  const [allProductsHasMore, setAllProductsHasMore] = useState(true);
+  const [allProductsLoading, setAllProductsLoading] = useState(false);
+
   // Search functionality state
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -192,6 +198,28 @@ const HomePage: React.FC = () => {
       document.removeEventListener('keydown', handleEscape);
     };
   }, [isSearchActive]);
+
+  // Initialize all products on component mount
+  useEffect(() => {
+    fetchAllProducts(1);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Infinite scroll effect for all products
+  useEffect(() => {
+    const handleScroll = () => {
+      if (
+        window.innerHeight + document.documentElement.scrollTop >=
+        document.documentElement.offsetHeight - 800 && // Trigger 800px before bottom
+        allProductsHasMore &&
+        !allProductsLoading
+      ) {
+        fetchAllProducts(allProductsPage + 1);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [allProductsHasMore, allProductsLoading, allProductsPage]);
 
   // Search functionality
   const handleSearchFocus = () => {
@@ -310,6 +338,35 @@ const HomePage: React.FC = () => {
       console.error('Error fetching home page data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchAllProducts = async (pageNum: number = 1) => {
+    try {
+      if (pageNum === 1) {
+        setAllProductsLoading(true);
+      }
+
+      const limit = pageNum === 1 ? 10 : 4; // 10 for initial load, 4 for subsequent loads
+      const params: any = { limit, page: pageNum };
+
+      const response = await productsAPI.getProducts(params);
+      
+      if (pageNum === 1) {
+        setAllProducts(response.data.products || []);
+      } else {
+        setAllProducts(prev => [...prev, ...(response.data.products || [])]);
+      }
+
+      // Check if there are more products to load
+      const totalProducts = response.data.pagination?.totalProducts || 0;
+      const hasMore = response.data.pagination?.hasNextPage || false;
+      setAllProductsHasMore(hasMore);
+      setAllProductsPage(pageNum);
+    } catch (error) {
+      console.error('Error fetching all products:', error);
+    } finally {
+      setAllProductsLoading(false);
     }
   };
 
@@ -855,6 +912,158 @@ const HomePage: React.FC = () => {
               </Link>
             ))}
           </div>
+        </section>
+
+        {/* All Products Section with Infinite Scroll */}
+        <section className="products-section">
+          <h2 className="section-title">Explore All Products</h2>
+          {allProducts.length > 0 ? (
+            <>
+              <div className="products-grid">
+                {allProducts.map((product) => (
+                  <div
+                    key={product.id}
+                    className="card card-product"
+                    onClick={() => handleQuickView(product)}
+                    style={{ 
+                      position: 'relative',
+                      opacity: getActualStock(product) === 0 ? '0.6' : '1',
+                      filter: getActualStock(product) === 0 ? 'grayscale(50%)' : 'none',
+                      transition: 'all 0.3s ease',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <ImageCarousel 
+                      images={(() => {
+                        // Handle database products with JSONB images field
+                        if (product.images && Array.isArray(product.images)) {
+                          return product.images.filter((img: any) => img && typeof img === 'string');
+                        }
+                        // Handle image_url field
+                        if (product.image_url && typeof product.image_url === 'string') {
+                          return [product.image_url];
+                        }
+                        return [];
+                      })()}
+                      productName={product.name}
+                    />
+                    
+                    <div className="card-body">
+                      <ProductName name={product.name} />
+                      
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                        <p className="product-price">{getPriceDisplay(product)}</p>
+                        {getActualStock(product) > 0 && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleAddToCart(product);
+                            }}
+                            style={{
+                              background: animatingProduct === product.id ? '#27ae60' : '#007bff',
+                              color: 'white',
+                              border: 'none',
+                              padding: '0.4rem 0.8rem',
+                              borderRadius: '4px',
+                              cursor: 'pointer',
+                              fontSize: '0.75rem',
+                              fontWeight: '600',
+                              transition: 'all 0.3s ease',
+                              transform: animatingProduct === product.id ? 'scale(1.05)' : 'scale(1)'
+                            }}
+                          >
+                            {animatingProduct === product.id ? '✓ Added' : 'Add'}
+                          </button>
+                        )}
+                      </div>
+
+                      <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' }}>
+                        {getActualStock(product) === 0 && (
+                          <span style={{ color: '#e74c3c', fontSize: '0.75rem', fontWeight: '600' }}>
+                            Sold Out
+                          </span>
+                        )}
+                        {calculatePercentOff(product) > 0 && (
+                          <span 
+                            className="font-semibold flex-shrink-0" 
+                            style={{ 
+                              color: '#ffffff', 
+                              background: '#e74c3c', 
+                              padding: '2px 4px', 
+                              borderRadius: '4px', 
+                              fontSize: '8px', 
+                              whiteSpace: 'nowrap',
+                              display: 'inline-block',
+                              minWidth: 'fit-content',
+                              boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+                            }}
+                          >
+                            {formatPercentOff(calculatePercentOff(product))}
+                          </span>
+                        )}
+                        {getActualStock(product) > 0 && getActualStock(product) <= 5 && (
+                          <span 
+                            className="font-medium flex-shrink-0"
+                            style={{ 
+                              color: '#ff9500', 
+                              background: '#fff8f0', 
+                              padding: '1px 3px', 
+                              borderRadius: '3px',
+                              fontSize: '7px',
+                              whiteSpace: 'nowrap'
+                            }}
+                          >
+                            {getActualStock(product)} left
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Loading more products indicator */}
+              {allProductsLoading && (
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'center', 
+                  alignItems: 'center', 
+                  padding: '20px',
+                  marginTop: '20px'
+                }}>
+                  <div className="animate-pulse flex items-center gap-2" style={{ color: '#6b7280' }}>
+                    <div style={{
+                      width: '16px',
+                      height: '16px',
+                      border: '2px solid #e5e7eb',
+                      borderTop: '2px solid #3b82f6',
+                      borderRadius: '50%',
+                      animation: 'spin 1s linear infinite'
+                    }}></div>
+                    <span>Loading more products...</span>
+                  </div>
+                </div>
+              )}
+
+              {/* End of products message */}
+              {!allProductsHasMore && allProducts.length > 0 && !allProductsLoading && (
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'center', 
+                  padding: '20px',
+                  marginTop: '20px',
+                  color: '#6b7280',
+                  fontSize: '0.875rem'
+                }}>
+                  🎉 You've reached the end of all products
+                </div>
+              )}
+            </>
+          ) : (
+            <div style={{ textAlign: 'center', padding: '2rem' }}>
+              <p style={{ color: '#6b7280' }}>Loading products...</p>
+            </div>
+          )}
         </section>
       </div>
 
