@@ -24,6 +24,8 @@ import SearchPage from './pages/SearchPage';
 import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute';
 import ErrorBoundary from './components/ErrorBoundary';
+import AddToCartNotification from './components/AddToCartNotification';
+import { useCart } from './context/CartContext';
 
 // Import styles
 import './styles/global.css';
@@ -31,10 +33,12 @@ import './App.css';
 
 function AppRoutes() {
   const { isAuthenticated, isSeller, isCustomer } = useAuth();
+  const { showNotification, hideNotification } = useCart();
 
   return (
     <div className="App">
       <Navbar />
+      <AddToCartNotification isVisible={showNotification} onHide={hideNotification} />
       <main className="main-content">
         <Routes>
           {/* Home page - Only for customers and guests. Sellers redirected to dashboard */}
