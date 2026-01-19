@@ -529,27 +529,25 @@ const PayPalButton: React.FC<PayPalButtonProps> = ({
 
   const initializeHostedFields = async () => {
     try {
-      // Skip hosted fields in sandbox mode
-      const isInSandbox = isSandboxMode();
-      if (isInSandbox) {
-        console.log('Sandbox mode detected - hosted fields are not available in sandbox');
-        setHostedFieldsAvailable(false);
-        setCardFormError('Card payments are not available in sandbox mode. Please use PayPal account login.');
-        return;
-      }
+      console.log('Initializing secure card form...');
 
-      // Check if HostedFields is available, with faster retries
+      // Wait for HostedFields with timeout
       let attempts = 0;
-      const maxAttempts = 3; // Reduced from 5
+      const maxAttempts = 5;
+      const timeoutMs = 15000; // 15 second total timeout
+      const startTime = Date.now();
       
       while (!checkHostedFieldsAvailability() && attempts < maxAttempts) {
         attempts++;
-        console.log(`Waiting for HostedFields availability, attempt ${attempts}`);
-        await new Promise(resolve => setTimeout(resolve, 200)); // Reduced from 500ms to 200ms
+        if (Date.now() - startTime > timeoutMs) {
+          throw new Error('Payment form initialization timeout. Please refresh and try again.');
+        }
+        console.log(`Waiting for card form, attempt ${attempts}/${maxAttempts}`);
+        await new Promise(resolve => setTimeout(resolve, 300));
       }
       
       if (!window.paypal || !window.paypal.HostedFields) {
-        throw new Error('PayPal HostedFields is not available after waiting. This may be due to network issues or PayPal service limitations.');
+        throw new Error('Payment service not available. Please refresh and try again.');
       }
 
       const hostedFields = await window.paypal.HostedFields.render({
@@ -621,25 +619,25 @@ const PayPalButton: React.FC<PayPalButtonProps> = ({
       console.log('PayPal hosted fields initialized successfully');
 
     } catch (error) {
-      console.error('Error initializing hosted fields:', error);
+      console.error('Error initializing card form:', error);
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       
-      if (errorMessage.includes('not eligible') || errorMessage.includes('HOSTEDFIELDS_NOT_ELIGIBLE')) {
-        console.log('PayPal Hosted Fields not eligible - This is normal in development/sandbox mode');
-        // Don't show error message in sandbox, just disable the card form
-        setShowCardForm(false);
-        setHostedFieldsAvailable(false);
-        setCardFormReady(false);
-      } else if (errorMessage.includes('not available')) {
-        setCardFormError('Card payment is not available at the moment. Please try PayPal account login or Cash on Delivery.');
-        setShowCardForm(false);
-      } else {
-        setCardFormError('Unable to load secure card form. Please try PayPal account login or Cash on Delivery.');
-        setShowCardForm(false);
-      }
+      // Always show error for any initialization failure
+      const userMessage = errorMessage.includes('timeout') 
+        ? 'Payment form is taking too long to load. Please refresh the page and try again.'
+        : 'Unable to load payment form. Please refresh and try again.';
       
-      // Reset states
+      setCardFormError(userMessage);
+      setShowCardForm(false);
+      setHostedFieldsAvailable(false);
       setCardFormReady(false);
+      
+      // Call error callback to navigate back to checkout with error
+      if (onError) {
+        setTimeout(() => {
+          onError(new Error(userMessage));
+        }, 500);
+      }
     }
   };
 
@@ -1018,50 +1016,38 @@ const PayPalButton: React.FC<PayPalButtonProps> = ({
 
   // Simple useLayoutEffect - only initialize hosted fields directly for card payment
   useLayoutEffect(() => {
-    console.log('PayPalButton component mounted - initializing');
+    console.log('PayPalButton component mounted - initializing card form');
     
-    // First, load the PayPal SDK
     const initializeSDK = async () => {
       try {
         setIsLoading(true);
-        console.log('Loading PayPal SDK...');
+        setShowCardForm(true);
+        console.log('Loading payment SDK for card payments...');
         
         // Load PayPal SDK
         await loadPayPalSDK();
         
-        // Check if HostedFields is available after SDK loads
-        console.log('Checking for HostedFields availability...');
-        const isAvailable = checkHostedFieldsAvailability();
-        
-        if (isAvailable) {
-          console.log('HostedFields is available, initializing hosted fields');
-          setShowCardForm(true);
-          setIsLoading(false);
-          // Initialize hosted fields
-          await initializeHostedFields();
-        } else {
-          console.log('HostedFields not available, retrying in a moment');
-          setIsLoading(false);
-          // Retry after a short delay
-          setTimeout(() => {
-            const retryAvailable = checkHostedFieldsAvailability();
-            if (retryAvailable) {
-              setShowCardForm(true);
-              initializeHostedFields();
-            }
-          }, 500);
-        }
+        // Directly initialize hosted fields
+        console.log('Initializing card payment form...');
+        setIsLoading(false);
+        await initializeHostedFields();
       } catch (error) {
         console.error('Error during SDK initialization:', error);
-        setLoadError(error instanceof Error ? error.message : 'Failed to initialize payment form');
+        const errorMsg = error instanceof Error ? error.message : 'Unable to load payment form. Please try again.';
+        setLoadError(errorMsg);
         setIsLoading(false);
+        
+        // Trigger error callback to navigate back to checkout
+        setTimeout(() => {
+          if (onError) onError(new Error(errorMsg));
+        }, 500);
       }
     };
 
     if (!disabled) {
       initializeSDK();
     }
-  }, [disabled]);
+  }, [disabled, onError]);
 
   // Show only card form - no PayPal buttons or fallbacks
   return (
@@ -1308,8 +1294,8 @@ const PayPalButton: React.FC<PayPalButtonProps> = ({
           color: '#856404',
           fontSize: '0.95rem'
         }}>
-          <div style={{ marginBottom: '8px' }}>🔄 Initializing payment form...</div>
-          <div style={{ fontSize: '0.85rem' }}>This may take a moment. If it continues, please refresh the page.</div>
+          <div style={{ marginBottom: '8px' }}>🔄 Loading secure payment form...</div>
+          <div style={{ fontSize: '0.85rem' }}>Please wait while we prepare your payment form.</div>
           <button
             onClick={() => {
               console.log('Manual retry clicked');

@@ -172,6 +172,9 @@ const PaymentOptions: React.FC<PaymentOptionsProps> = ({
                 <span className="payment-icon">💳</span>
                 <span>Pay Online</span>
               </div>
+              <p className="payment-method-description">
+                Pay using your credit or debit card with secure encryption
+              </p>
             </label>
           </div>
           
@@ -209,7 +212,7 @@ const PaymentOptions: React.FC<PaymentOptionsProps> = ({
         <div className="summary-row">
           <span>Payment Method:</span>
           <span className="method">
-            {selectedPaymentMethod === 'cod' ? 'Cash on Delivery' : 'Secure PayPal Payment'}
+            {selectedPaymentMethod === 'cod' ? 'Cash on Delivery' : 'Secure Online Payment'}
           </span>
         </div>
       </div>
