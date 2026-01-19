@@ -67,22 +67,14 @@ INSERT INTO offers (offer_code, name, description, created_by) VALUES
 INSERT INTO banners (title, subtitle, background_image, offer_page_url, display_order, created_by) VALUES
 ('Diwali Festival Sale!', 'Get up to 50% off on all products', NULL, 'diwali50', 1, 2),
 ('Summer Collection', 'Beat the heat with cool deals', NULL, 'summer25', 2, 2),
-('Electronics Bonanza', 'Latest gadgets at unbeatable prices', NULL, 'electronics40', 3, 2),
-('Fashion Forward', NULL, NULL, 'fashion30', 4, 3);
+('Electronics Bonanza', 'Latest gadgets at unbeatable prices', NULL, 'electronics40', 3, 2);
 
 -- Sample product-offer relationships
 INSERT INTO product_offers (product_id, offer_code) VALUES
 -- iPhone and Galaxy in diwali and electronics offers
 (1, 'diwali50'), (1, 'electronics40'),
 (2, 'diwali50'), (2, 'electronics40'),
--- Shoes in fashion and diwali offers
-(3, 'fashion30'), (3, 'diwali50'),
-(5, 'fashion30'), (5, 'diwali50'),
 -- Headphones in electronics offer
 (4, 'electronics40'),
 -- MacBook in electronics and diwali offers
-(6, 'electronics40'), (6, 'diwali50'),
--- Jeans in fashion offer
-(7, 'fashion30'),
--- Apple Watch in electronics offer
-(8, 'electronics40');
+(6, 'electronics40'), (6, 'diwali50');
