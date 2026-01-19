@@ -345,7 +345,7 @@ const PayPalButton: React.FC<PayPalButtonProps> = ({
       }
 
       const script = document.createElement('script');
-      const clientId = process.env.REACT_APP_PAYPAL_CLIENT_ID || 'AdDtfr_P4XNO3lLxmk4x7vbltnscMWnCDEMVd3fE6HPEOpnSu8bV6GAobHwM-W95CRojTtu2UZwvquVl';
+      const clientId = process.env.REACT_APP_PAYPAL_CLIENT_ID || 'Adh-Fdl76IfAGhV3vAPZM3KhrI4WxKCl8Le_fT4dD4e1w9cGzXlkQl9okaG5TipW6qvWV-TM6IGb2f7p';
       
       // Validate client ID
       if (!clientId || clientId === 'your-paypal-client-id') {
