@@ -20,7 +20,7 @@ const productRoutes = require('./routes/products');
 const orderRoutes = require('./routes/orders');
 const sellerRoutes = require('./routes/seller');
 const bannerRoutes = require('./routes/banners');
-const paypalRoutes = require('./routes/paypal');
+const ziinaRoutes = require('./routes/ziina');
 const metricsRoutes = require('./routes/metrics');
 
 const app = express();
@@ -132,7 +132,7 @@ app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/seller', sellerRoutes);
 app.use('/api', bannerRoutes);
-app.use('/api/paypal', paypalRoutes);
+app.use('/api/ziina', ziinaRoutes);
 app.use('/api/metrics', metricsRoutes);
 
 // Health check endpoint

@@ -1,9 +1,22 @@
 const express = require('express');
-const { paypalClient, ordersController } = require('../config/paypal');
+const { paypalClient, ordersController, generateClientToken } = require('../config/paypal');
 const { authenticateToken, requireCustomer } = require('../middleware/auth');
 const db = require('../config/database');
 
 const router = express.Router();
+
+// Generate client token for HostedFields (REQUIRED before rendering card fields)
+router.get('/client-token', authenticateToken, async (req, res) => {
+  try {
+    console.log('Generating client token for HostedFields...');
+    const token = await paypalClient.clientToken().generate();
+    console.log('✅ Client token generated successfully');
+    res.json({ clientToken: token });
+  } catch (error) {
+    console.error('❌ Error generating client token:', error);
+    res.status(500).json({ error: 'Failed to generate client token', details: error.message });
+  }
+});
 
 // Test PayPal connection (temporary debug route)
 router.get('/test', async (req, res) => {

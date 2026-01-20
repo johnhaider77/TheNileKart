@@ -24,6 +24,12 @@ router.post('/register', [
 
     const { email, password, full_name, user_type, phone } = req.body;
 
+    // SELLER RESTRICTION: Only allow maryam.zaidi2904@gmail.com to register as seller
+    const ALLOWED_SELLER_EMAIL = 'maryam.zaidi2904@gmail.com';
+    if (user_type === 'seller' && email.toLowerCase() !== ALLOWED_SELLER_EMAIL) {
+      return res.status(403).json({ message: "You can't register as a seller" });
+    }
+
     // Check if user already exists
     const existingUser = await db.query(
       'SELECT id FROM users WHERE email = $1',
@@ -94,6 +100,12 @@ router.post('/login', [
     }
 
     const userData = user.rows[0];
+
+    // SELLER RESTRICTION: Only allow maryam.zaidi2904@gmail.com to login as seller
+    const ALLOWED_SELLER_EMAIL = 'maryam.zaidi2904@gmail.com';
+    if (userData.user_type === 'seller' && userData.email.toLowerCase() !== ALLOWED_SELLER_EMAIL) {
+      return res.status(403).json({ message: "You can't login as a seller" });
+    }
 
     // Check password
     const isValidPassword = await bcrypt.compare(password, userData.password_hash);

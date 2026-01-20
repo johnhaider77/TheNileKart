@@ -357,9 +357,10 @@ const PayPalButton: React.FC<PayPalButtonProps> = ({
       console.log('Using PayPal client ID:', clientId.substring(0, 10) + '...' + clientId.substring(clientId.length - 4));
       
       // PayPal SDK configuration with hosted fields for card payments
-      let sdkUrl = `https://www.paypal.com/sdk/js?client-id=${clientId}&currency=AED&intent=capture&components=buttons,hosted-fields&disable-funding=paylater,venmo`;
+      // Try USD first to see if it's AED-specific
+      let sdkUrl = `https://www.paypal.com/sdk/js?client-id=${clientId}&currency=USD&intent=capture&components=buttons,hosted-fields&disable-funding=paylater,venmo`;
       
-      console.log('Using PayPal SDK configuration with hosted fields for card payments in AED');
+      console.log('Using PayPal SDK configuration with hosted fields for card payments in USD');
       
       script.src = sdkUrl;
       script.async = true;
@@ -531,45 +532,49 @@ const PayPalButton: React.FC<PayPalButtonProps> = ({
 
   const initializeHostedFields = async () => {
     try {
-      console.log('Initializing secure card form...');
-      console.log('window.paypal status:', { exists: !!window.paypal, type: typeof window.paypal });
+      console.log('Initializing HostedFields with proper client token...');
       
       if (!window.paypal) {
         throw new Error('PayPal SDK not loaded. Please refresh and try again.');
       }
+
+      // CRITICAL: Check eligibility BEFORE attempting to render
+      if (!window.paypal.HostedFields || !window.paypal.HostedFields.isEligible) {
+        console.error('HostedFields API not available in PayPal SDK');
+        throw new Error('Card payments are not available in your region. Please use alternative payment method.');
+      }
+
+      console.log('Checking HostedFields eligibility...');
+      const isEligible = window.paypal.HostedFields.isEligible();
       
-      // Wait for window.paypal.HostedFields to be available
-      let attempts = 0;
-      const maxAttempts = 20;
-      const timeoutMs = 15000; // 15 second total timeout
-      const startTime = Date.now();
-      
-      // Direct check for HostedFields without relying on checkHostedFieldsAvailability
-      console.log('Starting HostedFields availability check...');
-      while ((!window.paypal || !window.paypal.HostedFields) && attempts < maxAttempts) {
-        attempts++;
-        const elapsedMs = Date.now() - startTime;
-        if (elapsedMs > timeoutMs) {
-          console.error('Timeout waiting for HostedFields after', elapsedMs, 'ms');
-          console.log('window.paypal object:', Object.keys(window.paypal || {}));
-          throw new Error('Payment form initialization timeout. Please refresh and try again.');
+      if (!isEligible) {
+        console.error('❌ HostedFields not eligible for this merchant account');
+        console.error('This typically means:');
+        console.error('1. Merchant account lacks Advanced Credit and Debit Card Payments capability');
+        console.error('2. Currency/Region combination not supported');
+        console.error('3. Account setup incomplete in PayPal dashboard');
+        throw new Error('Your account is not eligible for card payments at this time. Please contact PayPal support.');
+      }
+
+      console.log('✅ HostedFields is eligible, proceeding with render...');
+
+      // Get client token from backend BEFORE rendering
+      console.log('Fetching client token from backend...');
+      const tokenResponse = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000/api'}/paypal/client-token`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
-        console.log(`Waiting for HostedFields, attempt ${attempts}/${maxAttempts}, elapsed ${elapsedMs}ms`);
-        await new Promise(resolve => setTimeout(resolve, 300));
+      });
+
+      if (!tokenResponse.ok) {
+        throw new Error('Failed to get client token for card payments');
       }
-      
-      if (!window.paypal || !window.paypal.HostedFields) {
-        console.error('HostedFields not found after attempts:', { 
-          paypalExists: !!window.paypal,
-          hasHostedFields: !!(window.paypal && window.paypal.HostedFields),
-          paypalKeys: Object.keys(window.paypal || {})
-        });
-        throw new Error('Payment service not available. Please refresh and try again.');
-      }
-      
-      console.log('HostedFields is available, attempting to render...');
-      
-      // Check if DOM elements exist for card form
+
+      const { clientToken } = await tokenResponse.json();
+      console.log('✅ Client token received');
+
+      // Check if DOM elements exist
       const cardNumberEl = document.getElementById('card-number');
       const expirationEl = document.getElementById('expiration-date');
       const cvvEl = document.getElementById('cvv');
@@ -581,128 +586,66 @@ const PayPalButton: React.FC<PayPalButtonProps> = ({
       });
       
       if (!cardNumberEl || !expirationEl || !cvvEl) {
-        console.warn('Card form DOM elements not found yet, waiting...');
-        // Give it another second for DOM to be ready
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        throw new Error('Card form DOM elements not found. Please ensure form is rendered.');
       }
 
-      try {
-        console.log('Starting HostedFields.render() call...');
-        
-        const hostedFields = await window.paypal.HostedFields.render({
-          createOrder: async () => {
-            try {
-              console.log('createOrder callback triggered');
-              const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000/api'}/paypal/create`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': `Bearer ${localStorage.getItem('token')}`
-                },
-                body: JSON.stringify({
-                  total_amount: parseFloat(amount.toFixed(2)),
-                  items: items,
-                  device_type: isMobile() ? 'mobile' : 'desktop',
-                  shipping_address: {
-                    full_name: shippingAddress.full_name || shippingAddress.fullName || 
-                             `${shippingAddress.firstName || ''} ${shippingAddress.lastName || ''}`.trim(),
-                    address_line1: shippingAddress.address_line1 || shippingAddress.addressLine1 || shippingAddress.street,
-                    address_line2: shippingAddress.address_line2 || shippingAddress.addressLine2 || '',
-                    city: shippingAddress.city,
-                    state: shippingAddress.state || shippingAddress.region,
-                    postal_code: shippingAddress.postal_code || shippingAddress.postalCode || shippingAddress.zipCode,
-                    country: shippingAddress.country || 'US'
-                  }
-                })
-              });
-
-              if (!response.ok) {
-                const errorData = await response.json().catch(() => ({ message: 'Server connection failed' }));
-                throw new Error(errorData.message || 'Failed to create PayPal order');
-              }
-
-              const orderData = await response.json();
-              console.log('Order created successfully:', orderData.id);
-              return orderData.id;
-            } catch (error) {
-              console.error('Error in createOrder callback:', error);
-              throw error;
-            }
-          },
-          styles: {
-            'input': {
-              'font-size': '16px',
-              'font-family': '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
-              'color': '#333'
-            },
-            ':focus': {
-              'color': '#333'
-            },
-            '.invalid': {
-              'color': '#dc3545'
-            }
-          },
-          fields: {
-            number: {
-              selector: '#card-number',
-              placeholder: '1234 5678 9012 3456'
-            },
-            cvv: {
-              selector: '#cvv',
-              placeholder: '123'
-            },
-            expirationDate: {
-              selector: '#expiration-date',
-              placeholder: 'MM/YY'
-            }
-          }
-        });
-        
-        console.log('HostedFields.render() returned successfully');
-        hostedFieldsInstance.current = hostedFields;
-      } catch (renderError) {
-        console.error('❌ Error during HostedFields.render():', renderError);
-        throw renderError;
-      }
+      console.log('Starting HostedFields.render() with client token...');
       
-      const hostedFields = hostedFieldsInstance.current;
-
+      // Render HostedFields with client token
+      const hostedFields = await window.paypal.HostedFields.render({
+        client: clientToken,  // CRITICAL: Pass client token here
+        fields: {
+          number: {
+            selector: '#card-number',
+            placeholder: '4111 1111 1111 1111'
+          },
+          expirationDate: {
+            selector: '#expiration-date',
+            placeholder: 'MM/YY'
+          },
+          cvv: {
+            selector: '#cvv',
+            placeholder: '123'
+          }
+        },
+        styles: {
+          'input': {
+            'font-size': '16px',
+            'font-family': '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+            'color': '#333'
+          },
+          ':focus': {
+            'color': '#333'
+          },
+          '.invalid': {
+            'color': '#dc3545'
+          }
+        }
+      });
+      
+      console.log('✅ HostedFields.render() succeeded');
+      hostedFieldsInstance.current = hostedFields;
+      
       setCardFormReady(true);
       setCardFormError(null);
       setHostedFieldsAvailable(true);
-      console.log('✅ PayPal hosted fields initialized successfully');
+      console.log('✅ PayPal HostedFields initialized successfully');
 
     } catch (error) {
-      console.error('❌ Error initializing card form:', error);
+      console.error('❌ Error initializing HostedFields:', error);
       const errorMessage = error instanceof Error ? error.message : String(error);
-      console.error('Detailed error info:', {
-        message: errorMessage,
-        type: error instanceof Error ? error.constructor.name : typeof error,
-        fullError: error,
-        stack: error instanceof Error ? error.stack : 'No stack trace'
-      });
+      console.error('Detailed error:', { message: errorMessage, type: error?.constructor?.name });
       
-      // Show specific error messages based on what failed
-      let userMessage = 'Unable to load payment form. Please refresh and try again.';
-      
-      if (errorMessage.includes('timeout')) {
-        userMessage = 'Payment form is taking too long to load. Please refresh the page and try again.';
-      } else if (errorMessage.includes('not available')) {
-        userMessage = 'Payment service is currently unavailable. Please try again in a moment.';
-      } else if (errorMessage.includes('not loaded')) {
-        userMessage = 'Payment service failed to load. Please check your internet connection and refresh.';
-      }
-      
-      setCardFormError(userMessage);
+      setCardFormError(errorMessage);
       setShowCardForm(false);
       setHostedFieldsAvailable(false);
       setCardFormReady(false);
       setIsLoading(false);
       
-      // Call error callback to navigate back to checkout with error
+      // Call error callback
       if (onError) {
         setTimeout(() => {
-          onError(new Error(userMessage));
+          onError(new Error(errorMessage));
         }, 500);
       }
     }
@@ -1327,8 +1270,8 @@ const PayPalButton: React.FC<PayPalButtonProps> = ({
                       cursor: 'pointer',
                       transition: 'background 0.2s ease'
                     }}
-                    onMouseOver={(e) => (e.target as HTMLButtonElement).style.background = '#218838'}
-                    onMouseOut={(e) => (e.target as HTMLButtonElement).style.background = '#28a745'}
+                    onMouseOver={(e) => { (e.target as HTMLButtonElement).style.background = '#218838'; }}
+                    onMouseOut={(e) => { (e.target as HTMLButtonElement).style.background = '#28a745'; }}
                   >
                     Complete Payment
                   </button>

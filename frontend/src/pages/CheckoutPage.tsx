@@ -316,7 +316,7 @@ const CheckoutPage: React.FC = () => {
       state: { 
         orderId: details.order.id,
         totalAmount: details.order.total_amount,
-        paymentMethod: 'paypal'
+        paymentMethod: 'ziina'
       } 
     });
   };

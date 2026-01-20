@@ -18,7 +18,10 @@ console.log('🔍 DB Config - Database:', process.env.DB_NAME);
 console.log('🔍 DB Config - User:', process.env.DB_USER);
 console.log('🔍 DB Config - Password:', process.env.DB_PASSWORD ? '***' + process.env.DB_PASSWORD.slice(-4) : 'NOT SET');
 console.log('🔍 DB Config - Port:', process.env.DB_PORT);
-console.log('🔍 SSL Enabled:', env === 'production' ? 'YES' : 'NO');
+// Check if using RDS (has .rds.amazonaws.com in hostname)
+const isRDS = (process.env.DB_HOST || '').includes('rds.amazonaws.com');
+const useSSL = isRDS || env === 'production';
+console.log('🔍 SSL Enabled:', useSSL ? 'YES (RDS detected)' : 'NO');
 
 const pool = new Pool({
   host: process.env.DB_HOST || 'localhost',
@@ -29,8 +32,8 @@ const pool = new Pool({
   max: env === 'production' ? 30 : 20,
   idleTimeoutMillis: 30000,
   connectionTimeoutMillis: 5000,
-  // SSL configuration for RDS
-  ssl: env === 'production' ? {
+  // SSL configuration for RDS - always enable if using RDS
+  ssl: useSSL ? {
     require: true,
     rejectUnauthorized: false
   } : false
