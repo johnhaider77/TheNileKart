@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { ordersAPI } from '../services/api';
 import { ShippingAddress } from '../utils/types';
 import api from '../services/api';
 import PaymentOptions from '../components/PaymentOptions';
+import Toast from '../components/Toast';
 import { useMetrics } from '../hooks/useMetrics';
 import '../styles/CheckoutPage.css';
 
@@ -22,9 +23,16 @@ interface SavedAddress {
   is_default: boolean;
 }
 
+interface ToastMessage {
+  id: string;
+  message: string;
+  type: 'success' | 'error' | 'warning' | 'info';
+}
+
 const CheckoutPage: React.FC = () => {
   const { items, clearCart, updateQuantity, removeFromCart, getTotalAmount, getItemPrice } = useCart();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   
   // Initialize metrics tracking for Checkout Page
   const { trackCheckoutPage, trackCheckoutStart, trackPaymentStart, trackPaymentError, trackPaymentSuccess, trackPaymentPage } = useMetrics({ pageType: 'checkout' });
@@ -46,11 +54,50 @@ const CheckoutPage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [step, setStep] = useState<'cart' | 'address' | 'payment'>('cart');
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [codDetails, setCodDetails] = useState<{
     eligible: boolean;
     fee: number;
     nonEligibleItems: any[];
   } | undefined>(undefined);
+
+  // Helper function to add toast messages
+  const addToast = (message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info') => {
+    const id = Date.now().toString();
+    setToasts(prev => [...prev, { id, message, type }]);
+  };
+
+  const removeToast = (id: string) => {
+    setToasts(prev => prev.filter(toast => toast.id !== id));
+  };
+
+  // Handle payment return from Ziina (success/failure/cancel)
+  useEffect(() => {
+    const paymentStatus = searchParams.get('payment_status');
+    const orderId = searchParams.get('orderId');
+
+    if (paymentStatus === 'success') {
+      addToast('Payment successful! Processing your order...', 'success');
+      // Navigate to thank you page after a short delay
+      setTimeout(() => {
+        navigate('/thank-you', { 
+          state: { 
+            orderId,
+            paymentMethod: 'ziina'
+          } 
+        });
+      }, 1500);
+    } else if (paymentStatus === 'failure' || paymentStatus === 'cancelled') {
+      addToast('Payment was not completed. Please try again.', 'error');
+      // Set step back to payment
+      setStep('payment');
+      // Scroll to payment section
+      setTimeout(() => {
+        const paymentSection = document.querySelector('.payment-method-card');
+        paymentSection?.scrollIntoView({ behavior: 'smooth' });
+      }, 300);
+    }
+  }, [searchParams, navigate]);
 
   const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setShippingAddress({
@@ -402,6 +449,17 @@ const CheckoutPage: React.FC = () => {
   return (
     <div className="page-container">
       <div className="container">
+        {/* Toast Notifications */}
+        {toasts.map(toast => (
+          <Toast
+            key={toast.id}
+            message={toast.message}
+            type={toast.type}
+            duration={4000}
+            onClose={() => removeToast(toast.id)}
+          />
+        ))}
+        
         <div className="page-header">
           <h1 className="page-title">Checkout</h1>
           <div className="checkout-steps">

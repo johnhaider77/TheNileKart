@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 // Ziina payment component interface
 interface ZiinaPaymentProps {
@@ -22,6 +23,7 @@ const ZiinaPayment: React.FC<ZiinaPaymentProps> = ({
   onCancel,
   disabled = false
 }) => {
+  const navigate = useNavigate();
   const [isProcessing, setIsProcessing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -106,6 +108,13 @@ const ZiinaPayment: React.FC<ZiinaPaymentProps> = ({
       // Redirect to Ziina payment page
       if (paymentData.redirectUrl) {
         console.log('Redirecting to Ziina payment page');
+        // Store the current checkout state before redirecting
+        sessionStorage.setItem('checkoutData', JSON.stringify({
+          shippingAddress,
+          items,
+          amount,
+          orderId
+        }));
         window.location.href = paymentData.redirectUrl;
       } else {
         throw new Error('No redirect URL provided by payment gateway');
@@ -158,38 +167,66 @@ const ZiinaPayment: React.FC<ZiinaPaymentProps> = ({
             </ul>
           </div>
 
-          {/* Pay Button */}
-          <button
-            onClick={initiateZiinaPayment}
-            disabled={disabled || isProcessing || !isValidAmount()}
-            style={{
-              ...styles.button,
-              ...(disabled || isProcessing ? styles.buttonDisabled : {}),
-              ...(disabled || isProcessing ? styles.buttonHoverDisabled : styles.buttonHover)
-            }}
-            onMouseEnter={(e) => {
-              if (!disabled && !isProcessing) {
-                Object.assign(e.currentTarget.style, styles.buttonHover);
-              }
-            }}
-            onMouseLeave={(e) => {
-              if (!disabled && !isProcessing) {
-                Object.assign(e.currentTarget.style, { ...styles.button });
-              }
-            }}
-          >
-            {isProcessing ? (
-              <>
-                <span style={styles.spinner}>⏳ </span>
-                Processing...
-              </>
-            ) : (
-              <>
-                <span style={styles.lockIcon}>🔒 </span>
-                Pay {amount.toFixed(2)} AED Securely
-              </>
-            )}
-          </button>
+          {/* Button Container */}
+          <div style={styles.buttonContainer}>
+            {/* Back Button */}
+            <button
+              onClick={() => {
+                console.log('Back button clicked');
+                navigate(-1);
+              }}
+              disabled={isProcessing}
+              style={{
+                ...styles.backButton,
+                ...(isProcessing ? styles.backButtonDisabled : {})
+              }}
+              onMouseEnter={(e) => {
+                if (!isProcessing) {
+                  Object.assign(e.currentTarget.style, styles.backButtonHover);
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!isProcessing) {
+                  Object.assign(e.currentTarget.style, { ...styles.backButton });
+                }
+              }}
+            >
+              ← Back
+            </button>
+            
+            {/* Pay Button */}
+            <button
+              onClick={initiateZiinaPayment}
+              disabled={disabled || isProcessing || !isValidAmount()}
+              style={{
+                ...styles.button,
+                ...(disabled || isProcessing ? styles.buttonDisabled : {}),
+                ...(disabled || isProcessing ? styles.buttonHoverDisabled : styles.buttonHover)
+              }}
+              onMouseEnter={(e) => {
+                if (!disabled && !isProcessing) {
+                  Object.assign(e.currentTarget.style, styles.buttonHover);
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!disabled && !isProcessing) {
+                  Object.assign(e.currentTarget.style, { ...styles.button });
+                }
+              }}
+            >
+              {isProcessing ? (
+                <>
+                  <span style={styles.spinner}>⏳ </span>
+                  Processing...
+                </>
+              ) : (
+                <>
+                  <span style={styles.lockIcon}>🔒 </span>
+                  Pay {amount.toFixed(2)} AED Securely
+                </>
+              )}
+            </button>
+          </div>
 
           {/* Security Notice */}
           <p style={styles.securityNotice}>
@@ -302,8 +339,38 @@ const styles: { [key: string]: React.CSSProperties } = {
     marginBottom: '8px',
     lineHeight: '1.4'
   },
+  buttonContainer: {
+    display: 'flex',
+    gap: '12px',
+    marginBottom: '0'
+  },
+  backButton: {
+    flex: '0 0 auto',
+    padding: '14px 16px',
+    fontSize: '14px',
+    fontWeight: '600',
+    color: '#666',
+    backgroundColor: '#f0f0f0',
+    border: '1px solid #ddd',
+    borderRadius: '8px',
+    cursor: 'pointer',
+    transition: 'all 0.3s ease',
+    minWidth: '100px'
+  },
+  backButtonHover: {
+    backgroundColor: '#e0e0e0',
+    borderColor: '#999',
+    color: '#333'
+  },
+  backButtonDisabled: {
+    backgroundColor: '#f0f0f0',
+    borderColor: '#ddd',
+    color: '#999',
+    cursor: 'not-allowed',
+    opacity: 0.6
+  },
   button: {
-    width: '100%',
+    flex: '1',
     padding: '14px 20px',
     fontSize: '16px',
     fontWeight: '600',
