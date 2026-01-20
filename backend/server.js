@@ -172,23 +172,4 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log(`🔌 Socket.IO enabled for real-time metrics`);
 });
 
-// Create separate Express app for frontend on port 3000
-const express2 = require('express');
-const frontendApp = express2();
-const frontendPort = 3000;
-
-// Serve static frontend files
-frontendApp.use(express2.static(frontendBuildPath));
-
-// Serve index.html for all routes (React Router)
-frontendApp.get('*', (req, res) => {
-  res.sendFile(frontendIndexPath);
-});
-
-// Start frontend server on port 3000
-frontendApp.listen(frontendPort, '0.0.0.0', () => {
-  console.log(`⚛️  Frontend server running on port ${frontendPort}`);
-  console.log(`🌐 Frontend accessible at http://0.0.0.0:${frontendPort}`);
-});
-
 module.exports = app;
