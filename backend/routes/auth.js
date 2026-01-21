@@ -11,7 +11,7 @@ const router = express.Router();
 
 // Register user
 router.post('/register', [
-  body('email').isEmail().normalizeEmail(),
+  body('email').isEmail().trim(),
   body('password').isLength({ min: 6 }),
   body('full_name').trim().isLength({ min: 2 }),
   body('user_type').isIn(['customer', 'seller']),
@@ -23,6 +23,12 @@ router.post('/register', [
     }
 
     const { email, password, full_name, user_type, phone } = req.body;
+
+    // SELLER RESTRICTION: Only allow maryam.zaidi2904@gmail.com to register as seller
+    const ALLOWED_SELLER_EMAIL = 'maryam.zaidi2904@gmail.com';
+    if (user_type === 'seller' && email.toLowerCase() !== ALLOWED_SELLER_EMAIL.toLowerCase()) {
+      return res.status(403).json({ message: "You can't register as a seller" });
+    }
 
     // Check if user already exists
     const existingUser = await db.query(
@@ -72,22 +78,28 @@ router.post('/register', [
 
 // Login user
 router.post('/login', [
-  body('email').isEmail().normalizeEmail(),
+  body('email').isEmail().trim(),
   body('password').exists(),
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      console.log('❌ Validation errors:', errors.array());
       return res.status(400).json({ errors: errors.array() });
     }
 
     const { email, password } = req.body;
+    console.log('📧 LOGIN - Email received:', JSON.stringify(email));
+    console.log('📧 LOGIN - Email type:', typeof email);
+    console.log('📧 LOGIN - Email length:', email.length);
+    console.log('📧 LOGIN - Password length:', password.length);
 
     // Find user by email
     const user = await db.query(
       'SELECT id, email, password_hash, full_name, user_type, created_at FROM users WHERE email = $1',
       [email]
     );
+    console.log('🔍 User lookup result:', { found: user.rows.length > 0, email });
 
     if (user.rows.length === 0) {
       return res.status(400).json({ message: 'Invalid credentials' });
@@ -95,8 +107,20 @@ router.post('/login', [
 
     const userData = user.rows[0];
 
+    // SELLER RESTRICTION: Only allow maryam.zaidi2904@gmail.com to login as seller
+    // TEMPORARY: Commenting out seller restriction for debugging
+    // const ALLOWED_SELLER_EMAIL = 'maryam.zaidi2904@gmail.com';
+    // if (userData.user_type === 'seller' && userData.email.toLowerCase() !== ALLOWED_SELLER_EMAIL.toLowerCase()) {
+    //   return res.status(403).json({ message: "You can't login as a seller" });
+    // }
+
     // Check password
+    console.log('🔐 Password check:', { 
+      storedHashPrefix: userData.password_hash.substring(0, 20),
+      passwordToCheckLen: password.length
+    });
     const isValidPassword = await bcrypt.compare(password, userData.password_hash);
+    console.log('✅ Password match result:', isValidPassword);
     if (!isValidPassword) {
       return res.status(400).json({ message: 'Invalid credentials' });
     }

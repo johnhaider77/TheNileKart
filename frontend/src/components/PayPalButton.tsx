@@ -345,7 +345,7 @@ const PayPalButton: React.FC<PayPalButtonProps> = ({
       }
 
       const script = document.createElement('script');
-      const clientId = process.env.REACT_APP_PAYPAL_CLIENT_ID || 'AdDtfr_P4XNO3lLxmk4x7vbltnscMWnCDEMVd3fE6HPEOpnSu8bV6GAobHwM-W95CRojTtu2UZwvquVl';
+      const clientId = process.env.REACT_APP_PAYPAL_CLIENT_ID || 'Adh-Fdl76IfAGhV3vAPZM3KhrI4WxKCl8Le_fT4dD4e1w9cGzXlkQl9okaG5TipW6qvWV-TM6IGb2f7p';
       
       // Validate client ID
       if (!clientId || clientId === 'your-paypal-client-id') {
@@ -357,13 +357,16 @@ const PayPalButton: React.FC<PayPalButtonProps> = ({
       console.log('Using PayPal client ID:', clientId.substring(0, 10) + '...' + clientId.substring(clientId.length - 4));
       
       // PayPal SDK configuration with hosted fields for card payments
-      let sdkUrl = `https://www.paypal.com/sdk/js?client-id=${clientId}&currency=AED&intent=capture&components=buttons,hosted-fields&disable-funding=paylater,venmo`;
+      // Try USD first to see if it's AED-specific
+      let sdkUrl = `https://www.paypal.com/sdk/js?client-id=${clientId}&currency=USD&intent=capture&components=buttons,hosted-fields&disable-funding=paylater,venmo`;
       
-      console.log('Using PayPal SDK configuration with hosted fields for card payments in AED');
+      console.log('Using PayPal SDK configuration with hosted fields for card payments in USD');
       
       script.src = sdkUrl;
       script.async = true;
       script.defer = true;
+      
+      console.log('Appending PayPal SDK script to document...');
       
       // Remove potentially problematic attributes that might cause user agent issues
       // script.crossOrigin = 'anonymous'; // Comment out as it might cause issues
@@ -529,62 +532,81 @@ const PayPalButton: React.FC<PayPalButtonProps> = ({
 
   const initializeHostedFields = async () => {
     try {
-      // Skip hosted fields in sandbox mode
-      const isInSandbox = isSandboxMode();
-      if (isInSandbox) {
-        console.log('Sandbox mode detected - hosted fields are not available in sandbox');
-        setHostedFieldsAvailable(false);
-        setCardFormError('Card payments are not available in sandbox mode. Please use PayPal account login.');
-        return;
+      console.log('Initializing HostedFields with proper client token...');
+      
+      if (!window.paypal) {
+        throw new Error('PayPal SDK not loaded. Please refresh and try again.');
       }
 
-      // Check if HostedFields is available, with faster retries
-      let attempts = 0;
-      const maxAttempts = 3; // Reduced from 5
-      
-      while (!checkHostedFieldsAvailability() && attempts < maxAttempts) {
-        attempts++;
-        console.log(`Waiting for HostedFields availability, attempt ${attempts}`);
-        await new Promise(resolve => setTimeout(resolve, 200)); // Reduced from 500ms to 200ms
-      }
-      
-      if (!window.paypal || !window.paypal.HostedFields) {
-        throw new Error('PayPal HostedFields is not available after waiting. This may be due to network issues or PayPal service limitations.');
+      // CRITICAL: Check eligibility BEFORE attempting to render
+      if (!window.paypal.HostedFields || !window.paypal.HostedFields.isEligible) {
+        console.error('HostedFields API not available in PayPal SDK');
+        throw new Error('Card payments are not available in your region. Please use alternative payment method.');
       }
 
+      console.log('Checking HostedFields eligibility...');
+      const isEligible = window.paypal.HostedFields.isEligible();
+      
+      if (!isEligible) {
+        console.error('❌ HostedFields not eligible for this merchant account');
+        console.error('This typically means:');
+        console.error('1. Merchant account lacks Advanced Credit and Debit Card Payments capability');
+        console.error('2. Currency/Region combination not supported');
+        console.error('3. Account setup incomplete in PayPal dashboard');
+        throw new Error('Your account is not eligible for card payments at this time. Please contact PayPal support.');
+      }
+
+      console.log('✅ HostedFields is eligible, proceeding with render...');
+
+      // Get client token from backend BEFORE rendering
+      console.log('Fetching client token from backend...');
+      const tokenResponse = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000/api'}/paypal/client-token`, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      if (!tokenResponse.ok) {
+        throw new Error('Failed to get client token for card payments');
+      }
+
+      const { clientToken } = await tokenResponse.json();
+      console.log('✅ Client token received');
+
+      // Check if DOM elements exist
+      const cardNumberEl = document.getElementById('card-number');
+      const expirationEl = document.getElementById('expiration-date');
+      const cvvEl = document.getElementById('cvv');
+      
+      console.log('DOM element check:', {
+        cardNumber: !!cardNumberEl,
+        expiration: !!expirationEl,
+        cvv: !!cvvEl
+      });
+      
+      if (!cardNumberEl || !expirationEl || !cvvEl) {
+        throw new Error('Card form DOM elements not found. Please ensure form is rendered.');
+      }
+
+      console.log('Starting HostedFields.render() with client token...');
+      
+      // Render HostedFields with client token
       const hostedFields = await window.paypal.HostedFields.render({
-        createOrder: async () => {
-          // Create order through backend
-          const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:5000/api'}/paypal/create`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${localStorage.getItem('token')}`
-            },
-            body: JSON.stringify({
-              total_amount: parseFloat(amount.toFixed(2)),
-              items: items,
-              device_type: isMobile() ? 'mobile' : 'desktop',
-              shipping_address: {
-                full_name: shippingAddress.full_name || shippingAddress.fullName || 
-                         `${shippingAddress.firstName || ''} ${shippingAddress.lastName || ''}`.trim(),
-                address_line1: shippingAddress.address_line1 || shippingAddress.addressLine1 || shippingAddress.street,
-                address_line2: shippingAddress.address_line2 || shippingAddress.addressLine2 || '',
-                city: shippingAddress.city,
-                state: shippingAddress.state || shippingAddress.region,
-                postal_code: shippingAddress.postal_code || shippingAddress.postalCode || shippingAddress.zipCode,
-                country: shippingAddress.country || 'US'
-              }
-            })
-          });
-
-          if (!response.ok) {
-            const errorData = await response.json().catch(() => ({ message: 'Server connection failed' }));
-            throw new Error(errorData.message || 'Failed to create PayPal order');
+        client: clientToken,  // CRITICAL: Pass client token here
+        fields: {
+          number: {
+            selector: '#card-number',
+            placeholder: '4111 1111 1111 1111'
+          },
+          expirationDate: {
+            selector: '#expiration-date',
+            placeholder: 'MM/YY'
+          },
+          cvv: {
+            selector: '#cvv',
+            placeholder: '123'
           }
-
-          const orderData = await response.json();
-          return orderData.id;
         },
         styles: {
           'input': {
@@ -598,48 +620,34 @@ const PayPalButton: React.FC<PayPalButtonProps> = ({
           '.invalid': {
             'color': '#dc3545'
           }
-        },
-        fields: {
-          number: {
-            selector: '#card-number',
-            placeholder: '1234 5678 9012 3456'
-          },
-          cvv: {
-            selector: '#cvv',
-            placeholder: '123'
-          },
-          expirationDate: {
-            selector: '#expiration-date',
-            placeholder: 'MM/YY'
-          }
         }
       });
-
+      
+      console.log('✅ HostedFields.render() succeeded');
       hostedFieldsInstance.current = hostedFields;
+      
       setCardFormReady(true);
       setCardFormError(null);
-      console.log('PayPal hosted fields initialized successfully');
+      setHostedFieldsAvailable(true);
+      console.log('✅ PayPal HostedFields initialized successfully');
 
     } catch (error) {
-      console.error('Error initializing hosted fields:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('❌ Error initializing HostedFields:', error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('Detailed error:', { message: errorMessage, type: error?.constructor?.name });
       
-      if (errorMessage.includes('not eligible') || errorMessage.includes('HOSTEDFIELDS_NOT_ELIGIBLE')) {
-        console.log('PayPal Hosted Fields not eligible - This is normal in development/sandbox mode');
-        // Don't show error message in sandbox, just disable the card form
-        setShowCardForm(false);
-        setHostedFieldsAvailable(false);
-        setCardFormReady(false);
-      } else if (errorMessage.includes('not available')) {
-        setCardFormError('Card payment is not available at the moment. Please try PayPal account login or Cash on Delivery.');
-        setShowCardForm(false);
-      } else {
-        setCardFormError('Unable to load secure card form. Please try PayPal account login or Cash on Delivery.');
-        setShowCardForm(false);
-      }
-      
-      // Reset states
+      setCardFormError(errorMessage);
+      setShowCardForm(false);
+      setHostedFieldsAvailable(false);
       setCardFormReady(false);
+      setIsLoading(false);
+      
+      // Call error callback
+      if (onError) {
+        setTimeout(() => {
+          onError(new Error(errorMessage));
+        }, 500);
+      }
     }
   };
 
@@ -1018,17 +1026,38 @@ const PayPalButton: React.FC<PayPalButtonProps> = ({
 
   // Simple useLayoutEffect - only initialize hosted fields directly for card payment
   useLayoutEffect(() => {
-    console.log('Card payment form triggered - initializing hosted fields');
+    console.log('PayPalButton component mounted - initializing card form');
     
-    // Directly initialize hosted fields without PayPal buttons
-    if (!disabled && !cardFormReady && hostedFieldsAvailable) {
-      console.log('Initializing card form...');
-      setShowCardForm(true);
-      initializeHostedFields().catch(error => {
-        console.error('Failed to initialize card form:', error);
-      });
+    const initializeSDK = async () => {
+      try {
+        setIsLoading(true);
+        setShowCardForm(true);
+        console.log('Loading payment SDK for card payments...');
+        
+        // Load PayPal SDK
+        await loadPayPalSDK();
+        
+        // Directly initialize hosted fields
+        console.log('Initializing card payment form...');
+        setIsLoading(false);
+        await initializeHostedFields();
+      } catch (error) {
+        console.error('Error during SDK initialization:', error);
+        const errorMsg = error instanceof Error ? error.message : 'Unable to load payment form. Please try again.';
+        setLoadError(errorMsg);
+        setIsLoading(false);
+        
+        // Trigger error callback to navigate back to checkout
+        setTimeout(() => {
+          if (onError) onError(new Error(errorMsg));
+        }, 500);
+      }
+    };
+
+    if (!disabled) {
+      initializeSDK();
     }
-  }, [disabled, cardFormReady, hostedFieldsAvailable]);
+  }, [disabled, onError]);
 
   // Show only card form - no PayPal buttons or fallbacks
   return (
@@ -1088,8 +1117,8 @@ const PayPalButton: React.FC<PayPalButtonProps> = ({
         </div>
       )}
 
-      {/* Card Payment Form - Always visible */}
-      {hostedFieldsAvailable && (
+      {/* Card Payment Form - Always visible when not loading */}
+      {!isLoading && !loadError && (
         <div style={{
           border: '2px solid #0070f3',
           borderRadius: '12px',
@@ -1194,7 +1223,9 @@ const PayPalButton: React.FC<PayPalButtonProps> = ({
                         const { nonce } = await hostedFieldsInstance.current.request();
                         
                         // Submit payment
-                        const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://www.thenilekart.com'}/paypal/process-card`, {
+                        const apiUrl = process.env.REACT_APP_API_URL || '/api';
+                        const baseUrl = apiUrl === '/api' ? '' : apiUrl;
+                        const response = await fetch(`${baseUrl}/api/paypal/process-card`, {
                           method: 'POST',
                           headers: {
                             'Content-Type': 'application/json',
@@ -1241,8 +1272,8 @@ const PayPalButton: React.FC<PayPalButtonProps> = ({
                       cursor: 'pointer',
                       transition: 'background 0.2s ease'
                     }}
-                    onMouseOver={(e) => (e.target as HTMLButtonElement).style.background = '#218838'}
-                    onMouseOut={(e) => (e.target as HTMLButtonElement).style.background = '#28a745'}
+                    onMouseOver={(e) => { (e.target as HTMLButtonElement).style.background = '#218838'; }}
+                    onMouseOut={(e) => { (e.target as HTMLButtonElement).style.background = '#28a745'; }}
                   >
                     Complete Payment
                   </button>
@@ -1262,399 +1293,6 @@ const PayPalButton: React.FC<PayPalButtonProps> = ({
                 )}
               </>
             )}
-          </div>
-        </div>
-      )}
-
-      {!hostedFieldsAvailable && !isLoading && (
-        <div style={{
-          padding: '16px',
-          textAlign: 'center',
-          background: '#f5f5f5',
-          borderRadius: '8px',
-          color: '#666',
-          fontSize: '0.95rem'
-        }}>
-          <div style={{ marginBottom: '8px' }}>Preparing payment form...</div>
-          <div style={{ fontSize: '0.85rem' }}>Please wait a moment</div>
-        </div>
-      )}
-    </div>
-  );
-        padding: '16px',
-        textAlign: 'center',
-        background: 'linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%)',
-        borderRadius: '12px',
-        color: '#856404',
-        border: '1px solid #ffd32a',
-        boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
-      }}>
-        <div style={{ fontSize: '1.2rem', fontWeight: 'bold', marginBottom: '12px' }}>
-          📱 Mobile-Optimized Payment
-        </div>
-        <div style={{ marginBottom: '16px', lineHeight: '1.5' }}>
-          PayPal works best in mobile apps or newer browsers.
-          <br />
-          For the smoothest experience, we recommend Cash on Delivery.
-        </div>
-        
-        <div style={{
-          display: 'flex',
-          flexDirection: window.innerWidth <= 480 ? 'column' : 'row',
-          gap: '12px',
-          justifyContent: 'center',
-          alignItems: 'center'
-        }}>
-          <button
-            onClick={() => {
-              console.log('Try PayPal button clicked - starting initialization...');
-              setShowMobileFallback(false);
-              setLoadError(null);
-              setIsLoading(true);
-              setButtonsRendered(false);
-              // Clear any existing PayPal buttons first
-              if (paypalRef.current) {
-                paypalRef.current.innerHTML = '';
-                console.log('Cleared existing PayPal buttons container');
-              }
-              // Add slight delay to ensure state updates are processed
-              setTimeout(() => {
-                initializePayPal().then(() => {
-                  console.log('PayPal initialization completed successfully');
-                }).catch((error) => {
-                  console.error('PayPal initialization failed:', error);
-                });
-              }, 100);
-            }}
-            style={{
-              padding: '12px 20px',
-              background: '#0070f3',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontSize: '1rem',
-              fontWeight: '600',
-              minWidth: '140px',
-              boxShadow: '0 2px 4px rgba(0,112,243,0.3)',
-              transition: 'all 0.2s ease'
-            }}
-            onMouseOver={(e) => (e.target as HTMLButtonElement).style.background = '#0051cc'}
-            onMouseOut={(e) => (e.target as HTMLButtonElement).style.background = '#0070f3'}
-          >
-            Try PayPal
-          </button>
-          
-          <div style={{
-            padding: '8px 12px',
-            background: 'rgba(255,255,255,0.8)',
-            borderRadius: '6px',
-            fontSize: '0.9rem',
-            fontWeight: '500'
-          }}>
-            ✨ Or use Cash on Delivery
-          </div>
-        </div>
-        
-        <div style={{
-          marginTop: '16px',
-          padding: '12px',
-          background: 'rgba(255,255,255,0.6)',
-          borderRadius: '8px',
-          fontSize: '0.85rem',
-          color: '#6c5ce7'
-        }}>
-          <strong>💡 Pro Tip:</strong> For mobile PayPal, try opening this page in Chrome or the PayPal app
-          <br />
-          <strong>🚫 Popup Issues?</strong> Allow popups for this site or refresh and try again
-        </div>
-      </div>
-    );
-  }
-
-  if (loadError) {
-    return (
-      <div style={{ 
-        padding: '12px', 
-        textAlign: 'center', 
-        background: '#ffebee', 
-        borderRadius: '8px',
-        color: '#c62828',
-        border: '1px solid #ffcdd2'
-      }}>
-        <div style={{ marginBottom: '8px' }}>
-          <strong>PayPal Payment Unavailable</strong>
-        </div>
-        <div style={{ fontSize: '0.9rem', marginBottom: '10px' }}>
-          {loadError.includes('timeout') ? 
-            'PayPal service is temporarily unavailable. This could be due to network issues or PayPal maintenance.' :
-          loadError.includes('client ID') ?
-            'PayPal configuration error. Please contact support.' :
-          loadError.includes('script') ?
-            'Unable to connect to PayPal. Please check your internet connection or try again later.' :
-          loadError.includes('phone verification') || loadError.includes('SMS') ?
-            'PayPal phone verification is currently limited in your region. Please use Cash on Delivery as an alternative payment method.' :
-          loadError.includes('startsWith') || loadError.includes('user agent') ? 
-            'PayPal has compatibility issues with your browser. Please try using a different browser or device.' :
-            loadError
-          }
-        </div>
-        <button 
-          onClick={() => {
-            console.log('Retrying PayPal setup...');
-            setLoadError(null);
-            setIsLoading(true);
-            setButtonsRendered(false);
-            setShowMobileFallback(false);
-            
-            // Clear any existing scripts and state
-            const existingScripts = document.querySelectorAll('script[src*="paypal.com/sdk"]');
-            existingScripts.forEach(script => script.remove());
-            if (window.paypal) {
-              delete window.paypal;
-            }
-            
-            // Retry after a short delay
-            setTimeout(() => {
-              initializePayPal();
-            }, 500);
-          }}
-          style={{
-            marginTop: '8px',
-            padding: '6px 12px',
-            background: '#1976d2',
-            color: 'white',
-            border: 'none',
-            borderRadius: '4px',
-            cursor: 'pointer',
-            fontSize: '0.9rem',
-            marginRight: '8px'
-          }}
-        >
-          Retry PayPal Setup
-        </button>
-        <div style={{
-          marginTop: '8px',
-          padding: '8px',
-          background: '#e3f2fd',
-          borderRadius: '4px',
-          fontSize: '0.8rem',
-          color: '#1565c0'
-        }}>
-          💡 Alternative: You can still place your order using Cash on Delivery (COD)
-        </div>
-      </div>
-    );
-  }
-
-  // Render only the credit card form when "Pay Online" is selected
-  return (
-    <div className="paypal-button-container" style={{ width: '100%' }}>
-      {/* Show loading state while initializing hosted fields */}
-      {isLoading && (
-        <div style={{ 
-          padding: '20px', 
-          textAlign: 'center',
-          background: '#f9f9f9',
-          borderRadius: '8px'
-        }}>
-          <div style={{ fontSize: '0.9rem', color: '#666' }}>Loading secure card payment form...</div>
-        </div>
-      )}
-
-      {/* Show error if PayPal initialization fails */}
-      {loadError && (
-        <div style={{ 
-          padding: '12px', 
-          textAlign: 'center', 
-          background: '#ffebee', 
-          borderRadius: '8px',
-          color: '#c62828',
-          border: '1px solid #ffcdd2',
-          marginBottom: '12px'
-        }}>
-          <strong>Payment Error:</strong> {loadError}
-        </div>
-      )}
-
-      {/* Credit Card Form - Main Payment Interface */}
-      {!isLoading && (
-        <div style={{
-          border: '2px solid #0070f3',
-          borderRadius: '12px',
-          padding: '20px',
-          background: 'linear-gradient(135deg, #f8fffe 0%, #f0f9ff 100%)'
-        }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            marginBottom: '20px',
-            gap: '8px'
-          }}>
-            <span style={{ fontSize: '1.3rem' }}>💳</span>
-            <h3 style={{ margin: 0, color: '#0070f3', fontSize: '1.15rem', fontWeight: 600 }}>
-              Pay with Card
-            </h3>
-          </div>
-
-          {cardFormError ? (
-            <div style={{
-              padding: '12px',
-              background: '#ffebee',
-              border: '1px solid #ffcdd2',
-              borderRadius: '6px',
-              color: '#c62828',
-              marginBottom: '12px',
-              fontSize: '0.9rem'
-            }}>
-              <strong>❌ Error:</strong> {cardFormError}
-              <div style={{ marginTop: '8px', fontSize: '0.85rem' }}>
-                Please check your card details and try again.
-              </div>
-            </div>
-          ) : null}
-
-          {/* Card Form Fields */}
-          <div ref={cardFormRef} style={{ width: '100%' }}>
-            {/* Card Number */}
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{ 
-                display: 'block', 
-                marginBottom: '8px', 
-                fontWeight: '600',
-                color: '#333',
-                fontSize: '0.95rem'
-              }}>
-                Card Number <span style={{ color: '#c62828' }}>*</span>
-              </label>
-              <div id="card-number" style={{
-                border: '2px solid #e1e5e9',
-                borderRadius: '6px',
-                padding: '12px 14px',
-                background: 'white',
-                minHeight: '20px',
-                fontSize: '1rem',
-                fontFamily: 'monospace'
-              }}></div>
-            </div>
-
-            {/* Expiry and CVV Row */}
-            <div style={{ 
-              display: 'flex', 
-              gap: '12px',
-              marginBottom: '20px',
-              flexDirection: isMobile() ? 'column' : 'row'
-            }}>
-              <div style={{ flex: 1 }}>
-                <label style={{ 
-                  display: 'block', 
-                  marginBottom: '8px', 
-                  fontWeight: '600',
-                  color: '#333',
-                  fontSize: '0.95rem'
-                }}>
-                  Expiry Date <span style={{ color: '#c62828' }}>*</span>
-                </label>
-                <div id="expiration-date" style={{
-                  border: '2px solid #e1e5e9',
-                  borderRadius: '6px',
-                  padding: '12px 14px',
-                  background: 'white',
-                  minHeight: '20px',
-                  fontSize: '1rem',
-                  fontFamily: 'monospace'
-                }}></div>
-              </div>
-
-              <div style={{ flex: 1 }}>
-                <label style={{ 
-                  display: 'block', 
-                  marginBottom: '8px', 
-                  fontWeight: '600',
-                  color: '#333',
-                  fontSize: '0.95rem'
-                }}>
-                  CVV <span style={{ color: '#c62828' }}>*</span>
-                </label>
-                <div id="cvv" style={{
-                  border: '2px solid #e1e5e9',
-                  borderRadius: '6px',
-                  padding: '12px 14px',
-                  background: 'white',
-                  minHeight: '20px',
-                  fontSize: '1rem',
-                  fontFamily: 'monospace'
-                }}></div>
-              </div>
-            </div>
-
-            {/* Submit Button */}
-            {cardFormReady ? (
-              <button
-                onClick={async () => {
-                  try {
-                    if (hostedFieldsInstance.current) {
-                      const result = await hostedFieldsInstance.current.submit();
-                      console.log('Payment successful:', result);
-                      onSuccess(result, { orderID: result.orderID });
-                    }
-                  } catch (error) {
-                    console.error('Payment failed:', error);
-                    const errorMessage = error instanceof Error ? error.message : 'Payment processing failed';
-                    setCardFormError(errorMessage);
-                    onError(error);
-                  }
-                }}
-                style={{
-                  width: '100%',
-                  padding: '14px 16px',
-                  background: '#28a745',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontSize: '1rem',
-                  fontWeight: '600',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s ease'
-                }}
-                onMouseOver={(e) => {
-                  (e.target as HTMLButtonElement).style.background = '#218838';
-                  (e.target as HTMLButtonElement).style.boxShadow = '0 4px 8px rgba(0,0,0,0.2)';
-                }}
-                onMouseOut={(e) => {
-                  (e.target as HTMLButtonElement).style.background = '#28a745';
-                  (e.target as HTMLButtonElement).style.boxShadow = 'none';
-                }}
-              >
-                ✓ Complete Payment
-              </button>
-            ) : (
-              <div style={{
-                padding: '14px 16px',
-                textAlign: 'center',
-                background: '#fff3cd',
-                borderRadius: '8px',
-                color: '#856404',
-                fontSize: '0.9rem',
-                fontWeight: '500'
-              }}>
-                🔄 Initializing secure payment form...
-              </div>
-            )}
-
-            {/* Security Note */}
-            <div style={{
-              marginTop: '16px',
-              padding: '12px',
-              background: '#e8f5e9',
-              borderRadius: '6px',
-              fontSize: '0.85rem',
-              color: '#2e7d32',
-              textAlign: 'center',
-              borderLeft: '3px solid #4caf50'
-            }}>
-              🔒 Your card information is encrypted and secure. Never stored on our servers.
-            </div>
           </div>
         </div>
       )}

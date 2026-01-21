@@ -20,7 +20,7 @@ const productRoutes = require('./routes/products');
 const orderRoutes = require('./routes/orders');
 const sellerRoutes = require('./routes/seller');
 const bannerRoutes = require('./routes/banners');
-const paypalRoutes = require('./routes/paypal');
+const ziinaRoutes = require('./routes/ziina');
 const metricsRoutes = require('./routes/metrics');
 
 const app = express();
@@ -103,9 +103,9 @@ setInterval(async () => {
   }
 }, 15000);
 
-// Body parsing middleware
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true }));
+// Body parsing middleware - increased limits for file uploads
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Serve static frontend files from build directory
 const frontendBuildPath = path.join(__dirname, '..', 'frontend', 'build');
@@ -132,7 +132,7 @@ app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/seller', sellerRoutes);
 app.use('/api', bannerRoutes);
-app.use('/api/paypal', paypalRoutes);
+app.use('/api/ziina', ziinaRoutes);
 app.use('/api/metrics', metricsRoutes);
 
 // Health check endpoint
@@ -170,25 +170,6 @@ server.listen(PORT, '0.0.0.0', () => {
   console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`🌐 API accessible at http://0.0.0.0:${PORT}`);
   console.log(`🔌 Socket.IO enabled for real-time metrics`);
-});
-
-// Create separate Express app for frontend on port 3000
-const express2 = require('express');
-const frontendApp = express2();
-const frontendPort = 3000;
-
-// Serve static frontend files
-frontendApp.use(express2.static(frontendBuildPath));
-
-// Serve index.html for all routes (React Router)
-frontendApp.get('*', (req, res) => {
-  res.sendFile(frontendIndexPath);
-});
-
-// Start frontend server on port 3000
-frontendApp.listen(frontendPort, '0.0.0.0', () => {
-  console.log(`⚛️  Frontend server running on port ${frontendPort}`);
-  console.log(`🌐 Frontend accessible at http://0.0.0.0:${frontendPort}`);
 });
 
 module.exports = app;

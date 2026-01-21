@@ -18,6 +18,8 @@ interface CartContextType {
   getTotalAmount: () => number;
   getItemPrice: (item: CartItem) => number;
   mergeGuestCart: () => void;
+  showNotification: boolean;
+  hideNotification: () => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -38,6 +40,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
   const [items, setItems] = useState<CartItem[]>([]);
   const { isAuthenticated, user } = useAuth();
   const [guestCartLoaded, setGuestCartLoaded] = useState(false);
+  const [showNotification, setShowNotification] = useState(false);
 
   // Guest cart management functions
   const loadGuestCart = () => {
@@ -151,6 +154,8 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
           const availableToAdd = availableStock - existingItem.quantity;
           if (availableToAdd > 0) {
             alert(`Only ${availableToAdd} more items available in size ${size}. Added ${availableToAdd} to cart.`);
+            // Show notification for successful add
+            setShowNotification(true);
             return currentItems.map(item =>
               item.product.id === product.id && item.selectedSize === size
                 ? { ...item, quantity: availableStock }
@@ -162,6 +167,8 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
           }
         }
         
+        // Show notification for successful add
+        setShowNotification(true);
         return currentItems.map(item =>
           item.product.id === product.id && item.selectedSize === size
             ? { ...item, quantity: newQuantity }
@@ -171,9 +178,13 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
         // Check if requested quantity exceeds available stock for this size
         if (quantity > availableStock) {
           alert(`Only ${availableStock} items available in size ${size}. Added ${availableStock} to cart.`);
+          // Show notification for successful add
+          setShowNotification(true);
           return [...currentItems, { product, quantity: availableStock, selectedSize: size }];
         }
         
+        // Show notification for successful add
+        setShowNotification(true);
         return [...currentItems, { product, quantity, selectedSize: size }];
       }
     });
@@ -257,6 +268,8 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     getTotalAmount,
     getItemPrice,
     mergeGuestCart,
+    showNotification,
+    hideNotification: () => setShowNotification(false),
   };
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

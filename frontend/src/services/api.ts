@@ -2,10 +2,17 @@ import axios from 'axios';
 
 // Use environment variable for API URL, fallback to localhost
 const getApiBaseUrl = () => {
-  // Use environment variable if available
+  // In production, REACT_APP_API_URL is set to /api (relative path)
+  // This means API calls will go to the same host as the frontend
+  if (process.env.REACT_APP_API_URL === '/api') {
+    // Relative path - will use same host as frontend
+    // In development: http://localhost:3000/api → proxied to http://localhost:5000/api
+    // In production: https://www.thenilekart.com/api → backend at same domain
+    return '/api';
+  }
+  
   if (process.env.REACT_APP_API_URL) {
-    // REACT_APP_API_URL is like: https://www.thenilekart.com/api
-    // We need to keep it as is - axios will append /api routes to this
+    // Absolute URL provided
     return process.env.REACT_APP_API_URL;
   }
   
@@ -112,7 +119,7 @@ api.interceptors.response.use(
 // Auth API calls
 export const authAPI = {
   login: (email: string, password: string) =>
-    api.post('/api/auth/login', { email, password }),
+    api.post('/auth/login', { email, password }),
   
   register: (userData: {
     email: string;
@@ -120,12 +127,12 @@ export const authAPI = {
     full_name: string;
     user_type: 'customer' | 'seller';
     phone?: string;
-  }) => api.post('/api/auth/register', userData),
+  }) => api.post('/auth/register', userData),
   
-  getProfile: () => api.get('/api/auth/profile'),
+  getProfile: () => api.get('/auth/profile'),
   
   updateProfile: (userData: { full_name?: string; phone?: string }) =>
-    api.put('/api/auth/profile', userData),
+    api.put('/auth/profile', userData),
 };
 
 // Products API calls
@@ -137,11 +144,11 @@ export const productsAPI = {
     search?: string;
     minPrice?: number;
     maxPrice?: number;
-  }) => api.get('/api/products', { params }),
+  }) => api.get('/products', { params }),
   
-  getProduct: (id: string) => api.get(`/api/products/${id}`),
+  getProduct: (id: string) => api.get(`/products/${id}`),
   
-  getCategories: () => api.get('/api/products/categories/list'),
+  getCategories: () => api.get('/products/categories/list'),
 };
 
 // Orders API calls
@@ -157,25 +164,25 @@ export const ordersAPI = {
       postal_code: string;
       phone: string;
     };
-  }) => api.post('/api/orders', orderData),
+  }) => api.post('/orders', orderData),
   
-  calculateCOD: (items: any[]) => api.post('/api/orders/calculate-cod', { items }),
+  calculateCOD: (items: any[]) => api.post('/orders/calculate-cod', { items }),
   
-  getOrders: () => api.get('/api/orders'),
+  getOrders: () => api.get('/orders'),
   
-  getOrder: (id: string) => api.get(`/api/orders/${id}`),
+  getOrder: (id: string) => api.get(`/orders/${id}`),
 };
 
 // Seller API calls
 export const sellerAPI = {
   // Products
   createProduct: (formData: FormData) =>
-    api.post('/api/seller/products', formData, {
+    api.post('/seller/products', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     }),
   
   getSellerProducts: (params?: { page?: number; limit?: number }) =>
-    api.get('/api/seller/products', { params }),
+    api.get('/seller/products', { params }),
 
   searchProducts: (params?: {
     page?: number;
@@ -186,10 +193,10 @@ export const sellerAPI = {
     is_active?: boolean;
     min_stock?: number;
     max_stock?: number;
-  }) => api.get('/api/seller/products/search', { params }),
+  }) => api.get('/seller/products/search', { params }),
   
   updateProduct: (id: string, formData: FormData) =>
-    api.put(`/api/seller/products/${id}`, formData, {
+    api.put(`/seller/products/${id}`, formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     }),
 
@@ -203,46 +210,46 @@ export const sellerAPI = {
     actual_buy_price?: number;
     other_details?: string;
     image_url?: string;
-  }) => api.put(`/api/seller/products/${id}`, updates),
+  }) => api.put(`/seller/products/${id}`, updates),
   
   toggleProduct: (id: string) =>
-    api.patch(`/api/seller/products/${id}/toggle`),
+    api.patch(`/seller/products/${id}/toggle`),
 
   bulkUpdateProducts: (productIds: string[], updates: {
     stock_quantity?: number;
     price?: number;
     category?: string;
     is_active?: boolean;
-  }) => api.patch('/api/seller/products/bulk', { productIds, updates }),
+  }) => api.patch('/seller/products/bulk', { productIds, updates }),
   
   // Size Management
   updateProductSizeQuantity: (productId: string, size: string, quantity: number) => 
-    api.patch(`/api/seller/products/${productId}/sizes/${encodeURIComponent(size)}`, { quantity }),
+    api.patch(`/seller/products/${productId}/sizes/${encodeURIComponent(size)}`, { quantity }),
   
   updateProductSizePrice: (productId: string, size: string, price: number) => {
     console.log(`🔄 API Call: updateProductSizePrice(${productId}, ${size}, ${price})`);
-    const url = `/api/seller/products/${productId}/sizes/${encodeURIComponent(size)}`;
+    const url = `/seller/products/${productId}/sizes/${encodeURIComponent(size)}`;
     console.log(`📡 Calling: PATCH ${url}`);
     return api.patch(url, { price });
   },
   
   updateProductSizeMarketPrice: (productId: string, size: string, market_price: number) => {
     console.log(`🔄 API Call: updateProductSizeMarketPrice(${productId}, ${size}, ${market_price})`);
-    const url = `/api/seller/products/${productId}/sizes/${encodeURIComponent(size)}`;
+    const url = `/seller/products/${productId}/sizes/${encodeURIComponent(size)}`;
     console.log(`📡 Calling: PATCH ${url}`);
     return api.patch(url, { market_price });
   },
   
   updateProductSizeActualBuyPrice: (productId: string, size: string, actual_buy_price: number) => {
     console.log(`🔄 API Call: updateProductSizeActualBuyPrice(${productId}, ${size}, ${actual_buy_price})`);
-    const url = `/api/seller/products/${productId}/sizes/${encodeURIComponent(size)}`;
+    const url = `/seller/products/${productId}/sizes/${encodeURIComponent(size)}`;
     console.log(`📡 Calling: PATCH ${url}`);
     return api.patch(url, { actual_buy_price });
   },
 
   updateProductSizeCODEligibility: (productId: string, size: string, cod_eligible: boolean) => {
     console.log(`🔄 API Call: updateProductSizeCODEligibility(${productId}, ${size}, ${cod_eligible})`);
-    const url = `/api/seller/products/${productId}/sizes/${encodeURIComponent(size)}/cod-eligibility`;
+    const url = `/seller/products/${productId}/sizes/${encodeURIComponent(size)}/cod-eligibility`;
     console.log(`📡 Calling: PUT ${url}`);
     return api.put(url, { cod_eligible });
   },
@@ -252,10 +259,10 @@ export const sellerAPI = {
     status?: string;
     page?: number;
     limit?: number;
-  }) => api.get('/api/seller/orders', { params }),
+  }) => api.get('/seller/orders', { params }),
   
   updateOrderStatus: (id: string, status: string) =>
-    api.patch(`/api/seller/orders/${id}/status`, { status }),
+    api.patch(`/seller/orders/${id}/status`, { status }),
 
   updateOrderDetails: (updateData: {
     order_id: number;
@@ -266,42 +273,42 @@ export const sellerAPI = {
     edited_by_seller: boolean;
     edited_at: string;
   }) => {
-    return api.patch(`/api/seller/orders/${updateData.order_id}/details`, updateData);
+    return api.patch(`/seller/orders/${updateData.order_id}/details`, updateData);
   },
 
   // Offers
-  getOffers: () => api.get('/api/offers'),
-  getSellerOffers: () => api.get('/api/offers/seller'),
+  getOffers: () => api.get('/offers'),
+  getSellerOffers: () => api.get('/offers/seller'),
   createOffer: (offerData: {
     offer_code: string;
     name: string;
     description: string;
-  }) => api.post('/api/offers', offerData),
+  }) => api.post('/offers', offerData),
   updateOffer: (offerCode: string, offerData: {
     name: string;
     description: string;
     is_active: boolean;
-  }) => api.put(`/api/offers/${offerCode}`, offerData),
-  deleteOffer: (offerCode: string) => api.delete(`/api/offers/${offerCode}`),
+  }) => api.put(`/offers/${offerCode}`, offerData),
+  deleteOffer: (offerCode: string) => api.delete(`/offers/${offerCode}`),
 
   // Banners
-  getBanners: () => api.get('/api/banners'),
-  getSellerBanners: () => api.get('/api/banners/seller'),
-  createBanner: (bannerData: FormData) => api.post('/api/banners', bannerData, {
+  getBanners: () => api.get('/banners'),
+  getSellerBanners: () => api.get('/banners/seller'),
+  createBanner: (bannerData: FormData) => api.post('/banners', bannerData, {
     headers: { 'Content-Type': 'multipart/form-data' }
   }),
-  updateBanner: (id: string, bannerData: FormData) => api.put(`/api/banners/${id}`, bannerData, {
+  updateBanner: (id: string, bannerData: FormData) => api.put(`/banners/${id}`, bannerData, {
     headers: { 'Content-Type': 'multipart/form-data' }
   }),
-  deleteBanner: (id: string) => api.delete(`/api/banners/${id}`),
+  deleteBanner: (id: string) => api.delete(`/banners/${id}`),
 
   // Offer Products
-  getOfferProducts: (offerCode: string) => api.get(`/api/offers/${offerCode}/products`),
+  getOfferProducts: (offerCode: string) => api.get(`/offers/${offerCode}/products`),
 
   // Product Offers Management
-  getProductOffers: (productId: string) => api.get(`/api/seller/products/${productId}/offers`),
+  getProductOffers: (productId: string) => api.get(`/seller/products/${productId}/offers`),
   updateProductOffers: (productId: string, offers: string[]) => 
-    api.post(`/api/seller/products/${productId}/offers`, { offers }),
+    api.post(`/seller/products/${productId}/offers`, { offers }),
 };
 
 export default api;

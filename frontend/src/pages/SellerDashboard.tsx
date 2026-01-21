@@ -705,6 +705,11 @@ const SellerDashboard: React.FC = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
 
+  // Scroll to top on page load
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
+
   useEffect(() => {
     fetchDashboardData();
   }, []);

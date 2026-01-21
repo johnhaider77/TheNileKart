@@ -129,6 +129,70 @@ const truncateProductName = (name: string, maxLength: number = 18): string => {
   return name.substring(0, maxLength) + '...';
 };
 
+// Footer Component for E-commerce
+const Footer: React.FC = () => {
+  return (
+    <footer className="site-footer">
+      <div className="container">
+        <div className="footer-content">
+          <div className="footer-section">
+            <div className="footer-logo">
+              <img src="/TheNileKart.jpeg" alt="TheNileKart" className="footer-logo-img" />
+              <h3>TheNileKart</h3>
+            </div>
+            <p>Your trusted marketplace for quality products from around the world.</p>
+            <div className="social-links">
+              <span>📧</span>
+              <span>📱</span>
+              <span>🐦</span>
+              <span>📘</span>
+            </div>
+          </div>
+          
+          <div className="footer-section">
+            <h4>Quick Links</h4>
+            <ul>
+              <li>About Us</li>
+              <li>Contact</li>
+              <li>FAQ</li>
+              <li>Support</li>
+            </ul>
+          </div>
+          
+          <div className="footer-section">
+            <h4>Categories</h4>
+            <ul>
+              <li>Mobiles & Tablets</li>
+              <li>Electronics</li>
+              <li>Fashion</li>
+              <li>Home & Kitchen</li>
+            </ul>
+          </div>
+          
+          <div className="footer-section">
+            <h4>Customer Service</h4>
+            <ul>
+              <li>Shipping Info</li>
+              <li>Returns</li>
+              <li>Order Tracking</li>
+              <li>Size Guide</li>
+            </ul>
+          </div>
+        </div>
+        
+        <div className="footer-bottom">
+          <p>&copy; 2025 TheNileKart. All rights reserved.</p>
+          <div className="footer-links">
+            <span>Privacy Policy</span>
+            <span>Terms of Service</span>
+            <span>Cookies</span>
+          </div>
+        </div>
+      </div>
+    </footer>
+  );
+};
+
 const HomePage: React.FC = () => {
   const { user } = useAuth();
   const { addToCart } = useCart();
@@ -149,6 +213,12 @@ const HomePage: React.FC = () => {
   const [isUserScrollingPreferred, setIsUserScrollingPreferred] = useState(false);
   const [isUserScrollingTrending, setIsUserScrollingTrending] = useState(false);
 
+  // All products pagination state
+  const [allProducts, setAllProducts] = useState<Product[]>([]);
+  const [allProductsPage, setAllProductsPage] = useState(1);
+  const [allProductsHasMore, setAllProductsHasMore] = useState(true);
+  const [allProductsLoading, setAllProductsLoading] = useState(true);
+
   // Search functionality state
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -158,6 +228,11 @@ const HomePage: React.FC = () => {
   // Refs for search functionality
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Scroll to top on page load
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
@@ -192,6 +267,28 @@ const HomePage: React.FC = () => {
       document.removeEventListener('keydown', handleEscape);
     };
   }, [isSearchActive]);
+
+  // Initialize all products on component mount
+  useEffect(() => {
+    fetchAllProducts(1);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Infinite scroll effect for all products
+  useEffect(() => {
+    const handleScroll = () => {
+      if (
+        window.innerHeight + document.documentElement.scrollTop >=
+        document.documentElement.offsetHeight - 800 && // Trigger 800px before bottom
+        allProductsHasMore &&
+        !allProductsLoading
+      ) {
+        fetchAllProducts(allProductsPage + 1);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [allProductsHasMore, allProductsLoading, allProductsPage]);
 
   // Search functionality
   const handleSearchFocus = () => {
@@ -275,13 +372,13 @@ const HomePage: React.FC = () => {
       setLoading(true);
       
       // Fetch banners
-      const bannersResponse = await api.get('/api/banners');
+      const bannersResponse = await api.get('/banners');
       setBanners(bannersResponse.data.banners || []);
 
       // Fetch preferred products for logged-in users
       if (user) {
         try {
-          const preferredResponse = await api.get('/api/products/preferred');
+          const preferredResponse = await api.get('/products/preferred');
           setPreferredProducts(preferredResponse.data.products?.slice(0, 10) || []);
         } catch (error) {
           console.warn('Could not fetch preferred products:', error);
@@ -297,7 +394,7 @@ const HomePage: React.FC = () => {
 
       // Fetch trending products
       try {
-        const trendingResponse = await api.get('/api/products/trending');
+        const trendingResponse = await api.get('/products/trending');
         setTrendingProducts(trendingResponse.data.products || []);
       } catch (error) {
         console.warn('Could not fetch trending products:', error);
@@ -310,6 +407,46 @@ const HomePage: React.FC = () => {
       console.error('Error fetching home page data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchAllProducts = async (pageNum: number = 1) => {
+    try {
+      // Always set loading state for first page
+      if (pageNum === 1) {
+        setAllProductsLoading(true);
+      } else {
+        setAllProductsLoading(true); // Also set during pagination
+      }
+
+      const limit = pageNum === 1 ? 10 : 4; // 10 for initial load, 4 for subsequent loads
+      const params: any = { limit, page: pageNum };
+
+      console.log('Fetching all products with params:', params);
+      const response = await productsAPI.getProducts(params);
+      
+      console.log('Products API response:', response);
+      
+      if (pageNum === 1) {
+        setAllProducts(response.data.products || []);
+      } else {
+        setAllProducts(prev => [...prev, ...(response.data.products || [])]);
+      }
+
+      // Check if there are more products to load
+      const totalProducts = response.data.pagination?.totalProducts || 0;
+      const hasMore = response.data.pagination?.hasNextPage || false;
+      console.log('Total products:', totalProducts, 'Has more:', hasMore);
+      setAllProductsHasMore(hasMore);
+      setAllProductsPage(pageNum);
+    } catch (error) {
+      console.error('Error fetching all products:', error);
+      // Ensure we show an empty state rather than the loading state
+      if (pageNum === 1) {
+        setAllProducts([]);
+      }
+    } finally {
+      setAllProductsLoading(false);
     }
   };
 
@@ -856,6 +993,195 @@ const HomePage: React.FC = () => {
             ))}
           </div>
         </section>
+
+        {/* All Products Section with Infinite Scroll */}
+        <section className="products-section">
+          <h2 className="section-title">Explore All Products</h2>
+          {allProducts.length > 0 ? (
+            <>
+              <div className="products-grid">
+                {allProducts.map((product) => (
+                  <div
+                    key={product.id}
+                    className="card card-product"
+                    onClick={() => handleQuickView(product)}
+                    style={{ 
+                      position: 'relative',
+                      opacity: getActualStock(product) === 0 ? '0.6' : '1',
+                      filter: getActualStock(product) === 0 ? 'grayscale(50%)' : 'none',
+                      transition: 'all 0.3s ease',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    <ImageCarousel 
+                      images={(() => {
+                        // Handle database products with JSONB images field
+                        if (product.images && Array.isArray(product.images)) {
+                          const imageUrls = product.images.map((img: any) => {
+                            if (typeof img === 'string') {
+                              return img;
+                            }
+                            if (img.url) {
+                              // Add localhost prefix if URL doesn't start with http
+                              const fullUrl = img.url.startsWith('http') ? img.url : `http://localhost:5000${img.url}`;
+                              return fullUrl;
+                            }
+                            return img;
+                          });
+                          return imageUrls.length > 0 ? imageUrls : ['https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=300&h=200&fit=crop'];
+                        }
+                        // Handle database products with single image_url
+                        if (product.image_url) {
+                          const imageUrl = product.image_url.startsWith('http') ? product.image_url : `http://localhost:5000${product.image_url}`;
+                          return [imageUrl];
+                        }
+                        // Fallback image
+                        return ['https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=300&h=200&fit=crop'];
+                      })()}
+                      productName={product.name}
+                    />
+                    
+                    {/* Sold Out Watermark */}
+                    {getActualStock(product) === 0 && (
+                      <div 
+                        className="absolute inset-0 flex items-center justify-center" 
+                        style={{
+                          zIndex: 10,
+                          borderRadius: '12px',
+                          pointerEvents: 'none'
+                        }}
+                      >
+                        <div
+                          style={{
+                            background: 'linear-gradient(135deg, rgba(255, 107, 107, 0.7), rgba(238, 90, 82, 0.7))',
+                            color: 'white',
+                            padding: '12px 24px',
+                            borderRadius: '8px',
+                            fontSize: '18px',
+                            fontWeight: 'bold',
+                            textTransform: 'uppercase',
+                            letterSpacing: '2px',
+                            border: '2px solid rgba(255, 255, 255, 0.8)',
+                            boxShadow: '0 4px 20px rgba(0,0,0,0.3)',
+                            textAlign: 'center',
+                            transform: 'rotate(-15deg)',
+                            backdropFilter: 'blur(2px)'
+                          }}
+                        >
+                          SOLD OUT
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Product Info */}
+                    <div className="card-body" style={{ padding: '6px 4px' }}>
+                      <ProductName name={product.name} />
+                      
+                      <div className="flex items-center gap-1 mb-2" style={{ flexWrap: 'nowrap', overflow: 'hidden' }}>
+                        <span className="font-bold flex-shrink-0" style={{ fontSize: '11px', minWidth: 'auto' }}>
+                          {getPriceDisplay(product)}
+                        </span>
+                        {formatPercentOff(calculatePercentOff(product)) && (
+                          <span 
+                            className="font-semibold flex-shrink-0" 
+                            style={{ 
+                              color: '#ffffff', 
+                              background: '#e74c3c', 
+                              padding: '2px 4px', 
+                              borderRadius: '4px', 
+                              fontSize: '8px', 
+                              whiteSpace: 'nowrap',
+                              display: 'inline-block',
+                              minWidth: 'fit-content',
+                              boxShadow: '0 1px 3px rgba(0,0,0,0.2)'
+                            }}
+                          >
+                            {formatPercentOff(calculatePercentOff(product))}
+                          </span>
+                        )}
+                        {/* Stock indicator */}
+                        {getActualStock(product) > 0 && getActualStock(product) <= 5 && (
+                          <span 
+                            className="font-medium flex-shrink-0"
+                            style={{ 
+                              color: '#ff9500', 
+                              background: '#fff8f0', 
+                              padding: '1px 3px', 
+                              borderRadius: '3px',
+                              fontSize: '7px',
+                              whiteSpace: 'nowrap'
+                            }}
+                          >
+                            {getActualStock(product)} left
+                          </span>
+                        )}
+                      </div>
+
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Loading more products indicator */}
+              {allProductsLoading && (
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'center', 
+                  alignItems: 'center', 
+                  padding: '20px',
+                  marginTop: '20px'
+                }}>
+                  <div className="animate-pulse flex items-center gap-2" style={{ color: '#6b7280' }}>
+                    <div style={{
+                      width: '16px',
+                      height: '16px',
+                      border: '2px solid #e5e7eb',
+                      borderTop: '2px solid #3b82f6',
+                      borderRadius: '50%',
+                      animation: 'spin 1s linear infinite'
+                    }}></div>
+                    <span>Loading more products...</span>
+                  </div>
+                </div>
+              )}
+
+              {/* End of products message */}
+              {!allProductsHasMore && allProducts.length > 0 && !allProductsLoading && (
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'center', 
+                  padding: '20px',
+                  marginTop: '20px',
+                  color: '#6b7280',
+                  fontSize: '0.875rem'
+                }}>
+                  🎉 You've reached the end of all products
+                </div>
+              )}
+            </>
+          ) : (
+            <div style={{ textAlign: 'center', padding: '2rem' }}>
+              {allProductsLoading ? (
+                <div>
+                  <div style={{ marginBottom: '12px' }}>
+                    <div style={{
+                      width: '40px',
+                      height: '40px',
+                      border: '3px solid #e5e7eb',
+                      borderTop: '3px solid #3b82f6',
+                      borderRadius: '50%',
+                      animation: 'spin 1s linear infinite',
+                      margin: '0 auto'
+                    }}></div>
+                  </div>
+                  <p style={{ color: '#6b7280' }}>Loading all products...</p>
+                </div>
+              ) : (
+                <p style={{ color: '#6b7280' }}>No products available at the moment</p>
+              )}
+            </div>
+          )}
+        </section>
       </div>
 
       {/* Quick View Modal */}
@@ -866,6 +1192,9 @@ const HomePage: React.FC = () => {
           onClose={() => setQuickViewProduct(null)}
         />
       )}
+
+      {/* Footer */}
+      <Footer />
     </div>
   );
 };

@@ -231,6 +231,11 @@ const ModernProductListing: React.FC = () => {
   const { addToCart } = useCart();
   const navigate = useNavigate();
 
+  // Scroll to top on page load
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
+
   // Helper function to check if product has multiple available sizes
   const hasMultipleSizes = (product: Product): boolean => {
     if (!product.sizes || !Array.isArray(product.sizes)) {

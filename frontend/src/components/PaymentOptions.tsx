@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import PayPalButton from './PayPalButton';
+import ZiinaPayment from './ZiinaPayment';
 import PaymentErrorBoundary from './PaymentErrorBoundary';
 import '../styles/PaymentOptions.css';
 
@@ -30,13 +30,13 @@ const PaymentOptions: React.FC<PaymentOptionsProps> = ({
   codDetails,
   onBackToCart
 }) => {
-  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'cod' | 'paypal'>('cod');
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'cod' | 'ziina'>('cod');
   const [isProcessing, setIsProcessing] = useState(false);
   
-  // Auto-select paypal if COD is not available
+  // Auto-select ziina if COD is not available
   useEffect(() => {
     if (codDetails && !codDetails.eligible) {
-      setSelectedPaymentMethod('paypal');
+      setSelectedPaymentMethod('ziina');
     }
   }, [codDetails]);
   
@@ -49,7 +49,7 @@ const PaymentOptions: React.FC<PaymentOptionsProps> = ({
     return isMobileUA || (isMobileScreen && hasTouch);
   };
 
-  const handlePaymentMethodChange = (method: 'cod' | 'paypal') => {
+  const handlePaymentMethodChange = (method: 'cod' | 'ziina') => {
     setSelectedPaymentMethod(method);
   };
 
@@ -64,34 +64,19 @@ const PaymentOptions: React.FC<PaymentOptionsProps> = ({
     }
   };
 
-  const handlePayPalSuccess = (details: any, data: any) => {
+  const handleZiinaSuccess = (details: any) => {
     setIsProcessing(false);
-    onPaymentSuccess(details, data);
+    onPaymentSuccess(details, {});
   };
 
-  const handlePayPalError = (error: any) => {
+  const handleZiinaError = (error: any) => {
     setIsProcessing(false);
     onPaymentError(error);
   };
 
   return (
     <div className="payment-options">
-      <h3>Choose Payment Method</h3>
-      
-      {/* Mobile-specific helper text */}
-      {isMobile() && (
-        <div style={{
-          background: '#e3f2fd',
-          padding: '12px',
-          borderRadius: '8px',
-          marginBottom: '1rem',
-          fontSize: '0.9rem',
-          color: '#1565c0',
-          textAlign: 'center'
-        }}>
-          📱 <strong>Mobile Tip:</strong> Cash on Delivery is recommended for the smoothest mobile experience
-        </div>
-      )}
+      <h3>3. Payment</h3>
       
       {/* Payment Method Selection */}
       <div className="payment-methods">
@@ -108,22 +93,10 @@ const PaymentOptions: React.FC<PaymentOptionsProps> = ({
               disabled={disabled || (codDetails && !codDetails.eligible)}
             />
             <label htmlFor="cod" className="payment-method-label">
-              <div className="payment-method-title">
+              <div className="payment-method-title cod-title">
                 <span className="payment-icon">💵</span>
-                <span>Cash on Delivery (COD)</span>
-                {codDetails && codDetails.fee > 0 && (
-                  <span className="cod-fee-badge">+{codDetails.fee} AED fee</span>
-                )}
-                {codDetails && codDetails.fee === 0 && amount >= 100 && (
-                  <span className="cod-free-badge">FREE</span>
-                )}
+                <span>Cash on Delivery</span>
               </div>
-              <p className="payment-method-description">
-                {codDetails && !codDetails.eligible ? 
-                  'Some items are not available for Cash on Delivery' :
-                  'Pay when your order is delivered to your doorstep'
-                }
-              </p>
             </label>
           </div>
           
@@ -155,42 +128,54 @@ const PaymentOptions: React.FC<PaymentOptionsProps> = ({
           )}
         </div>
 
-        {/* PayPal Payment */}
-        <div className={`payment-method-card ${selectedPaymentMethod === 'paypal' ? 'selected' : ''}`}>
+        {/* Ziina Online Payment */}
+        <div className={`payment-method-card ${selectedPaymentMethod === 'ziina' ? 'selected' : ''}`}>
           <div className="payment-method-header">
             <input
               type="radio"
-              id="paypal-radio"
+              id="ziina-radio"
               name="paymentMethod"
-              value="paypal"
-              checked={selectedPaymentMethod === 'paypal'}
-              onChange={() => handlePaymentMethodChange('paypal')}
+              value="ziina"
+              checked={selectedPaymentMethod === 'ziina'}
+              onChange={() => handlePaymentMethodChange('ziina')}
               disabled={disabled}
             />
-            <label htmlFor="paypal-radio" className="payment-method-label">
-              <div className="payment-method-title">
+            <label htmlFor="ziina-radio" className="payment-method-label">
+              <div className="payment-method-title pay-online-title">
                 <span className="payment-icon">💳</span>
                 <span>Pay Online</span>
               </div>
             </label>
           </div>
           
-          {selectedPaymentMethod === 'paypal' && (
+          {selectedPaymentMethod === 'ziina' && (
             <div className="payment-method-content">
-              <div className="paypal-button-wrapper">
+              <div className="ziina-payment-wrapper">
+                {/* Order Amount and Payment Method Display */}
+                <div className="ziina-simple-summary">
+                  <div className="summary-row simple">
+                    <span>Order Amount:</span>
+                    <span className="amount">{amount.toFixed(2)} AED</span>
+                  </div>
+                  <div className="summary-row simple">
+                    <span>Payment Method:</span>
+                    <span className="method">Card / Apple Pay / Google Pay</span>
+                  </div>
+                </div>
                 <PaymentErrorBoundary
                   onError={(error: Error) => {
-                    console.error('PayPal component error:', error);
-                    handlePayPalError(error);
+                    console.error('Ziina payment component error:', error);
+                    handleZiinaError(error);
                   }}
                 >
-                  <PayPalButton
-                    key={`paypal-${amount}-${items.length}`}
+                  <ZiinaPayment
+                    key={`ziina-${amount}-${items.length}`}
                     amount={amount}
                     items={items}
                     shippingAddress={shippingAddress}
-                    onSuccess={handlePayPalSuccess}
-                    onError={handlePayPalError}
+                    orderId={`order-${Date.now()}`}
+                    onSuccess={handleZiinaSuccess}
+                    onError={handleZiinaError}
                     disabled={disabled || isProcessing}
                   />
                 </PaymentErrorBoundary>
@@ -198,26 +183,6 @@ const PaymentOptions: React.FC<PaymentOptionsProps> = ({
             </div>
           )}
         </div>
-      </div>
-      
-      {/* Order Summary */}
-      <div className="payment-summary">
-        <div className="summary-row">
-          <span>Order Total:</span>
-          <span className="amount">${amount.toFixed(2)}</span>
-        </div>
-        <div className="summary-row">
-          <span>Payment Method:</span>
-          <span className="method">
-            {selectedPaymentMethod === 'cod' ? 'Cash on Delivery' : 'Secure PayPal Payment'}
-          </span>
-        </div>
-      </div>
-      
-      {/* Security Notice */}
-      <div className="security-notice">
-        <p>🔒 Your payment information is secure and encrypted</p>
-        <p>📧 Order confirmation will be sent to your email</p>
       </div>
     </div>
   );
