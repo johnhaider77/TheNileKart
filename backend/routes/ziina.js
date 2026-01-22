@@ -22,7 +22,7 @@ const {
 router.post('/payment-intent', authenticateToken, async (req, res) => {
   try {
     const { amount, orderId, items, shippingAddress } = req.body;
-    const userId = req.userId;
+    const userId = req.user.id;
 
     console.log('Creating payment intent:', {
       amount,
