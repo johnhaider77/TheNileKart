@@ -98,8 +98,10 @@ router.post('/', [
   body('items.*.size').optional().trim(),
   body('shipping_address.full_name').trim().isLength({ min: 2 }),
   body('shipping_address.address_line1').trim().isLength({ min: 5 }),
+  body('shipping_address.address_line2').optional().trim(),
   body('shipping_address.city').trim().isLength({ min: 2 }),
-  body('shipping_address.postal_code').trim().isLength({ min: 5 }),
+  body('shipping_address.state').optional().trim(),
+  body('shipping_address.postal_code').trim().isLength({ min: 1 }),
   body('shipping_address.phone').trim().isLength({ min: 8 }),
   body('payment_method').optional().isIn(['cod', 'paypal', 'card', 'ziina']),
 ], async (req, res) => {
@@ -225,13 +227,13 @@ router.post('/', [
       await client.query(
         `INSERT INTO order_items (order_id, product_id, quantity, price, total, selected_size)
          VALUES ($1, $2, $3, $4, $5, $6)`,
-        [order_id, item.product_id, item.quantity, item.price, item.total, item.size]
+        [order_id, item.product_id, item.quantity, item.price, item.total, item.selectedSize]
       );
 
       // Update product size-specific stock using the database function
       await client.query(
         'SELECT update_product_size_quantity($1, $2, $3)',
-        [item.product_id, item.size, -item.quantity]
+        [item.product_id, item.selectedSize, -item.quantity]
       );
     }
 
