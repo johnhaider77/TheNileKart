@@ -4,6 +4,7 @@ import { useMetrics } from '../hooks/useMetrics';
 import '../styles/PaymentErrorPage.css';
 
 const PaymentCancelPage: React.FC = () => {
+  console.log('🔴 PaymentCancelPage component rendered!');
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
@@ -13,7 +14,7 @@ const PaymentCancelPage: React.FC = () => {
   useEffect(() => {
     const orderId = searchParams.get('orderId');
     
-    console.log('Payment Cancelled:', { orderId });
+    console.log('🔴 Payment Cancelled:', { orderId });
     
     // Track the payment cancellation
     trackPaymentError({
