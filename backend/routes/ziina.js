@@ -165,39 +165,66 @@ router.get('/payment-intent/:paymentIntentId', authenticateToken, async (req, re
     const { orderId } = req.query;
     const userId = req.userId;
 
-    console.log('Checking payment intent status:', {
+    console.log('🔍 Checking payment intent status:', {
       paymentIntentId,
       orderId,
       userId
     });
 
+    if (!orderId) {
+      return res.status(400).json({ 
+        message: 'Order ID is required' 
+      });
+    }
+
     // Get payment intent from Ziina
     const paymentIntent = await getPaymentIntent(paymentIntentId);
+    console.log('💳 Ziina payment intent status:', paymentIntent.status);
 
     // Update payment status in database
-    await db.query(
+    const paymentUpdateResult = await db.query(
       `UPDATE payments 
        SET status = $1, updated_at = NOW()
-       WHERE payment_intent_id = $2 AND user_id = $3`,
+       WHERE payment_intent_id = $2 AND user_id = $3
+       RETURNING *`,
       [paymentIntent.status, paymentIntentId, userId]
     );
+    
+    console.log('📊 Payment record updated:', paymentUpdateResult.rowCount);
 
     // Check if payment is successful
-    if (paymentIntent.status === 'completed' || paymentIntent.status === 'succeeded') {
-      // Update order status to paid
-      await db.query(
+    const isPaymentSuccessful = paymentIntent.status === 'completed' || paymentIntent.status === 'succeeded';
+    
+    if (isPaymentSuccessful) {
+      // Update order status to paid and confirmed
+      const orderUpdateResult = await db.query(
         `UPDATE orders 
-         SET payment_status = 'paid', status = 'confirmed'
-         WHERE id = $1 AND user_id = $2`,
+         SET payment_status = 'paid', status = 'confirmed', updated_at = NOW()
+         WHERE id = $1 AND user_id = $2
+         RETURNING *`,
         [orderId, userId]
       );
 
-      console.log('Order marked as paid:', orderId);
+      console.log('✅ Order marked as paid:', {
+        orderId,
+        paymentStatus: 'paid',
+        status: 'confirmed',
+        rowsAffected: orderUpdateResult.rowCount
+      });
+
+      if (orderUpdateResult.rowCount === 0) {
+        console.warn('⚠️ Order not found or not owned by user:', { orderId, userId });
+      }
+    } else {
+      console.log('⏳ Payment still pending or failed:', paymentIntent.status);
     }
 
     res.json({
+      success: isPaymentSuccessful,
       paymentIntentId,
       status: paymentIntent.status,
+      orderId,
+      paid: isPaymentSuccessful,
       amount: filsToAed(paymentIntent.amount),
       tipAmount: paymentIntent.tip_amount ? filsToAed(paymentIntent.tip_amount) : 0,
       feeAmount: paymentIntent.fee_amount ? filsToAed(paymentIntent.fee_amount) : 0,
@@ -206,7 +233,7 @@ router.get('/payment-intent/:paymentIntentId', authenticateToken, async (req, re
     });
 
   } catch (error) {
-    console.error('Error checking payment intent:', error);
+    console.error('❌ Error checking payment intent:', error);
     res.status(500).json({ 
       message: 'Failed to check payment status',
       error: error.message 

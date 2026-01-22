@@ -82,9 +82,13 @@ const CheckoutPage: React.FC = () => {
     const orderId = searchParams.get('orderId');
 
     if (paymentStatus === 'success') {
+      console.log('✅ Payment callback received - Success');
       addToast('Payment successful! Processing your order...', 'success');
       // Clear the cart since the order has been created
       clearCart();
+      // Clear stored order data from session
+      sessionStorage.removeItem('pendingOrderData');
+      sessionStorage.removeItem('ziinaPaymentIntentId');
       // Navigate to thank you page after a short delay
       setTimeout(() => {
         navigate('/thank-you', { 
@@ -94,17 +98,32 @@ const CheckoutPage: React.FC = () => {
           } 
         });
       }, 1500);
-    } else if (paymentStatus === 'failure' || paymentStatus === 'cancelled') {
-      addToast('Payment was not completed. Please try again.', 'error');
+    } else if (paymentStatus === 'failure') {
+      console.log('❌ Payment callback received - Failure');
+      addToast('Payment failed. Please try another payment method or contact support.', 'error');
+      // Clear stored order data on failure
+      sessionStorage.removeItem('pendingOrderData');
+      sessionStorage.removeItem('ziinaPaymentIntentId');
+      // Keep on checkout page to allow retry
+      setStep('payment');
+      setTimeout(() => {
+        const paymentSection = document.querySelector('.payment-method-card');
+        paymentSection?.scrollIntoView({ behavior: 'smooth' });
+      }, 300);
+    } else if (paymentStatus === 'cancelled') {
+      console.log('⚠️ Payment callback received - Cancelled');
+      addToast('Payment cancelled. Your order was not processed. Please try again.', 'warning');
+      // Clear stored order data on cancel
+      sessionStorage.removeItem('pendingOrderData');
+      sessionStorage.removeItem('ziinaPaymentIntentId');
       // Set step back to payment
       setStep('payment');
-      // Scroll to payment section
       setTimeout(() => {
         const paymentSection = document.querySelector('.payment-method-card');
         paymentSection?.scrollIntoView({ behavior: 'smooth' });
       }, 300);
     }
-  }, [searchParams, navigate]);
+  }, [searchParams, navigate, clearCart]);
 
   const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setShippingAddress({

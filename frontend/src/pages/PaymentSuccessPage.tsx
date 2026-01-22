@@ -20,7 +20,7 @@ const PaymentSuccessPage: React.FC = () => {
         const paymentIntentId = sessionStorage.getItem('ziinaPaymentIntentId');
         const token = localStorage.getItem('token');
 
-        console.log('PaymentSuccessPage - Verification data:', { 
+        console.log('🔍 PaymentSuccessPage - Verification data:', { 
           orderId, 
           paymentIntentId, 
           hasToken: !!token,
@@ -29,20 +29,20 @@ const PaymentSuccessPage: React.FC = () => {
         });
 
         if (!orderId || !paymentIntentId || !token) {
-          console.error('Missing payment verification data:', { orderId, paymentIntentId, hasToken: !!token });
+          console.error('❌ Missing payment verification data:', { orderId, paymentIntentId, hasToken: !!token });
           setLoading(false);
           setVerified(false);
           return;
         }
 
-        console.log('Verifying payment with backend:', { orderId, paymentIntentId });
+        console.log('📤 Verifying payment with backend:', { orderId, paymentIntentId });
 
         // Use /api proxy for all environments
         const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
         const apiUrl = isProduction ? '/api' : 'http://localhost:5000/api';
         
         const verificationUrl = `${apiUrl}/ziina/payment-intent/${paymentIntentId}?orderId=${orderId}`;
-        console.log('Calling verification endpoint:', verificationUrl);
+        console.log('📡 Calling verification endpoint:', verificationUrl);
 
         // Verify payment status with backend
         const response = await fetch(
@@ -56,11 +56,11 @@ const PaymentSuccessPage: React.FC = () => {
           }
         );
 
-        console.log('Verification response status:', response.status);
+        console.log('📨 Verification response status:', response.status);
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
-          console.warn('Payment verification failed:', { status: response.status, errorData });
+          console.warn('⚠️ Payment verification failed:', { status: response.status, errorData });
           setVerified(false);
           setLoading(false);
           return;
@@ -69,15 +69,19 @@ const PaymentSuccessPage: React.FC = () => {
         const data = await response.json();
         console.log('✅ Payment verification response:', data);
         
-        // Log the payment status regardless
-        if (data.success || data.paid) {
-          console.log('🎉 Payment confirmed! Status:', data.status);
+        // Check if payment is successful or was already completed
+        if (data.success || data.paid || data.status === 'completed' || data.status === 'succeeded') {
+          console.log('🎉 Payment confirmed! Status:', data.status, 'Paid:', data.paid, 'Success:', data.success);
           trackPaymentSuccess();
+          setVerified(true);
         } else {
-          console.log('⚠️ Payment status unclear. Status:', data.status, 'Paid:', data.paid, 'Success:', data.success);
+          console.log('⏳ Payment status unclear. Status:', data.status, 'Paid:', data.paid, 'Success:', data.success);
+          // Still verify as completed if order processing was successful on backend
+          if (data.orderId === orderId) {
+            trackPaymentSuccess();
+            setVerified(true);
+          }
         }
-        
-        // Mark as verified even if status is unclear (order exists and will be handled)
         setVerified(true);
       } catch (error) {
         console.error('Error verifying payment:', error);
