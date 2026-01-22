@@ -32,10 +32,22 @@ app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+      "default-src": ["'self'"],
+      "script-src": ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://challenges.cloudflare.com", "https://*.ziina.app", "https://api.ziina.app", "https://pay.ziina.com", "blob:"],
+      "style-src": ["'self'", "'unsafe-inline'", "https://"],
+      "frame-src": ["'self'", "https://*.ziina.app", "https://challenges.cloudflare.com", "https://pay.ziina.com", "https://api.ziina.app"],
+      "connect-src": ["'self'", "https://api.ziina.app", "https://pay.ziina.com", "https://challenges.cloudflare.com", "ws:", "wss:"],
       "img-src": ["'self'", "data:", "https:", "http://localhost:*", "http://127.0.0.1:*"],
+      "font-src": ["'self'", "data:", "https:"],
+      "object-src": ["'none'"],
+      "base-uri": ["'self'"],
+      "form-action": ["'self'", "https://pay.ziina.com", "https://api.ziina.app"],
+      "frame-ancestors": ["'self'"]
     },
+    reportOnly: false
   },
-  crossOriginResourcePolicy: { policy: "cross-origin" }
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  referrerPolicy: { policy: "strict-origin-when-cross-origin" }
 }));
 
 // Rate limiting

@@ -111,32 +111,18 @@ const ZiinaPayment: React.FC<ZiinaPaymentProps> = ({
       sessionStorage.setItem('ziinaPaymentIntentId', paymentData.paymentIntentId);
       sessionStorage.setItem('ziinaOrderId', orderId);
 
-      // Open Ziina payment page in new window to avoid iframe sandbox issues
+      // Redirect to Ziina payment page with full page navigation
       if (paymentData.redirectUrl) {
-        console.log('Opening Ziina payment page in new window');
-        // Store the current checkout state before opening payment
+        console.log('Redirecting to Ziina payment page with order ID:', orderId);
+        // Store the current checkout state before redirecting
         sessionStorage.setItem('checkoutData', JSON.stringify({
           shippingAddress,
           items,
           amount,
           orderId
         }));
-        
-        // Open in new window with features
-        const paymentWindow = window.open(
-          paymentData.redirectUrl,
-          'ZiinaPayment',
-          'width=1024,height=768,resizable=yes,scrollbars=yes'
-        );
-        
-        if (!paymentWindow) {
-          console.warn('Failed to open payment window - popup may be blocked');
-          // Fallback to direct navigation
-          window.location.href = paymentData.redirectUrl;
-        } else {
-          console.log('Payment window opened successfully');
-          setIsProcessing(false);
-        }
+        // Use direct redirect for Ziina (they expect full page navigation)
+        window.location.href = paymentData.redirectUrl;
       } else {
         throw new Error('No redirect URL provided by payment gateway');
       }
