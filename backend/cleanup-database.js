@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
 /**
- * Database Cleanup Script - Fresh Start
- * Keeps only specified users and their products/banners/offers
- * All other seller data is deleted
+ * Complete Database Reset Script
+ * Deletes ALL data: users, products, banners, offers, orders, addresses, cart items
+ * Fresh start - empty database ready for new data
  * 
  * This script uses the environment configuration from the backend
  */
@@ -53,150 +53,100 @@ console.log(`   User: ${dbConfig.user}`);
 console.log(`   Port: ${dbConfig.port}`);
 console.log(`   SSL: ${dbConfig.ssl ? 'YES' : 'NO'}\n`);
 
-const USERS_TO_KEEP = [
-    'johnhader77@gmail.com',
-    'maryam.zaidi2904@gmail.com'
-];
-
-async function runCleanup() {
+async function runCompleteReset() {
     const client = new Client(dbConfig);
     
     try {
         console.log('🔗 Connecting to database...');
         await client.connect();
-        console.log('✅ Connected to database');
+        console.log('✅ Connected to database\n');
         
-        console.log('\n📋 Starting database cleanup...');
-        console.log(`Users to keep: ${USERS_TO_KEEP.join(', ')}\n`);
+        console.log('⚠️  WARNING: COMPLETE DATABASE RESET IN PROGRESS');
+        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
         
-        // Get the user IDs to keep
-        const keepUsersQuery = `
-            SELECT id, email FROM users WHERE email = ANY($1)
-        `;
-        const keepUsersResult = await client.query(keepUsersQuery, [USERS_TO_KEEP]);
+        // Disable foreign key checks temporarily
+        await client.query('SET session_replication_role = replica');
+        console.log('✅ Disabled foreign key constraints temporarily\n');
         
-        if (keepUsersResult.rows.length === 0) {
-            console.log('⚠️  Warning: No users found with specified emails');
-            console.log('Users in database:');
-            const allUsersResult = await client.query('SELECT id, email, user_type FROM users LIMIT 10');
-            allUsersResult.rows.forEach(user => {
-                console.log(`   - ID: ${user.id}, Email: ${user.email}, Type: ${user.user_type}`);
-            });
-            return;
+        // Delete all data in order of dependencies (reverse of creation)
+        const tables = [
+            'product_offers',
+            'trending_products',
+            'order_items',
+            'orders',
+            'cart_items',
+            'product_images',
+            'product_sizes',
+            'products',
+            'addresses',
+            'banners',
+            'offers',
+            'users',
+            'metrics_tracking'
+        ];
+        
+        let totalRowsDeleted = 0;
+        
+        console.log('🗑️  Deleting data from tables...\n');
+        
+        for (const table of tables) {
+            try {
+                const result = await client.query(`TRUNCATE TABLE ${table} CASCADE`);
+                const deletedRows = result.rowCount || 0;
+                totalRowsDeleted += deletedRows;
+                console.log(`   ✓ ${table.padEnd(25)} - truncated`);
+            } catch (error) {
+                if (error.message.includes('does not exist')) {
+                    console.log(`   ⊘ ${table.padEnd(25)} - table not found (skipped)`);
+                } else {
+                    console.error(`   ✗ ${table.padEnd(25)} - ERROR: ${error.message}`);
+                }
+            }
         }
         
-        const userIdsToKeep = keepUsersResult.rows.map(u => u.id);
-        console.log(`✅ Found users to keep:`);
-        keepUsersResult.rows.forEach(user => {
-            console.log(`   - ID: ${user.id}, Email: ${user.email}`);
-        });
-        console.log('');
+        // Re-enable foreign key checks
+        await client.query('SET session_replication_role = default');
+        console.log('\n✅ Re-enabled foreign key constraints');
         
-        // Step 1: Delete product_offers for products NOT owned by these users
-        console.log('🗑️  Deleting product_offers for other sellers products...');
-        const deleteProductOffersResult = await client.query(`
-            DELETE FROM product_offers
-            WHERE product_id IN (
-                SELECT id FROM products 
-                WHERE seller_id NOT IN (${userIdsToKeep.join(',')})
-            )
-        `);
-        console.log(`   Deleted ${deleteProductOffersResult.rowCount} product_offers`);
+        // Verify all tables are empty
+        console.log('\n📋 Verification - Checking table counts:\n');
         
-        // Step 2: Delete order_items for products NOT owned by these users
-        console.log('🗑️  Deleting order_items for other sellers products...');
-        const deleteOrderItemsResult = await client.query(`
-            DELETE FROM order_items
-            WHERE product_id IN (
-                SELECT id FROM products 
-                WHERE seller_id NOT IN (${userIdsToKeep.join(',')})
-            )
-        `);
-        console.log(`   Deleted ${deleteOrderItemsResult.rowCount} order_items`);
+        let allEmpty = true;
+        for (const table of tables) {
+            try {
+                const countResult = await client.query(`SELECT COUNT(*) as count FROM ${table}`);
+                const count = parseInt(countResult.rows[0].count);
+                const status = count === 0 ? '✓ EMPTY' : `⚠️  ${count} rows`;
+                console.log(`   ${table.padEnd(25)} - ${status}`);
+                if (count > 0) allEmpty = false;
+            } catch (error) {
+                // Table might not exist, skip
+            }
+        }
         
-        // Step 3: Delete orphaned orders (orders with no items)
-        console.log('🗑️  Deleting orphaned orders...');
-        const deleteOrdersResult = await client.query(`
-            DELETE FROM orders
-            WHERE id NOT IN (
-                SELECT DISTINCT order_id FROM order_items
-            )
-        `);
-        console.log(`   Deleted ${deleteOrdersResult.rowCount} orphaned orders`);
+        console.log('\n' + '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
         
-        // Step 4: Delete cart items for products NOT owned by these users
-        console.log('🗑️  Deleting cart_items for other sellers products...');
-        const deleteCartItemsResult = await client.query(`
-            DELETE FROM cart_items
-            WHERE product_id IN (
-                SELECT id FROM products 
-                WHERE seller_id NOT IN (${userIdsToKeep.join(',')})
-            )
-        `);
-        console.log(`   Deleted ${deleteCartItemsResult.rowCount} cart_items`);
-        
-        // Step 5: Delete products NOT owned by these users
-        console.log('🗑️  Deleting products by other sellers...');
-        const deleteProductsResult = await client.query(`
-            DELETE FROM products
-            WHERE seller_id NOT IN (${userIdsToKeep.join(',')})
-        `);
-        console.log(`   Deleted ${deleteProductsResult.rowCount} products`);
-        
-        // Step 6: Delete banners created by other sellers
-        console.log('🗑️  Deleting banners by other sellers...');
-        const deleteBannersResult = await client.query(`
-            DELETE FROM banners
-            WHERE created_by NOT IN (${userIdsToKeep.join(',')})
-        `);
-        console.log(`   Deleted ${deleteBannersResult.rowCount} banners`);
-        
-        // Step 7: Delete offers created by other sellers
-        console.log('🗑️  Deleting product_offers for other sellers offers...');
-        const deleteOfferProductsResult = await client.query(`
-            DELETE FROM product_offers
-            WHERE offer_code IN (
-                SELECT offer_code FROM offers 
-                WHERE created_by NOT IN (${userIdsToKeep.join(',')})
-            )
-        `);
-        console.log(`   Deleted ${deleteOfferProductsResult.rowCount} product_offers for offers`);
-        
-        console.log('🗑️  Deleting offers by other sellers...');
-        const deleteOffersResult = await client.query(`
-            DELETE FROM offers
-            WHERE created_by NOT IN (${userIdsToKeep.join(',')})
-        `);
-        console.log(`   Deleted ${deleteOffersResult.rowCount} offers`);
-        
-        // Step 8: Delete seller accounts except the two specified
-        console.log('🗑️  Deleting seller accounts (keeping specified users)...');
-        const deleteSellersResult = await client.query(`
-            DELETE FROM users
-            WHERE user_type = 'seller' 
-            AND id NOT IN (${userIdsToKeep.join(',')})
-        `);
-        console.log(`   Deleted ${deleteSellersResult.rowCount} seller accounts`);
-        
-        // Summary
-        console.log('\n✅ Database cleanup completed successfully!\n');
-        console.log('📊 Summary:');
-        console.log(`   - Product offers deleted: ${deleteProductOffersResult.rowCount}`);
-        console.log(`   - Order items deleted: ${deleteOrderItemsResult.rowCount}`);
-        console.log(`   - Orders deleted: ${deleteOrdersResult.rowCount}`);
-        console.log(`   - Cart items deleted: ${deleteCartItemsResult.rowCount}`);
-        console.log(`   - Products deleted: ${deleteProductsResult.rowCount}`);
-        console.log(`   - Banners deleted: ${deleteBannersResult.rowCount}`);
-        console.log(`   - Offers deleted: ${deleteOffersResult.rowCount}`);
-        console.log(`   - Seller accounts deleted: ${deleteSellersResult.rowCount}`);
-        
-        console.log('\n✅ Kept data from users:');
-        keepUsersResult.rows.forEach(user => {
-            console.log(`   - ${user.email}`);
-        });
+        if (allEmpty) {
+            console.log('\n✅ COMPLETE DATABASE RESET SUCCESSFUL!\n');
+            console.log('📝 Summary:');
+            console.log('   - All users deleted ✓');
+            console.log('   - All products deleted ✓');
+            console.log('   - All banners deleted ✓');
+            console.log('   - All offers deleted ✓');
+            console.log('   - All orders deleted ✓');
+            console.log('   - All order items deleted ✓');
+            console.log('   - All addresses deleted ✓');
+            console.log('   - All cart items deleted ✓');
+            console.log('   - All product images deleted ✓');
+            console.log('   - All product sizes deleted ✓');
+            console.log('   - All metrics data deleted ✓');
+            console.log('\n✨ Database is now completely empty and ready for fresh data!');
+        } else {
+            console.log('\n⚠️  WARNING: Some tables still contain data');
+        }
         
     } catch (error) {
-        console.error('❌ Error during cleanup:', error.message);
+        console.error('❌ Error during reset:', error.message);
         process.exit(1);
     } finally {
         await client.end();
@@ -204,5 +154,5 @@ async function runCleanup() {
     }
 }
 
-// Run the cleanup
-runCleanup();
+// Run the complete reset
+runCompleteReset();
