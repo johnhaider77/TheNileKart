@@ -1010,7 +1010,7 @@ const CheckoutPage: React.FC = () => {
                 onPaymentSuccess={handlePaymentSuccess}
                 onPaymentError={handlePaymentError}
                 onCODOrder={handleCODOrder}
-                disabled={!validateAddress() || loading}
+                disabled={loading}
                 codDetails={codDetails}
                 onBackToCart={handleBackToCart}
               />
