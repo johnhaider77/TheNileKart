@@ -7,12 +7,20 @@ interface AddToCartNotificationProps {
 }
 
 const AddToCartNotification: React.FC<AddToCartNotificationProps> = ({ isVisible, onHide }) => {
+  const [shouldAnimate, setShouldAnimate] = React.useState(false);
+
   useEffect(() => {
     if (isVisible) {
-      // Auto-hide after 1 second (1000ms)
+      // Trigger animation immediately
+      setShouldAnimate(true);
+      
+      // Auto-hide after 2 seconds (2000ms) - increased from 1 second for better UX
       const timer = setTimeout(() => {
-        onHide();
-      }, 1000);
+        setShouldAnimate(false);
+        // Give animation time to complete before calling onHide
+        const hideTimer = setTimeout(onHide, 300);
+        return () => clearTimeout(hideTimer);
+      }, 1700);
 
       return () => clearTimeout(timer);
     }
@@ -21,7 +29,7 @@ const AddToCartNotification: React.FC<AddToCartNotificationProps> = ({ isVisible
   if (!isVisible) return null;
 
   return (
-    <div className="add-to-cart-notification">
+    <div className={`add-to-cart-notification ${shouldAnimate ? 'animate-to-cart' : 'hide'}`}>
       <div className="notification-content">
         <span className="notification-icon">✓</span>
         <span className="notification-text">Added to cart</span>
