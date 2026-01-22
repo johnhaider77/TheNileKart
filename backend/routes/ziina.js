@@ -258,7 +258,7 @@ router.post('/payment-status/:orderId', authenticateToken, async (req, res) => {
   try {
     const { orderId } = req.params;
     const { paymentStatus } = req.body;
-    const userId = req.userId;
+    const userId = req.user.id;
 
     console.log('🔄 Updating payment status for order:', {
       orderId,
