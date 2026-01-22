@@ -133,6 +133,7 @@ const CheckoutPage: React.FC = () => {
       addToast('Payment failed. Please try another payment method or contact support.', 'error');
       // Clear stored payment data on failure, but keep cart items
       sessionStorage.removeItem('ziinaPaymentIntentId');
+      setLoading(false); // Reset loading state to enable retry
       // Do NOT clear pendingOrderData - user might want to retry
       // Do NOT clear cart - let user see what they were ordering
       // Keep on checkout page to allow retry
@@ -165,6 +166,7 @@ const CheckoutPage: React.FC = () => {
       addToast('Payment cancelled. Your order was not processed. You can retry payment or modify your order.', 'warning');
       // Clear stored payment data on cancel, but keep cart items
       sessionStorage.removeItem('ziinaPaymentIntentId');
+      setLoading(false); // Reset loading state to enable retry
       // Do NOT clear pendingOrderData - user might want to retry
       // Do NOT clear cart - let user see what they were ordering
       // Set step back to payment so user can retry

@@ -220,10 +220,28 @@ const AccountPage: React.FC = () => {
       'processing': 'badge-secondary',
       'shipped': 'badge-primary',
       'delivered': 'badge-success',
-      'cancelled': 'badge-error'
+      'cancelled': 'badge-error',
+      'payment_cancelled': 'badge-error',
+      'payment_failed': 'badge-error'
     };
 
     return `badge ${statusClasses[status as keyof typeof statusClasses] || 'badge-warning'}`;
+  };
+
+  const getStatusDisplayText = (status: string) => {
+    // Convert payment_cancelled to "Payment Failed", payment_failed to "Payment Failed"
+    const statusDisplayMap: { [key: string]: string } = {
+      'pending': 'Pending',
+      'confirmed': 'Confirmed',
+      'processing': 'Processing',
+      'shipped': 'Shipped',
+      'delivered': 'Delivered',
+      'cancelled': 'Cancelled',
+      'payment_cancelled': 'Payment Failed',
+      'payment_failed': 'Payment Failed'
+    };
+    
+    return statusDisplayMap[status] || status.charAt(0).toUpperCase() + status.slice(1).replace(/_/g, ' ');
   };
 
   const formatDate = (dateString: string) => {
@@ -612,7 +630,7 @@ const AccountPage: React.FC = () => {
                           </div>
                         </div>
                         <span className={getStatusBadge(order.status)}>
-                          {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                          {getStatusDisplayText(order.status)}
                         </span>
                       </div>
                     </div>

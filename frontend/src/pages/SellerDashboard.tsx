@@ -158,7 +158,7 @@ const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
           console.log(`Final profit/loss for ${item.product_name}: ${profitLoss}`);
         } else if (['shipped', 'pending', 'processing'].includes(order.status)) {
           profitLossDisplay = 'Pending Delivery';
-        } else if (['cancelled', 'returned'].includes(order.status)) {
+        } else if (['cancelled', 'returned', 'payment_cancelled', 'payment_failed'].includes(order.status)) {
           profitLossDisplay = 'Cancelled/Returned';
         }
 
@@ -343,7 +343,7 @@ const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
         isProductData = false;
         break;
       case 'Products Returned':
-        sourceData = orders.filter((o: any) => o.status === 'cancelled');
+        sourceData = orders.filter((o: any) => ['cancelled', 'payment_cancelled', 'payment_failed'].includes(o.status));
         isProductData = false;
         break;
       default:
