@@ -65,17 +65,22 @@ router.post('/payment-intent', authenticateToken, async (req, res) => {
     const itemCount = items ? items.length : 0;
     const message = `TheNileKart - ${itemCount} item${itemCount !== 1 ? 's' : ''}`;
 
-    console.log('Calling Ziina createPaymentIntent with:', {
+    // Determine if we're in production mode
+    const isProduction = process.env.NODE_ENV === 'production';
+    const testMode = !isProduction; // Only test mode in development
+
+    console.log('💳 Creating Ziina payment intent:', {
       amountInFils,
       currency: 'AED',
       message,
       successUrl: successUrl.substring(0, 50) + '...',
       cancelUrl: cancelUrl.substring(0, 50) + '...',
       failureUrl: failureUrl.substring(0, 50) + '...',
-      test: true
+      mode: testMode ? 'TEST' : 'PRODUCTION',
+      environment: process.env.NODE_ENV
     });
 
-    // Create payment intent
+    // Create payment intent (production mode in production, test mode in development)
     const paymentIntent = await createPaymentIntent(
       amountInFils,
       'AED',
@@ -83,7 +88,7 @@ router.post('/payment-intent', authenticateToken, async (req, res) => {
       successUrl,
       cancelUrl,
       failureUrl,
-      true // Always use test mode for now
+      testMode // Use test mode only in development
     );
 
     console.log('✅ Payment intent created successfully from Ziina:', {

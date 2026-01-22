@@ -182,8 +182,10 @@ app.get('*', (req, res) => {
 
 // Start server on port 5000 for API
 server.listen(PORT, '0.0.0.0', () => {
+  const isProd = process.env.NODE_ENV === 'production';
   console.log(`🚀 Backend API running on port ${PORT}`);
   console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
+  console.log(`💳 Ziina Payment Mode: ${isProd ? '🔴 PRODUCTION (Real Payments)' : '🟢 TEST (No Real Charges)'}`);
   console.log(`🌐 API accessible at http://0.0.0.0:${PORT}`);
   console.log(`🔌 Socket.IO enabled for real-time metrics`);
 });
