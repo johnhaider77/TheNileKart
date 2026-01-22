@@ -10,7 +10,8 @@ const PaymentSuccessPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [verified, setVerified] = useState(false);
 
-  const { trackPaymentSuccess } = useMetrics({ pageType: 'payment_success' });
+  // Use metrics with page tracking disabled to prevent session interference
+  const { trackPaymentSuccess } = useMetrics({ pageType: 'payment_success', trackPageViews: false });
 
   useEffect(() => {
     const verifyPayment = async () => {

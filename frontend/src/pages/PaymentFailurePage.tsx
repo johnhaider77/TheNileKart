@@ -8,7 +8,8 @@ const PaymentFailurePage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
 
-  const { trackPaymentError } = useMetrics({ pageType: 'payment_failure' });
+  // Use metrics with page tracking disabled to prevent session interference
+  const { trackPaymentError } = useMetrics({ pageType: 'payment_failure', trackPageViews: false });
 
   useEffect(() => {
     const orderId = searchParams.get('orderId');
@@ -16,11 +17,17 @@ const PaymentFailurePage: React.FC = () => {
     console.log('Payment Failed:', { orderId });
     
     // Track the payment failure
-    trackPaymentError({
-      errorCode: 'PAYMENT_FAILED',
-      errorMessage: 'Payment was declined by the payment gateway',
-      errorDetails: { orderId }
-    });
+    if (trackPaymentError) {
+      try {
+        trackPaymentError({
+          errorCode: 'PAYMENT_FAILED',
+          errorMessage: 'Payment was declined by the payment gateway',
+          errorDetails: { orderId }
+        });
+      } catch (error) {
+        console.error('Error tracking payment error:', error);
+      }
+    }
 
     setLoading(false);
   }, [searchParams, trackPaymentError]);

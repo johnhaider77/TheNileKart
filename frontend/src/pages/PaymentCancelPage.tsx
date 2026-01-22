@@ -9,19 +9,26 @@ const PaymentCancelPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
 
-  const { trackPaymentError } = useMetrics({ pageType: 'payment_cancel' });
+  // Use metrics with tracking disabled to prevent any session clearing
+  const { trackPaymentError } = useMetrics({ pageType: 'payment_cancel', trackPageViews: false });
 
   useEffect(() => {
     const orderId = searchParams.get('orderId');
     
     console.log('🔴 Payment Cancelled:', { orderId });
     
-    // Track the payment cancellation
-    trackPaymentError({
-      errorCode: 'PAYMENT_CANCELLED',
-      errorMessage: 'User cancelled the payment',
-      errorDetails: { orderId }
-    });
+    // Track the payment cancellation without initializing new metrics session
+    if (trackPaymentError) {
+      try {
+        trackPaymentError({
+          errorCode: 'PAYMENT_CANCELLED',
+          errorMessage: 'User cancelled the payment',
+          errorDetails: { orderId }
+        });
+      } catch (error) {
+        console.error('Error tracking payment error:', error);
+      }
+    }
 
     setLoading(false);
   }, [searchParams, trackPaymentError]);
