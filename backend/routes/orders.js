@@ -101,7 +101,7 @@ router.post('/', [
   body('shipping_address.city').trim().isLength({ min: 2 }),
   body('shipping_address.postal_code').trim().isLength({ min: 5 }),
   body('shipping_address.phone').trim().isLength({ min: 8 }),
-  body('payment_method').optional().isIn(['cod', 'paypal', 'card']),
+  body('payment_method').optional().isIn(['cod', 'paypal', 'card', 'ziina']),
 ], async (req, res) => {
   const client = await db.getClient();
   

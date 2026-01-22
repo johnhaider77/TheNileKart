@@ -85,14 +85,20 @@ const ZiinaPayment: React.FC<ZiinaPaymentProps> = ({
             orderId,
             amount,
             items,
-            shippingAddress
+            shippingAddress,
+            payment_method: 'ziina'
           })
         }
       );
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to create payment intent');
+        console.error('Backend error response:', {
+          status: response.status,
+          statusText: response.statusText,
+          errorData
+        });
+        throw new Error(errorData.message || `Request failed: ${response.statusText}`);
       }
 
       const paymentData = await response.json();
@@ -122,7 +128,28 @@ const ZiinaPayment: React.FC<ZiinaPaymentProps> = ({
 
     } catch (err) {
       console.error('Error initiating Ziina payment:', err);
-      const errorMessage = err instanceof Error ? err.message : 'Failed to process payment';
+      
+      // Extract detailed error message
+      let errorMessage = 'Failed to process payment';
+      
+      if (err instanceof Error) {
+        errorMessage = err.message;
+        
+        // Try to extract backend error details if available
+        if ('response' in err && typeof err.response === 'object' && err.response !== null) {
+          const response = err.response as any;
+          if (response.data?.errors && Array.isArray(response.data.errors)) {
+            const validationErrors = response.data.errors
+              .map((e: any) => e.msg || e.message)
+              .join(', ');
+            errorMessage = `Validation error: ${validationErrors}`;
+          } else if (response.data?.message) {
+            errorMessage = response.data.message;
+          }
+        }
+      }
+      
+      console.log('Final error message for display:', errorMessage);
       setError(errorMessage);
       setIsProcessing(false);
       onError(new Error(errorMessage));
