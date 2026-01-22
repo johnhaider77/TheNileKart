@@ -75,11 +75,15 @@ BEGIN
     FOR size_item IN SELECT * FROM jsonb_array_elements(current_sizes)
     LOOP
         IF size_item->>'size' = p_size THEN
-            -- Update the quantity for this size
+            -- Update the quantity for this size, preserving all other fields
             updated_sizes := updated_sizes || jsonb_build_array(
                 jsonb_build_object(
-                    'size', p_size,
-                    'quantity', GREATEST(0, (size_item->>'quantity')::INTEGER + p_quantity_change)
+                    'size', size_item->>'size',
+                    'quantity', GREATEST(0, (size_item->>'quantity')::INTEGER + p_quantity_change),
+                    'price', COALESCE(size_item->>'price', '0'),
+                    'market_price', COALESCE(size_item->>'market_price', '0'),
+                    'actual_buy_price', COALESCE(size_item->>'actual_buy_price', '0'),
+                    'cod_eligible', COALESCE(size_item->>'cod_eligible', 'true')
                 )
             );
             size_found := TRUE;
@@ -92,7 +96,7 @@ BEGIN
     -- If size not found, add it (only if quantity_change is positive)
     IF NOT size_found AND p_quantity_change > 0 THEN
         updated_sizes := updated_sizes || jsonb_build_array(
-            jsonb_build_object('size', p_size, 'quantity', p_quantity_change)
+            jsonb_build_object('size', p_size, 'quantity', p_quantity_change, 'price', '0', 'market_price', '0', 'actual_buy_price', '0', 'cod_eligible', 'true')
         );
         size_found := TRUE;
     END IF;

@@ -81,8 +81,19 @@ const CheckoutPage: React.FC = () => {
     const paymentStatus = searchParams.get('payment_status');
     const orderId = searchParams.get('orderId');
 
+    // Only process if we actually have a payment status
+    if (!paymentStatus) return;
+
+    // Prevent duplicate processing
+    const hasProcessed = sessionStorage.getItem('paymentStatusProcessed');
+    if (hasProcessed === paymentStatus + '_' + orderId) {
+      console.log('⏭️ Payment callback already processed, skipping duplicate');
+      return;
+    }
+
     if (paymentStatus === 'success') {
-      console.log('✅ Payment callback received - Success');
+      console.log('✅ Payment callback received - Success for orderId:', orderId);
+      sessionStorage.setItem('paymentStatusProcessed', paymentStatus + '_' + orderId);
       addToast('Payment successful! Processing your order...', 'success');
       // Clear the cart since the order has been created
       clearCart();
@@ -93,13 +104,14 @@ const CheckoutPage: React.FC = () => {
       setTimeout(() => {
         navigate('/thank-you', { 
           state: { 
-            orderId,
+            orderId: orderId ? parseInt(orderId) : null,
             paymentMethod: 'ziina'
           } 
         });
       }, 1500);
     } else if (paymentStatus === 'failure') {
-      console.log('❌ Payment callback received - Failure');
+      console.log('❌ Payment callback received - Failure for orderId:', orderId);
+      sessionStorage.setItem('paymentStatusProcessed', paymentStatus + '_' + orderId);
       addToast('Payment failed. Please try another payment method or contact support.', 'error');
       // Clear stored order data on failure
       sessionStorage.removeItem('pendingOrderData');
@@ -111,7 +123,8 @@ const CheckoutPage: React.FC = () => {
         paymentSection?.scrollIntoView({ behavior: 'smooth' });
       }, 300);
     } else if (paymentStatus === 'cancelled') {
-      console.log('⚠️ Payment callback received - Cancelled');
+      console.log('⚠️ Payment callback received - Cancelled for orderId:', orderId);
+      sessionStorage.setItem('paymentStatusProcessed', paymentStatus + '_' + orderId);
       addToast('Payment cancelled. Your order was not processed. Please try again.', 'warning');
       // Clear stored order data on cancel
       sessionStorage.removeItem('pendingOrderData');
