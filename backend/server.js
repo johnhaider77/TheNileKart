@@ -50,8 +50,10 @@ app.use(limiter);
 app.use(cors({
   origin: [
     'http://localhost:3000',
-    'http://192.168.1.137:3000',
-    'http://3.29.235.62:3000',
+    'http://localhost:5173',
+    'http://127.0.0.1:3000',
+    'https://www.thenilekart.com',
+    'https://thenilekart.com',
     process.env.FRONTEND_URL
   ].filter(Boolean),
   credentials: true,
@@ -64,8 +66,10 @@ const io = socketIo(server, {
   cors: {
     origin: [
       'http://localhost:3000',
-      'http://192.168.1.137:3000',
-      'http://3.29.235.62:3000',
+      'http://localhost:5173',
+      'http://127.0.0.1:3000',
+      'https://www.thenilekart.com',
+      'https://thenilekart.com',
       process.env.FRONTEND_URL
     ].filter(Boolean),
     methods: ["GET", "POST"],
