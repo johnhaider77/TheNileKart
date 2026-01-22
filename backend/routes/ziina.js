@@ -250,6 +250,65 @@ router.get('/payment-intent/:paymentIntentId', authenticateToken, async (req, re
 });
 
 /**
+ * POST /ziina/payment-status/:orderId
+ * Update order status based on payment result (cancelled/failed)
+ * Body: { paymentStatus: 'cancelled' | 'failed' }
+ */
+router.post('/payment-status/:orderId', authenticateToken, async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { paymentStatus } = req.body;
+    const userId = req.userId;
+
+    console.log('🔄 Updating payment status for order:', {
+      orderId,
+      paymentStatus,
+      userId
+    });
+
+    if (!['cancelled', 'failed'].includes(paymentStatus)) {
+      return res.status(400).json({ 
+        message: 'Invalid payment status' 
+      });
+    }
+
+    // Map payment status to order status
+    const orderStatus = paymentStatus === 'cancelled' ? 'payment_cancelled' : 'payment_failed';
+
+    // Update order status
+    const orderUpdate = await db.query(
+      `UPDATE orders 
+       SET status = $1, updated_at = NOW()
+       WHERE id = $2 AND customer_id = $3
+       RETURNING id, status, total_amount`,
+      [orderStatus, orderId, userId]
+    );
+
+    if (orderUpdate.rowCount === 0) {
+      console.warn('⚠️ Order not found or unauthorized:', { orderId, userId });
+      return res.status(404).json({ 
+        message: 'Order not found' 
+      });
+    }
+
+    console.log('✅ Order status updated:', orderUpdate.rows[0]);
+
+    res.json({
+      success: true,
+      order: orderUpdate.rows[0],
+      message: `Order marked as ${orderStatus}`
+    });
+
+  } catch (error) {
+    console.error('❌ Error updating payment status:', error);
+    res.status(500).json({ 
+      message: 'Failed to update payment status',
+      error: error.message 
+    });
+  }
+});
+
+/**
  * POST /ziina/settlement
  * Transfer money from payment to seller account (settlement)
  * Body: { operationId, sellerAccountId, amount }

@@ -112,6 +112,24 @@ const CheckoutPage: React.FC = () => {
     } else if (paymentStatus === 'failure') {
       console.log('❌ Payment callback received - Failure for orderId:', orderId);
       sessionStorage.setItem('paymentStatusProcessed', paymentStatus + '_' + orderId);
+      
+      // Update order status to payment_failed
+      if (orderId) {
+        const token = localStorage.getItem('token');
+        if (token) {
+          fetch('/api/ziina/payment-status/' + orderId, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ paymentStatus: 'failed' })
+          }).catch((err) => {
+            console.error('Error updating order status:', err);
+          });
+        }
+      }
+      
       addToast('Payment failed. Please try another payment method or contact support.', 'error');
       // Clear stored payment data on failure, but keep cart items
       sessionStorage.removeItem('ziinaPaymentIntentId');
@@ -126,6 +144,24 @@ const CheckoutPage: React.FC = () => {
     } else if (paymentStatus === 'cancelled') {
       console.log('⚠️ Payment callback received - Cancelled for orderId:', orderId);
       sessionStorage.setItem('paymentStatusProcessed', paymentStatus + '_' + orderId);
+      
+      // Update order status to payment_cancelled
+      if (orderId) {
+        const token = localStorage.getItem('token');
+        if (token) {
+          fetch('/api/ziina/payment-status/' + orderId, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ paymentStatus: 'cancelled' })
+          }).catch((err) => {
+            console.error('Error updating order status:', err);
+          });
+        }
+      }
+      
       addToast('Payment cancelled. Your order was not processed. You can retry payment or modify your order.', 'warning');
       // Clear stored payment data on cancel, but keep cart items
       sessionStorage.removeItem('ziinaPaymentIntentId');

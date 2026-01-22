@@ -194,6 +194,17 @@ const ZiinaPayment: React.FC<ZiinaPaymentProps> = ({
       sessionStorage.setItem('ziinaPaymentIntentId', paymentData.paymentIntentId);
       sessionStorage.setItem('ziinaOrderId', realOrderId);  // Store the real order ID
 
+      // IMPORTANT: Ensure cart is saved to localStorage before redirecting
+      // The cart items are used to create the order, but we need to preserve them
+      // in case the user cancels or fails payment
+      const currentCart = items.map(item => ({
+        product: item.product,
+        quantity: item.quantity,
+        selectedSize: item.selectedSize || 'One Size'
+      }));
+      localStorage.setItem('guestCart', JSON.stringify(currentCart));
+      console.log('Cart items preserved to localStorage before Ziina redirect:', currentCart.length, 'items');
+
       // Redirect to Ziina payment page
       if (paymentData.redirectUrl) {
         console.log('Redirecting to Ziina payment page with order ID:', realOrderId);
