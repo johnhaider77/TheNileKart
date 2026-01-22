@@ -113,6 +113,30 @@ const CheckoutPage: React.FC = () => {
       console.log('❌ Payment callback received - Failure for orderId:', orderId);
       sessionStorage.setItem('paymentStatusProcessed', paymentStatus + '_' + orderId);
       
+      // Restore shipping address from sessionStorage
+      const savedAddressFailure = sessionStorage.getItem('checkoutShippingAddress');
+      if (savedAddressFailure) {
+        try {
+          const parsedAddress = JSON.parse(savedAddressFailure);
+          setShippingAddress(parsedAddress);
+          console.log('✅ Address restored from sessionStorage:', parsedAddress);
+        } catch (err) {
+          console.warn('⚠️ Failed to parse saved address:', err);
+        }
+      }
+      
+      // Restore COD eligibility details from sessionStorage
+      const savedCodDetailsFailure = sessionStorage.getItem('checkoutCodDetails');
+      if (savedCodDetailsFailure) {
+        try {
+          const parsedCodDetails = JSON.parse(savedCodDetailsFailure);
+          setCodDetails(parsedCodDetails);
+          console.log('✅ COD details restored from sessionStorage:', parsedCodDetails);
+        } catch (err) {
+          console.warn('⚠️ Failed to parse saved COD details:', err);
+        }
+      }
+      
       // Update order status to payment_failed
       if (orderId) {
         const token = localStorage.getItem('token');
@@ -155,6 +179,30 @@ const CheckoutPage: React.FC = () => {
     } else if (paymentStatus === 'cancelled') {
       console.log('⚠️ Payment callback received - Cancelled for orderId:', orderId);
       sessionStorage.setItem('paymentStatusProcessed', paymentStatus + '_' + orderId);
+      
+      // Restore shipping address from sessionStorage
+      const savedAddressCancelled = sessionStorage.getItem('checkoutShippingAddress');
+      if (savedAddressCancelled) {
+        try {
+          const parsedAddress = JSON.parse(savedAddressCancelled);
+          setShippingAddress(parsedAddress);
+          console.log('✅ Address restored from sessionStorage:', parsedAddress);
+        } catch (err) {
+          console.warn('⚠️ Failed to parse saved address:', err);
+        }
+      }
+      
+      // Restore COD eligibility details from sessionStorage
+      const savedCodDetailsCancelled = sessionStorage.getItem('checkoutCodDetails');
+      if (savedCodDetailsCancelled) {
+        try {
+          const parsedCodDetails = JSON.parse(savedCodDetailsCancelled);
+          setCodDetails(parsedCodDetails);
+          console.log('✅ COD details restored from sessionStorage:', parsedCodDetails);
+        } catch (err) {
+          console.warn('⚠️ Failed to parse saved COD details:', err);
+        }
+      }
       
       // Update order status to payment_cancelled
       if (orderId) {
@@ -905,8 +953,18 @@ const CheckoutPage: React.FC = () => {
                       return;
                     }
                     
+                    // Save address to sessionStorage for recovery if payment is cancelled
+                    sessionStorage.setItem('checkoutShippingAddress', JSON.stringify(shippingAddress));
+                    console.log('💾 Address saved to sessionStorage:', shippingAddress);
+                    
                     setStep('payment');
                     await calculateCODDetails();
+                    
+                    // Save COD eligibility details to sessionStorage after calculation
+                    if (codDetails) {
+                      sessionStorage.setItem('checkoutCodDetails', JSON.stringify(codDetails));
+                      console.log('💾 COD details saved to sessionStorage:', codDetails);
+                    }
                     
                     // Track payment page visit and payment start
                     trackPaymentPage();
