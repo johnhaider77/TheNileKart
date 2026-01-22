@@ -1,0 +1,17 @@
+[Unit]
+Description=TheNileKart Backend Server
+After=network.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/var/www/thenilekart/TheNileKart/backend
+Environment="NODE_ENV=production"
+ExecStart=/usr/bin/node server.js
+Restart=always
+RestartSec=10
+StandardOutput=append:/home/ubuntu/var/www/thenilekart/TheNileKart/backend/server.log
+StandardError=append:/home/ubuntu/var/www/thenilekart/TheNileKart/backend/server.log
+
+[Install]
+WantedBy=multi-user.target
