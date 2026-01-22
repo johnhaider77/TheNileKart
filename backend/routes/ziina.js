@@ -75,7 +75,7 @@ router.post('/payment-intent', authenticateToken, async (req, res) => {
       test: true
     });
 
-    // Create payment intent
+    // Create payment intent (using PRODUCTION mode for real payments)
     const paymentIntent = await createPaymentIntent(
       amountInFils,
       'AED',
@@ -83,7 +83,7 @@ router.post('/payment-intent', authenticateToken, async (req, res) => {
       successUrl,
       cancelUrl,
       failureUrl,
-      true // Always use test mode for now
+      false // Use production mode for real payments (not test mode)
     );
 
     console.log('✅ Payment intent created successfully from Ziina:', {
@@ -180,6 +180,13 @@ router.get('/payment-intent/:paymentIntentId', authenticateToken, async (req, re
     // Get payment intent from Ziina
     const paymentIntent = await getPaymentIntent(paymentIntentId);
     console.log('💳 Ziina payment intent status:', paymentIntent.status);
+    console.log('💳 Full payment intent response:', {
+      id: paymentIntent.id,
+      status: paymentIntent.status,
+      amount: paymentIntent.amount,
+      currency: paymentIntent.currency,
+      latest_error: paymentIntent.latest_error
+    });
 
     // Update payment status in database
     const paymentUpdateResult = await db.query(
@@ -192,8 +199,9 @@ router.get('/payment-intent/:paymentIntentId', authenticateToken, async (req, re
     
     console.log('📊 Payment record updated:', paymentUpdateResult.rowCount);
 
-    // Check if payment is successful
+    // Check if payment is successful (Ziina returns 'succeeded' for successful payments)
     const isPaymentSuccessful = paymentIntent.status === 'completed' || paymentIntent.status === 'succeeded';
+    console.log('🔍 Payment status verification - Is successful?', isPaymentSuccessful, '- Actual status:', paymentIntent.status);
     
     if (isPaymentSuccessful) {
       // Update order status to paid and confirmed

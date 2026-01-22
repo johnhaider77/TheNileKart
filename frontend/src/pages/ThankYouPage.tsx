@@ -71,7 +71,10 @@ const ThankYouPage: React.FC = () => {
   }, [orderId]);
 
   const displayOrderId = orderDetails?.id || orderId;
-  const displayTotal = orderDetails?.total_amount || 0;
+  // Ensure total_amount is a number (API returns it as string from database)
+  const displayTotal = typeof orderDetails?.total_amount === 'string' 
+    ? parseFloat(orderDetails.total_amount) 
+    : (orderDetails?.total_amount || 0);
 
   return (
     <div className="page-container">
