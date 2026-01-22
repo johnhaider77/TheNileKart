@@ -958,12 +958,40 @@ const CheckoutPage: React.FC = () => {
                     console.log('💾 Address saved to sessionStorage:', shippingAddress);
                     
                     setStep('payment');
-                    await calculateCODDetails();
                     
-                    // Save COD eligibility details to sessionStorage after calculation
-                    if (codDetails) {
-                      sessionStorage.setItem('checkoutCodDetails', JSON.stringify(codDetails));
-                      console.log('💾 COD details saved to sessionStorage:', codDetails);
+                    // Calculate COD details and save them before proceeding
+                    try {
+                      const cartItems = items.map(item => ({
+                        product_id: item.product.id,
+                        selectedSize: item.selectedSize || 'One Size',
+                        quantity: item.quantity
+                      }));
+
+                      const response = await ordersAPI.calculateCOD(cartItems);
+                      const data = response.data;
+                      
+                      const newCodDetails = {
+                        eligible: data.codEligible,
+                        fee: data.codFee || 0,
+                        nonEligibleItems: data.nonCodItems || []
+                      };
+                      
+                      // Save to sessionStorage immediately after calculation
+                      sessionStorage.setItem('checkoutCodDetails', JSON.stringify(newCodDetails));
+                      console.log('💾 COD details saved to sessionStorage:', newCodDetails);
+                      
+                      // Update state for current display
+                      setCodDetails(newCodDetails);
+                    } catch (error: any) {
+                      console.error('Error calculating COD:', error);
+                      // Default to COD available if calculation fails
+                      const defaultCodDetails = {
+                        eligible: true,
+                        fee: 0,
+                        nonEligibleItems: []
+                      };
+                      sessionStorage.setItem('checkoutCodDetails', JSON.stringify(defaultCodDetails));
+                      setCodDetails(defaultCodDetails);
                     }
                     
                     // Track payment page visit and payment start
