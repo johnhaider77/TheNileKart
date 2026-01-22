@@ -221,7 +221,9 @@ router.post('/', [
 
     const order_id = newOrder.rows[0].id;
 
-    // Create order items and update stock
+    // Create order items
+    // For Ziina payments: only insert items, don't decrement inventory yet (will be done after payment verification)
+    // For COD/other payments: insert items and decrement inventory immediately
     for (const item of orderItems) {
       // Insert order item with size
       await client.query(
@@ -230,11 +232,15 @@ router.post('/', [
         [order_id, item.product_id, item.quantity, item.price, item.total, item.selectedSize]
       );
 
-      // Update product size-specific stock using the database function
-      await client.query(
-        'SELECT update_product_size_quantity($1, $2, $3)',
-        [item.product_id, item.selectedSize, -item.quantity]
-      );
+      // Only decrement inventory immediately for non-Ziina payments
+      // Ziina inventory will be decremented after payment verification
+      if (payment_method !== 'ziina') {
+        // Update product size-specific stock using the database function
+        await client.query(
+          'SELECT update_product_size_quantity($1, $2, $3)',
+          [item.product_id, item.selectedSize, -item.quantity]
+        );
+      }
     }
 
     await client.query('COMMIT');

@@ -184,15 +184,56 @@ router.get('/payment-intent/:paymentIntentId', authenticateToken, async (req, re
 
     // Check if payment is successful
     if (paymentIntent.status === 'completed' || paymentIntent.status === 'succeeded') {
-      // Update order status to paid
-      await db.query(
-        `UPDATE orders 
-         SET payment_status = 'paid', status = 'confirmed'
-         WHERE id = $1 AND user_id = $2`,
-        [orderId, userId]
+      // Get order details to decrement inventory
+      const orderResult = await db.query(
+        `SELECT id, customer_id FROM orders WHERE id = $1`,
+        [orderId]
       );
 
-      console.log('Order marked as paid:', orderId);
+      if (orderResult.rows.length > 0) {
+        // Get all order items
+        const orderItems = await db.query(
+          `SELECT product_id, quantity, selected_size FROM order_items WHERE order_id = $1`,
+          [orderId]
+        );
+
+        // Decrement inventory for each item (using transaction to ensure consistency)
+        const client = await db.getClient();
+        try {
+          await client.query('BEGIN');
+
+          // Decrement inventory for all items
+          for (const item of orderItems.rows) {
+            console.log('Decrementing inventory for product:', {
+              product_id: item.product_id,
+              quantity: item.quantity,
+              size: item.selected_size
+            });
+
+            await client.query(
+              'SELECT update_product_size_quantity($1, $2, $3)',
+              [item.product_id, item.selected_size, -item.quantity]
+            );
+          }
+
+          // Update order status to paid
+          await client.query(
+            `UPDATE orders 
+             SET payment_status = 'paid', status = 'confirmed'
+             WHERE id = $1`,
+            [orderId]
+          );
+
+          await client.query('COMMIT');
+          console.log('✅ Payment verified and inventory decremented for order:', orderId);
+        } catch (error) {
+          await client.query('ROLLBACK');
+          console.error('Error decrementing inventory:', error);
+          throw error;
+        } finally {
+          client.release();
+        }
+      }
     }
 
     res.json({
