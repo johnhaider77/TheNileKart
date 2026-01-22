@@ -9,6 +9,7 @@ import ModernLogin from './pages/ModernLogin';
 import ModernProductListing from './pages/ModernProductListing';
 import CheckoutPage from './pages/CheckoutPage';
 import ThankYouPage from './pages/ThankYouPage';
+import PaymentSuccessPage from './pages/PaymentSuccessPage';
 import AccountPage from './pages/AccountPage';
 import ForgotPassword from './pages/ForgotPassword';
 import SellerLogin from './pages/SellerLogin';
@@ -133,6 +134,15 @@ function AppRoutes() {
                   <ThankYouPage />
                 </ProtectedRoute>
               )
+            }
+          />
+
+          <Route
+            path="/payment-success"
+            element={
+              <ProtectedRoute requireCustomer>
+                <PaymentSuccessPage />
+              </ProtectedRoute>
             }
           />
 

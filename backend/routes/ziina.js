@@ -163,7 +163,7 @@ router.get('/payment-intent/:paymentIntentId', authenticateToken, async (req, re
   try {
     const { paymentIntentId } = req.params;
     const { orderId } = req.query;
-    const userId = req.userId;
+    const userId = req.user.id;
 
     console.log('Checking payment intent status:', {
       paymentIntentId,
@@ -223,7 +223,7 @@ router.get('/payment-intent/:paymentIntentId', authenticateToken, async (req, re
 router.post('/settlement', authenticateToken, async (req, res) => {
   try {
     const { operationId, sellerAccountId, amount } = req.body;
-    const adminUserId = req.userId;
+    const adminUserId = req.user.id;
 
     console.log('Creating settlement transfer:', {
       operationId,
@@ -296,7 +296,7 @@ router.post('/settlement', authenticateToken, async (req, res) => {
  */
 router.get('/account', authenticateToken, async (req, res) => {
   try {
-    const userId = req.userId;
+    const userId = req.user.id;
 
     console.log('Fetching Ziina account information for user:', userId);
 
