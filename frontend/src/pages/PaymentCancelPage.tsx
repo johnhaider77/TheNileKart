@@ -1,13 +1,26 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 import { useMetrics } from '../hooks/useMetrics';
 import '../styles/PaymentErrorPage.css';
 
 const PaymentCancelPage: React.FC = () => {
   console.log('🔴 PaymentCancelPage component rendered!');
   const navigate = useNavigate();
+  const { isAuthenticated, user } = useAuth();
   const [searchParams] = useSearchParams();
   const [loading, setLoading] = useState(true);
+
+  // Log auth state on mount
+  useEffect(() => {
+    console.log('🔴 PaymentCancelPage - Auth state:', { 
+      isAuthenticated, 
+      hasUser: !!user,
+      email: user?.email,
+      localStorage_token: !!localStorage.getItem('token'),
+      localStorage_user: !!localStorage.getItem('user')
+    });
+  }, [isAuthenticated, user]);
 
   // Use metrics with tracking disabled to prevent any session clearing
   const { trackPaymentError } = useMetrics({ pageType: 'payment_cancel', trackPageViews: false });
@@ -15,7 +28,12 @@ const PaymentCancelPage: React.FC = () => {
   useEffect(() => {
     const orderId = searchParams.get('orderId');
     
-    console.log('🔴 Payment Cancelled:', { orderId });
+    console.log('🔴 Payment Cancelled:', { 
+      orderId,
+      isAuthenticated,
+      hasUser: !!user,
+      timestamp: new Date().toISOString()
+    });
     
     // Track the payment cancellation without initializing new metrics session
     if (trackPaymentError) {
@@ -31,7 +49,7 @@ const PaymentCancelPage: React.FC = () => {
     }
 
     setLoading(false);
-  }, [searchParams, trackPaymentError]);
+  }, [searchParams, trackPaymentError, isAuthenticated, user]);
 
   const handleRetryPayment = () => {
     navigate('/checkout');
