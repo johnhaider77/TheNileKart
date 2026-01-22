@@ -19,71 +19,68 @@ const PaymentSuccessPage: React.FC = () => {
         const paymentIntentId = sessionStorage.getItem('ziinaPaymentIntentId');
         const token = localStorage.getItem('token');
 
-        console.log('🔍 PaymentSuccessPage verification initiated:', { 
+        console.log('PaymentSuccessPage - Verification data:', { 
           orderId, 
-          hasPaymentIntentId: !!paymentIntentId, 
-          hasToken: !!token 
+          paymentIntentId, 
+          hasToken: !!token,
+          hostname: window.location.hostname,
+          protocol: window.location.protocol
         });
 
-        if (!orderId) {
-          console.error('❌ Missing orderId in URL');
+        if (!orderId || !paymentIntentId || !token) {
+          console.error('Missing payment verification data:', { orderId, paymentIntentId, hasToken: !!token });
           setLoading(false);
-          setVerified(true);
+          setVerified(false);
           return;
         }
 
-        if (!paymentIntentId) {
-          console.warn('⚠️ Missing paymentIntentId in sessionStorage');
-          // Order was created, proceed anyway
-          setLoading(false);
-          setVerified(true);
-          return;
-        }
+        console.log('Verifying payment with backend:', { orderId, paymentIntentId });
 
-        if (!token) {
-          console.warn('⚠️ Token not found, trying verification without authentication');
-          // Try without authentication - backend will check payment without token
-        }
-
-        console.log('✅ Verifying payment with Ziina:', { orderId, paymentIntentId });
+        // Use /api proxy for all environments
+        const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+        const apiUrl = isProduction ? '/api' : 'http://localhost:5000/api';
+        
+        const verificationUrl = `${apiUrl}/ziina/payment-intent/${paymentIntentId}?orderId=${orderId}`;
+        console.log('Calling verification endpoint:', verificationUrl);
 
         // Verify payment status with backend
-        const headers: any = {
-          'Content-Type': 'application/json'
-        };
-        
-        if (token) {
-          headers['Authorization'] = `Bearer ${token}`;
-        }
+        const response = await fetch(
+          verificationUrl,
+          {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
 
-        const verificationUrl = `${window.location.protocol}//${window.location.host}/api/ziina/payment-intent/${paymentIntentId}?orderId=${orderId}`;
-        console.log('📡 Payment verification URL:', verificationUrl);
-
-        const response = await fetch(verificationUrl, { headers });
-
-        console.log('📋 Verification response status:', response.status);
+        console.log('Verification response status:', response.status);
 
         if (!response.ok) {
-          const errorText = await response.text();
-          console.warn('⚠️ Payment verification returned error:', { 
-            status: response.status, 
-            error: errorText 
-          });
-          // Order was created, proceed anyway
-          setVerified(true);
-        } else {
-          const data = await response.json();
-          console.log('✅ Payment verification successful:', data);
-          
+          const errorData = await response.json().catch(() => ({}));
+          console.warn('Payment verification failed:', { status: response.status, errorData });
+          setVerified(false);
+          setLoading(false);
+          return;
+        }
+
+        const data = await response.json();
+        console.log('✅ Payment verification successful:', data);
+        
+        // Only proceed if payment is actually successful
+        if (data.success || data.paid) {
+          console.log('🎉 Payment confirmed! Status:', data.status);
           // Track successful payment
           trackPaymentSuccess();
-
           setVerified(true);
+        } else {
+          console.warn('Payment not yet processed. Status:', data.status);
+          setVerified(false);
         }
       } catch (error) {
-        console.error('❌ Error verifying payment:', error);
-        // Order was created, proceed anyway
-        setVerified(true);
+        console.error('Error verifying payment:', error);
+        setVerified(false);
       } finally {
         setLoading(false);
       }
