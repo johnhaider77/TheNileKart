@@ -117,43 +117,28 @@ const ZiinaPayment: React.FC<ZiinaPaymentProps> = ({
         paymentMethod: orderData.payment_method
       });
 
-      try {
-        const orderResponse = await ordersAPI.createOrder(orderData);
-        console.log('✅ Order created successfully!', orderResponse.data);
-        
-        const realOrderId = orderResponse.data.order.id;
-        console.log('✅ Real order ID from database:', realOrderId);
-      } catch (backendError: any) {
-        console.error('❌ Backend order creation failed!');
-        console.error('Error response:', backendError.response?.data);
-        console.error('Error status:', backendError.response?.status);
-        console.error('Full error:', backendError);
-        throw new Error(
-          backendError.response?.data?.message || 
-          backendError.response?.data?.errors?.[0]?.msg ||
-          'Failed to create order - validation error'
-        );
-      }
-
       const orderResponse = await ordersAPI.createOrder(orderData);
+      console.log('✅ Order created successfully!', orderResponse.data);
+      
       const realOrderId = orderResponse.data.order.id;
+      console.log('✅ Real order ID from database:', realOrderId);
       
       console.log('Order created successfully:', {
         realOrderId,
         totalAmount: orderResponse.data.order.total_amount
       });
 
-      console.log('Step 2: Creating Ziina payment intent for order:', {
-        orderId: realOrderId,
-        amount,
-        items: items.length,
-        shippingAddress: !!shippingAddress
-      });
+        console.log('Step 2: Creating Ziina payment intent for order:', {
+          orderId: realOrderId,
+          amount,
+          items: items.length,
+          shippingAddress: !!shippingAddress
+        });
 
-      // STEP 2: Call backend to create payment intent with the real order ID
-      // Use /api for production (deployed on same server via Nginx proxy), localhost for development
-      const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
-      const apiUrl = isProduction ? '/api' : 'http://localhost:5000/api';
+        // STEP 2: Call backend to create payment intent with the real order ID
+        // Use /api for production (deployed on same server via Nginx proxy), localhost for development
+        const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+        const apiUrl = isProduction ? '/api' : 'http://localhost:5000/api';
       
       console.log('API URL determination:', {
         hostname: window.location.hostname,
