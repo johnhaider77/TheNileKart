@@ -19,33 +19,61 @@ const PaymentSuccessPage: React.FC = () => {
         const paymentIntentId = sessionStorage.getItem('ziinaPaymentIntentId');
         const token = localStorage.getItem('token');
 
-        if (!orderId || !paymentIntentId || !token) {
-          console.error('Missing payment verification data:', { orderId, paymentIntentId, hasToken: !!token });
+        console.log('🔍 PaymentSuccessPage verification initiated:', { 
+          orderId, 
+          hasPaymentIntentId: !!paymentIntentId, 
+          hasToken: !!token 
+        });
+
+        if (!orderId) {
+          console.error('❌ Missing orderId in URL');
           setLoading(false);
-          // Still mark as verified since order was created
           setVerified(true);
           return;
         }
 
-        console.log('Verifying payment:', { orderId, paymentIntentId });
+        if (!paymentIntentId) {
+          console.warn('⚠️ Missing paymentIntentId in sessionStorage');
+          // Order was created, proceed anyway
+          setLoading(false);
+          setVerified(true);
+          return;
+        }
+
+        if (!token) {
+          console.warn('⚠️ Token not found, trying verification without authentication');
+          // Try without authentication - backend will check payment without token
+        }
+
+        console.log('✅ Verifying payment with Ziina:', { orderId, paymentIntentId });
 
         // Verify payment status with backend
-        const response = await fetch(
-          `${window.location.protocol}//${window.location.host}/api/ziina/payment-intent/${paymentIntentId}?orderId=${orderId}`,
-          {
-            headers: {
-              'Authorization': `Bearer ${token}`
-            }
-          }
-        );
+        const headers: any = {
+          'Content-Type': 'application/json'
+        };
+        
+        if (token) {
+          headers['Authorization'] = `Bearer ${token}`;
+        }
+
+        const verificationUrl = `${window.location.protocol}//${window.location.host}/api/ziina/payment-intent/${paymentIntentId}?orderId=${orderId}`;
+        console.log('📡 Payment verification URL:', verificationUrl);
+
+        const response = await fetch(verificationUrl, { headers });
+
+        console.log('📋 Verification response status:', response.status);
 
         if (!response.ok) {
-          console.warn('Payment verification failed:', response.status);
+          const errorText = await response.text();
+          console.warn('⚠️ Payment verification returned error:', { 
+            status: response.status, 
+            error: errorText 
+          });
           // Order was created, proceed anyway
           setVerified(true);
         } else {
           const data = await response.json();
-          console.log('Payment verification result:', data);
+          console.log('✅ Payment verification successful:', data);
           
           // Track successful payment
           trackPaymentSuccess();
@@ -53,7 +81,7 @@ const PaymentSuccessPage: React.FC = () => {
           setVerified(true);
         }
       } catch (error) {
-        console.error('Error verifying payment:', error);
+        console.error('❌ Error verifying payment:', error);
         // Order was created, proceed anyway
         setVerified(true);
       } finally {

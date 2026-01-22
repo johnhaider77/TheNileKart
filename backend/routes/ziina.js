@@ -158,32 +158,49 @@ router.post('/payment-intent', authenticateToken, async (req, res) => {
  * GET /ziina/payment-intent/:paymentIntentId
  * Check the status of a payment intent
  * Query: { orderId }
+ * Note: Works with or without authentication to support post-payment redirect from Ziina
  */
-router.get('/payment-intent/:paymentIntentId', authenticateToken, async (req, res) => {
+router.get('/payment-intent/:paymentIntentId', async (req, res) => {
   try {
     const { paymentIntentId } = req.params;
     const { orderId } = req.query;
-    const userId = req.user.id;
+    const userId = req.user?.id; // Optional authentication
 
-    console.log('Checking payment intent status:', {
+    console.log('🔍 Checking payment intent status:', {
       paymentIntentId,
       orderId,
-      userId
+      userId,
+      isAuthenticated: !!userId
     });
+
+    if (!orderId) {
+      return res.status(400).json({
+        message: 'orderId query parameter is required'
+      });
+    }
 
     // Get payment intent from Ziina
     const paymentIntent = await getPaymentIntent(paymentIntentId);
+    console.log('✅ Got payment intent from Ziina:', {
+      status: paymentIntent.status,
+      amount: paymentIntent.amount
+    });
 
-    // Update payment status in database
-    await db.query(
-      `UPDATE payments 
-       SET status = $1, updated_at = NOW()
-       WHERE payment_intent_id = $2 AND user_id = $3`,
-      [paymentIntent.status, paymentIntentId, userId]
-    );
+    // Update payment status in database if userId is available
+    if (userId) {
+      await db.query(
+        `UPDATE payments 
+         SET status = $1, updated_at = NOW()
+         WHERE payment_intent_id = $2 AND user_id = $3`,
+        [paymentIntent.status, paymentIntentId, userId]
+      );
+      console.log('💾 Updated payment record in database');
+    }
 
     // Check if payment is successful
     if (paymentIntent.status === 'completed' || paymentIntent.status === 'succeeded') {
+      console.log('💳 Payment successful, processing order inventory...');
+      
       // Get order details to decrement inventory
       const orderResult = await db.query(
         `SELECT id, customer_id FROM orders WHERE id = $1`,
@@ -191,11 +208,16 @@ router.get('/payment-intent/:paymentIntentId', authenticateToken, async (req, re
       );
 
       if (orderResult.rows.length > 0) {
+        const order = orderResult.rows[0];
+        console.log('📦 Found order:', { id: order.id, customer_id: order.customer_id });
+
         // Get all order items
         const orderItems = await db.query(
           `SELECT product_id, quantity, selected_size FROM order_items WHERE order_id = $1`,
           [orderId]
         );
+
+        console.log('📋 Order items:', orderItems.rows.length);
 
         // Decrement inventory for each item (using transaction to ensure consistency)
         const client = await db.getClient();
@@ -204,7 +226,7 @@ router.get('/payment-intent/:paymentIntentId', authenticateToken, async (req, re
 
           // Decrement inventory for all items
           for (const item of orderItems.rows) {
-            console.log('Decrementing inventory for product:', {
+            console.log('📉 Decrementing inventory for product:', {
               product_id: item.product_id,
               quantity: item.quantity,
               size: item.selected_size
@@ -228,12 +250,16 @@ router.get('/payment-intent/:paymentIntentId', authenticateToken, async (req, re
           console.log('✅ Payment verified and inventory decremented for order:', orderId);
         } catch (error) {
           await client.query('ROLLBACK');
-          console.error('Error decrementing inventory:', error);
+          console.error('❌ Error decrementing inventory:', error);
           throw error;
         } finally {
           client.release();
         }
+      } else {
+        console.warn('⚠️ Order not found:', orderId);
       }
+    } else {
+      console.warn('⚠️ Payment not completed. Status:', paymentIntent.status);
     }
 
     res.json({
@@ -247,7 +273,7 @@ router.get('/payment-intent/:paymentIntentId', authenticateToken, async (req, re
     });
 
   } catch (error) {
-    console.error('Error checking payment intent:', error);
+    console.error('❌ Error checking payment intent:', error);
     res.status(500).json({ 
       message: 'Failed to check payment status',
       error: error.message 
