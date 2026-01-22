@@ -10,6 +10,8 @@ import ModernProductListing from './pages/ModernProductListing';
 import CheckoutPage from './pages/CheckoutPage';
 import ThankYouPage from './pages/ThankYouPage';
 import PaymentSuccessPage from './pages/PaymentSuccessPage';
+import PaymentCancelPage from './pages/PaymentCancelPage';
+import PaymentFailurePage from './pages/PaymentFailurePage';
 import AccountPage from './pages/AccountPage';
 import ForgotPassword from './pages/ForgotPassword';
 import SellerLogin from './pages/SellerLogin';
@@ -142,6 +144,24 @@ function AppRoutes() {
             element={
               <ProtectedRoute requireCustomer>
                 <PaymentSuccessPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/payment-cancel"
+            element={
+              <ProtectedRoute requireCustomer>
+                <PaymentCancelPage />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="/payment-failure"
+            element={
+              <ProtectedRoute requireCustomer>
+                <PaymentFailurePage />
               </ProtectedRoute>
             }
           />
