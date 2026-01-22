@@ -49,7 +49,8 @@ const OrdersManagement: React.FC = () => {
     { value: 'processing', label: 'Processing' },
     { value: 'shipped', label: 'Shipped' },
     { value: 'delivered', label: 'Delivered' },
-    { value: 'cancelled', label: 'Cancelled' }
+    { value: 'cancelled', label: 'Cancelled' },
+    { value: 'payment_failed', label: 'Payment Failed' }
   ];
 
   const fetchOrders = async (page: number = 1) => {
@@ -308,6 +309,7 @@ const OrdersManagement: React.FC = () => {
       case 'shipped': return 'status-shipped';
       case 'delivered': return 'status-delivered';
       case 'cancelled': return 'status-cancelled';
+      case 'payment_failed': return 'status-payment-failed';
       default: return 'status-default';
     }
   };
@@ -492,6 +494,7 @@ const OrdersManagement: React.FC = () => {
                     <option value="shipped">Shipped</option>
                     <option value="delivered">Delivered</option>
                     <option value="cancelled">Cancelled</option>
+                    <option value="payment_failed">Payment Failed</option>
                   </select>
                   
                   {updateLoading && (

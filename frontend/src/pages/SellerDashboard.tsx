@@ -343,7 +343,7 @@ const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
         isProductData = false;
         break;
       case 'Products Returned':
-        sourceData = orders.filter((o: any) => ['cancelled', 'payment_cancelled', 'payment_failed'].includes(o.status));
+        sourceData = orders.filter((o: any) => o.status === 'cancelled');
         isProductData = false;
         break;
       default:

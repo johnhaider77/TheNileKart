@@ -445,6 +445,11 @@
   color: #dc2626;
 }
 
+.status-payment-failed {
+  background: #fef3c7;
+  color: #b45309;
+}
+
 .status-default {
   background: #f3f4f6;
   color: #374151;
