@@ -124,7 +124,17 @@ const CheckoutPage: React.FC = () => {
               'Authorization': `Bearer ${token}`
             },
             body: JSON.stringify({ paymentStatus: 'failed' })
-          }).catch((err) => {
+          })
+          .then(res => {
+            if (!res.ok) {
+              console.error('Failed to update order status:', res.status, res.statusText);
+            } else {
+              console.log('✅ Order status updated successfully');
+            }
+            return res.json();
+          })
+          .then(data => console.log('Payment status update response:', data))
+          .catch((err) => {
             console.error('Error updating order status:', err);
           });
         }
@@ -157,7 +167,17 @@ const CheckoutPage: React.FC = () => {
               'Authorization': `Bearer ${token}`
             },
             body: JSON.stringify({ paymentStatus: 'cancelled' })
-          }).catch((err) => {
+          })
+          .then(res => {
+            if (!res.ok) {
+              console.error('Failed to update order status:', res.status, res.statusText);
+            } else {
+              console.log('✅ Order status updated successfully');
+            }
+            return res.json();
+          })
+          .then(data => console.log('Payment status update response:', data))
+          .catch((err) => {
             console.error('Error updating order status:', err);
           });
         }
@@ -436,6 +456,12 @@ const CheckoutPage: React.FC = () => {
       const value = shippingAddress[field as keyof ShippingAddress];
       return value && value.trim().length > 0;
     });
+    if (step === 'payment' && !isValid) {
+      console.warn('⚠️ Address validation failed on payment step:', {
+        shippingAddress,
+        required
+      });
+    }
     return isValid;
   };
 
