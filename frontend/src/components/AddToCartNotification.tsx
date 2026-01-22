@@ -9,10 +9,10 @@ interface AddToCartNotificationProps {
 const AddToCartNotification: React.FC<AddToCartNotificationProps> = ({ isVisible, onHide }) => {
   useEffect(() => {
     if (isVisible) {
-      // Auto-hide after 1 second (1000ms)
+      // Auto-hide after 2 seconds (2000ms) to match animation duration
       const timer = setTimeout(() => {
         onHide();
-      }, 1000);
+      }, 2000);
 
       return () => clearTimeout(timer);
     }

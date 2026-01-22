@@ -27,6 +27,9 @@ const app = express();
 const server = http.createServer(app);
 const PORT = process.env.PORT || 5000;
 
+// Trust proxy - required for rate limiting and X-Forwarded headers behind Nginx
+app.set('trust proxy', 1);
+
 // Security middleware
 app.use(helmet({
   contentSecurityPolicy: {
@@ -51,7 +54,7 @@ app.use(cors({
   origin: [
     'http://localhost:3000',
     'http://192.168.1.137:3000',
-    'http://3.29.235.62:3000',
+    'http://40.172.190.250:3000',
     process.env.FRONTEND_URL
   ].filter(Boolean),
   credentials: true,
@@ -65,7 +68,7 @@ const io = socketIo(server, {
     origin: [
       'http://localhost:3000',
       'http://192.168.1.137:3000',
-      'http://3.29.235.62:3000',
+      'http://40.172.190.250:3000',
       process.env.FRONTEND_URL
     ].filter(Boolean),
     methods: ["GET", "POST"],
@@ -126,12 +129,11 @@ app.use('/uploads', (req, res, next) => {
   next();
 }, express.static(path.join(__dirname, 'uploads')));
 
-// API Routes
+// API Routes - More specific routes first, then general routes at the end
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/seller', sellerRoutes);
-app.use('/api', bannerRoutes);
 app.use('/api/ziina', ziinaRoutes);
 app.use('/api/metrics', metricsRoutes);
 
@@ -143,6 +145,9 @@ app.get('/api/health', (req, res) => {
     uptime: process.uptime()
   });
 });
+
+// General banner routes at the end (catches /api/banners, /api/offers, etc.)
+app.use('/api', bannerRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

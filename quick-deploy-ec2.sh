@@ -4,7 +4,7 @@
 set -e
 
 EC2_USER="ubuntu"
-EC2_HOST="3.29.235.62"
+EC2_HOST="40.172.190.250"
 EC2_KEY="$HOME/.ssh/thenilekart-key.pem"
 EC2_PATH="/home/ubuntu/var/www/thenilekart/TheNileKart"
 

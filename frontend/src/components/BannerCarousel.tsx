@@ -35,7 +35,7 @@ const BannerCarousel: React.FC = () => {
 
   const fetchBanners = async () => {
     try {
-      const response = await api.get('/api/banners');
+      const response = await api.get('/banners');
       if (response.data.success) {
         setBanners(response.data.banners);
       }

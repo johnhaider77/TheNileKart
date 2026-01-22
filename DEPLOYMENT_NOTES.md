@@ -32,7 +32,7 @@
 ### Option 1: Manual SSH Deployment
 ```bash
 # SSH to EC2
-ssh -i your-key.pem ec2-user@3.29.235.62
+ssh -i your-key.pem ec2-user@40.172.190.250
 
 # Navigate to project
 cd TheNileKart
@@ -55,10 +55,10 @@ cd frontend && npm install && BROWSER=none npm start &
 ### Option 2: Using SCP (recommended if SSH key issues persist)
 ```bash
 # Copy build folder to EC2
-scp -i ~/.ssh/thenilekart-key.pem -r frontend/build ec2-user@3.29.235.62:~/TheNileKart/frontend/
+scp -i ~/.ssh/thenilekart-key.pem -r frontend/build ec2-user@40.172.190.250:~/TheNileKart/frontend/
 
 # Copy backend changes
-scp -i ~/.ssh/thenilekart-key.pem -r backend/ ec2-user@3.29.235.62:~/TheNileKart/
+scp -i ~/.ssh/thenilekart-key.pem -r backend/ ec2-user@40.172.190.250:~/TheNileKart/
 
 # Then SSH and restart servers
 ```

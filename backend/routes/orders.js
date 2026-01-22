@@ -98,21 +98,36 @@ router.post('/', [
   body('items.*.size').optional().trim(),
   body('shipping_address.full_name').trim().isLength({ min: 2 }),
   body('shipping_address.address_line1').trim().isLength({ min: 5 }),
+  body('shipping_address.address_line2').optional().trim(),
   body('shipping_address.city').trim().isLength({ min: 2 }),
-  body('shipping_address.postal_code').trim().isLength({ min: 5 }),
-  body('shipping_address.phone').trim().isLength({ min: 8 }),
-  body('payment_method').optional().isIn(['cod', 'paypal', 'card']),
+  body('shipping_address.state').trim().isLength({ min: 1 }),
+  body('shipping_address.postal_code').trim().isLength({ min: 4 }),
+  body('shipping_address.phone').trim().notEmpty().isLength({ min: 8 }),
+  body('payment_method').optional().isIn(['cod', 'paypal', 'card', 'ziina']),
 ], async (req, res) => {
   const client = await db.getClient();
   
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+      console.error('🔴 Order validation errors:', errors.array());
+      console.error('Request body received:', JSON.stringify(req.body, null, 2));
+      console.error('Shipping address from request:', JSON.stringify(req.body.shipping_address, null, 2));
+      return res.status(400).json({ 
+        message: 'Validation failed',
+        errors: errors.array() 
+      });
     }
 
     const { items, shipping_address, payment_method = 'cod' } = req.body;
     const customer_id = req.user.id;
+
+    console.log('📋 Order creation details:', {
+      payment_method,
+      items_count: items?.length,
+      shipping_address_keys: Object.keys(shipping_address || {}),
+      customer_id
+    });
 
     await client.query('BEGIN');
 
@@ -196,6 +211,7 @@ router.post('/', [
     
     // Check if COD is requested but not all items are eligible
     if (payment_method === 'cod' && !orderCalculation.codEligible) {
+      console.error('❌ COD not available - non-COD items:', orderCalculation.nonCodItems);
       await client.query('ROLLBACK');
       return res.status(400).json({ 
         message: 'Cash on Delivery is not available for some items in your cart',
@@ -205,6 +221,13 @@ router.post('/', [
         }))
       });
     }
+
+    console.log('✅ Payment validation passed:', {
+      payment_method,
+      codEligible: orderCalculation.codEligible,
+      total_amount,
+      cod_fee: orderCalculation.codFee
+    });
 
     // Use calculated total including COD fee
     const final_total = payment_method === 'cod' ? orderCalculation.total : total_amount;
@@ -225,13 +248,13 @@ router.post('/', [
       await client.query(
         `INSERT INTO order_items (order_id, product_id, quantity, price, total, selected_size)
          VALUES ($1, $2, $3, $4, $5, $6)`,
-        [order_id, item.product_id, item.quantity, item.price, item.total, item.size]
+        [order_id, item.product_id, item.quantity, item.price, item.total, item.selectedSize]
       );
 
       // Update product size-specific stock using the database function
       await client.query(
         'SELECT update_product_size_quantity($1, $2, $3)',
-        [item.product_id, item.size, -item.quantity]
+        [item.product_id, item.selectedSize, -item.quantity]
       );
     }
 
@@ -250,7 +273,17 @@ router.post('/', [
   } catch (error) {
     await client.query('ROLLBACK');
     console.error('Order creation error:', error);
-    res.status(500).json({ message: 'Server error creating order' });
+    console.error('Error details:', {
+      message: error.message,
+      code: error.code,
+      detail: error.detail,
+      context: error.context,
+      hint: error.hint
+    });
+    res.status(500).json({ 
+      message: 'Server error creating order',
+      debug: error.message 
+    });
   } finally {
     client.release();
   }

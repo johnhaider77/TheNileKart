@@ -109,6 +109,11 @@ const AccountPage: React.FC = () => {
     is_default: false
   });
 
+  // Scroll to top on page load
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
+
   useEffect(() => {
     if (activeTab === 'orders') {
       fetchOrders();
@@ -240,7 +245,7 @@ const AccountPage: React.FC = () => {
   const fetchAddresses = async () => {
     setLoading(true);
     try {
-      const response = await api.get('/api/auth/addresses');
+      const response = await api.get('/auth/addresses');
       if (response.data.success) {
         setAddresses(response.data.addresses || []);
       }
@@ -296,7 +301,7 @@ const AccountPage: React.FC = () => {
         }
       } else {
         // Create new address
-        const response = await api.post('/api/auth/addresses', newAddress);
+        const response = await api.post('/auth/addresses', newAddress);
         if (response.data.success) {
           fetchAddresses();
           setShowAddressForm(false);
@@ -370,7 +375,7 @@ const AccountPage: React.FC = () => {
       if (profileData.phone) updateData.phone = profileData.phone;
       if (profileData.password) updateData.password = profileData.password;
       
-      const response = await api.put('/api/auth/profile', updateData);
+      const response = await api.put('/auth/profile', updateData);
       if (response.data.success) {
         // Update the user context with new data if available
         window.location.reload(); // Refresh to get updated user data
@@ -431,7 +436,7 @@ const AccountPage: React.FC = () => {
     }
 
     try {
-      const response = await api.patch('/api/auth/change-password', {
+      const response = await api.patch('/auth/change-password', {
         currentPassword: passwordData.currentPassword,
         newPassword: passwordData.newPassword
       });

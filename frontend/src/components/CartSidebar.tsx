@@ -88,7 +88,7 @@ const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose }) => {
                       {item.selectedSize && item.selectedSize !== 'One Size' && (
                         <p className="cart-item-size">Size: {item.selectedSize}</p>
                       )}
-                      <p className="cart-item-price">{getItemPrice(item).toFixed(2)}</p>
+                      <p className="cart-item-price">AED {getItemPrice(item).toFixed(2)}</p>
                       <div className="cart-item-quantity">
                         <button 
                           className="quantity-btn"
@@ -106,7 +106,7 @@ const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose }) => {
                       </div>
                     </div>
                     <div className="cart-item-total">
-                      {(getItemPrice(item) * item.quantity).toFixed(2)}
+                      AED {(getItemPrice(item) * item.quantity).toFixed(2)}
                     </div>
                     <button 
                       className="remove-item-btn"
@@ -121,7 +121,7 @@ const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose }) => {
 
               <div className="cart-sidebar-footer">
                 <div className="cart-total">
-                  <strong>Total: {getTotalAmount().toFixed(2)}</strong>
+                  <strong>Total: AED {getTotalAmount().toFixed(2)}</strong>
                 </div>
                 
                 {!isAuthenticated && (

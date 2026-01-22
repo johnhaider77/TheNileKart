@@ -71,6 +71,11 @@ const CheckoutPage: React.FC = () => {
     setToasts(prev => prev.filter(toast => toast.id !== id));
   };
 
+  // Scroll to top when page loads or step changes
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [step]);
+
   // Handle payment return from Ziina (success/failure/cancel)
   useEffect(() => {
     const paymentStatus = searchParams.get('payment_status');
@@ -78,6 +83,8 @@ const CheckoutPage: React.FC = () => {
 
     if (paymentStatus === 'success') {
       addToast('Payment successful! Processing your order...', 'success');
+      // Clear the cart since the order has been created
+      clearCart();
       // Navigate to thank you page after a short delay
       setTimeout(() => {
         navigate('/thank-you', { 
@@ -144,7 +151,7 @@ const CheckoutPage: React.FC = () => {
 
   const fetchSavedAddresses = async () => {
     try {
-      const response = await api.get('/api/auth/addresses');
+      const response = await api.get('/auth/addresses');
       if (response.data.success) {
         const shippingAddresses = response.data.addresses.filter((addr: SavedAddress) => addr.type === 'shipping');
         setSavedAddresses(shippingAddresses);
@@ -613,7 +620,8 @@ const CheckoutPage: React.FC = () => {
           {/* Shipping Address Step */}
           {step === 'address' && (
             <div className="checkout-step">
-              <h3>Shipping Address</h3>
+              <div className="address-form-wrapper">
+                <h3>Shipping Address</h3>
               
               {/* Saved Addresses Section */}
               {savedAddresses.length > 0 && (
@@ -773,6 +781,7 @@ const CheckoutPage: React.FC = () => {
                   </div>
                 </div>
               </form>
+              </div>
               
               <div className="step-actions">
                 <button 
@@ -810,7 +819,8 @@ const CheckoutPage: React.FC = () => {
           {/* Payment Step */}
           {step === 'payment' && (
             <div className="checkout-step">
-              {/* Payment Summary Header */}
+              <div className="payment-wrapper">
+                {/* Payment Summary Header */}
               <div className="payment-summary-header">
                 <h3>Complete Your Order</h3>
                 <div className="order-summary-card">
@@ -820,7 +830,7 @@ const CheckoutPage: React.FC = () => {
                   </div>
                   <div className="summary-row">
                     <span className="summary-label">Order Total:</span>
-                    <span className="summary-value">${getTotalAmount().toFixed(2)} AED</span>
+                    <span className="summary-value">AED {getTotalAmount().toFixed(2)}</span>
                   </div>
                 </div>
               </div>
@@ -899,6 +909,7 @@ const CheckoutPage: React.FC = () => {
                 codDetails={codDetails}
                 onBackToCart={handleBackToCart}
               />
+              </div>
               
               <div className="step-actions">
                 <button 

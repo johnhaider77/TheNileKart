@@ -688,25 +688,23 @@ const UpdateInventory: React.FC = () => {
         }
       });
       
-      // Handle price field - ensure it meets minimum validation requirement
-      // For products with size-specific pricing, use minimum size price
-      if (editingProduct.sizes && editingProduct.sizes.length > 0) {
-        const validPrices = editingProduct.sizes
-          .map(size => size.price || 0)
-          .filter(price => price > 0);
-        const minPrice = validPrices.length > 0 ? Math.min(...validPrices) : 0.01;
-        formData.append('price', minPrice.toString());
-      } else {
-        // For products without size-specific pricing, use the original product price
-        // or fallback to minimum required price
-        const productPrice = (editingProduct as any).price;
-        if (productPrice && productPrice > 0) {
-          formData.append('price', String(productPrice));
-        } else {
-          // Fallback to minimum required price
-          formData.append('price', '0.01');
-        }
+      // Handle price field - use the main product price (not size-specific prices)
+      // The backend will use size-specific market_price and actual_buy_price for transactions
+      let priceToSend = (editingProduct as any).price;
+      
+      // Ensure we have a valid price
+      if (!priceToSend || priceToSend <= 0) {
+        // Fallback: try to get from editFormData
+        priceToSend = (editFormData as any).price;
       }
+      
+      // Final validation - must be a positive number
+      if (!priceToSend || priceToSend <= 0) {
+        // If no price available, throw error instead of using fallback
+        throw new Error('Product price must be greater than 0. Please check your product data.');
+      }
+      
+      formData.append('price', String(parseFloat(priceToSend).toFixed(2)));
       
       // Add new images with alt text
       editImages.forEach((image, index) => {

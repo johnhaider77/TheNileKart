@@ -125,3 +125,4 @@ setup-domain-ssl-complete.sh
 setup-domain-ssl.sh
 start-frontend-3000.sh
 test-db-ec2.sh
+backend/.env.production

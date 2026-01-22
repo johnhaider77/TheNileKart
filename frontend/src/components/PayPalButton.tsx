@@ -1066,13 +1066,13 @@ const PayPalButton: React.FC<PayPalButtonProps> = ({
         <div style={{
           padding: '16px',
           textAlign: 'center',
-          background: '#e3f2fd',
+          background: 'var(--bg-secondary, #e3f2fd)',
           borderRadius: '8px',
-          color: '#1565c0',
+          color: 'var(--text-primary, #1565c0)',
           fontSize: '0.95rem'
         }}>
           <div style={{ marginBottom: '8px' }}>Loading secure payment form...</div>
-          <div style={{ fontSize: '0.85rem', color: '#0d47a1' }}>Please wait while we prepare your card form</div>
+          <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary, #0d47a1)' }}>Please wait while we prepare your card form</div>
         </div>
       )}
 
@@ -1080,10 +1080,10 @@ const PayPalButton: React.FC<PayPalButtonProps> = ({
         <div style={{ 
           padding: '12px', 
           textAlign: 'center', 
-          background: '#ffebee', 
+          background: 'var(--bg-error, #ffebee)',
           borderRadius: '8px',
-          color: '#c62828',
-          border: '1px solid #ffcdd2',
+          color: 'var(--text-error, #c62828)',
+          border: '1px solid var(--border-error, #ffcdd2)',
           marginBottom: '12px'
         }}>
           <div style={{ marginBottom: '8px' }}>
@@ -1104,8 +1104,8 @@ const PayPalButton: React.FC<PayPalButtonProps> = ({
             style={{
               marginTop: '8px',
               padding: '6px 12px',
-              background: '#1976d2',
-              color: 'white',
+              background: 'var(--btn-primary, #1976d2)',
+              color: 'var(--text-button, #ffffff)',
               border: 'none',
               borderRadius: '4px',
               cursor: 'pointer',
@@ -1120,20 +1120,21 @@ const PayPalButton: React.FC<PayPalButtonProps> = ({
       {/* Card Payment Form - Always visible when not loading */}
       {!isLoading && !loadError && (
         <div style={{
-          border: '2px solid #0070f3',
+          border: '2px solid var(--border-primary, #0070f3)',
           borderRadius: '12px',
           padding: '20px',
-          background: 'linear-gradient(135deg, #f8fffe 0%, #f0f9ff 100%)'
+          background: 'var(--bg-form, #ffffff)',
+          color: 'var(--text-primary, #1a1a1a)'
         }}>
           <div ref={cardFormRef}>
             {cardFormError ? (
               <div>
                 <div style={{
                   padding: '12px',
-                  background: '#ffebee',
-                  border: '1px solid #ffcdd2',
+                  background: 'var(--bg-error, #ffebee)',
+                  border: '1px solid var(--border-error, #ffcdd2)',
                   borderRadius: '6px',
-                  color: '#c62828',
+                  color: 'var(--text-error, #c62828)',
                   marginBottom: '12px',
                   fontSize: '0.9rem'
                 }}>
@@ -1148,7 +1149,7 @@ const PayPalButton: React.FC<PayPalButtonProps> = ({
                     display: 'block', 
                     marginBottom: '6px', 
                     fontWeight: '600', 
-                    color: '#333',
+                    color: 'var(--text-primary, #1a1a1a)',
                     fontSize: '0.9rem'
                   }}>
                     Card Number *
@@ -1157,10 +1158,11 @@ const PayPalButton: React.FC<PayPalButtonProps> = ({
                     id="card-number" 
                     style={{
                       height: '44px',
-                      border: '1px solid #ddd',
+                      border: '1px solid var(--border-input, #cccccc)',
                       borderRadius: '6px',
                       padding: '10px',
-                      background: 'white'
+                      background: 'var(--bg-input, #ffffff)',
+                      color: 'var(--text-input, #1a1a1a)'
                     }}
                   />
                 </div>
@@ -1171,7 +1173,7 @@ const PayPalButton: React.FC<PayPalButtonProps> = ({
                       display: 'block', 
                       marginBottom: '6px', 
                       fontWeight: '600', 
-                      color: '#333',
+                      color: 'var(--text-primary, #1a1a1a)',
                       fontSize: '0.9rem'
                     }}>
                       Expiration Date *
@@ -1180,10 +1182,11 @@ const PayPalButton: React.FC<PayPalButtonProps> = ({
                       id="expiration-date"
                       style={{
                         height: '44px',
-                        border: '1px solid #ddd',
+                        border: '1px solid var(--border-input, #cccccc)',
                         borderRadius: '6px',
                         padding: '10px',
-                        background: 'white'
+                        background: 'var(--bg-input, #ffffff)',
+                        color: 'var(--text-input, #1a1a1a)'
                       }}
                     />
                   </div>
@@ -1193,7 +1196,7 @@ const PayPalButton: React.FC<PayPalButtonProps> = ({
                       display: 'block', 
                       marginBottom: '6px', 
                       fontWeight: '600', 
-                      color: '#333',
+                      color: 'var(--text-primary, #1a1a1a)',
                       fontSize: '0.9rem'
                     }}>
                       Security Code *
@@ -1202,10 +1205,11 @@ const PayPalButton: React.FC<PayPalButtonProps> = ({
                       id="cvv"
                       style={{
                         height: '44px',
-                        border: '1px solid #ddd',
+                        border: '1px solid var(--border-input, #cccccc)',
                         borderRadius: '6px',
                         padding: '10px',
-                        background: 'white'
+                        background: 'var(--bg-input, #ffffff)',
+                        color: 'var(--text-input, #1a1a1a)'
                       }}
                     />
                   </div>
@@ -1223,7 +1227,9 @@ const PayPalButton: React.FC<PayPalButtonProps> = ({
                         const { nonce } = await hostedFieldsInstance.current.request();
                         
                         // Submit payment
-                        const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://www.thenilekart.com'}/paypal/process-card`, {
+                        const apiUrl = process.env.REACT_APP_API_URL || '/api';
+                        const baseUrl = apiUrl === '/api' ? '' : apiUrl;
+                        const response = await fetch(`${baseUrl}/api/paypal/process-card`, {
                           method: 'POST',
                           headers: {
                             'Content-Type': 'application/json',
@@ -1261,8 +1267,8 @@ const PayPalButton: React.FC<PayPalButtonProps> = ({
                     style={{
                       width: '100%',
                       padding: '14px',
-                      background: '#28a745',
-                      color: 'white',
+                      background: 'var(--btn-success, #28a745)',
+                      color: 'var(--text-button, #ffffff)',
                       border: 'none',
                       borderRadius: '8px',
                       fontSize: '1rem',
@@ -1270,8 +1276,8 @@ const PayPalButton: React.FC<PayPalButtonProps> = ({
                       cursor: 'pointer',
                       transition: 'background 0.2s ease'
                     }}
-                    onMouseOver={(e) => { (e.target as HTMLButtonElement).style.background = '#218838'; }}
-                    onMouseOut={(e) => { (e.target as HTMLButtonElement).style.background = '#28a745'; }}
+                    onMouseOver={(e) => { (e.target as HTMLButtonElement).style.background = 'var(--btn-success-hover, #218838)'; }}
+                    onMouseOut={(e) => { (e.target as HTMLButtonElement).style.background = 'var(--btn-success, #28a745)'; }}
                   >
                     Complete Payment
                   </button>
@@ -1281,9 +1287,9 @@ const PayPalButton: React.FC<PayPalButtonProps> = ({
                   <div style={{
                     padding: '12px',
                     textAlign: 'center',
-                    background: '#fff3cd',
+                    background: 'var(--bg-warning, #fff3cd)',
                     borderRadius: '6px',
-                    color: '#856404',
+                    color: 'var(--text-warning, #856404)',
                     fontSize: '0.9rem'
                   }}>
                     Setting up secure card form...
@@ -1294,6 +1300,52 @@ const PayPalButton: React.FC<PayPalButtonProps> = ({
           </div>
         </div>
       )}
+
+      <style>{`
+        :root {
+          --bg-primary: #ffffff;
+          --bg-secondary: #e3f2fd;
+          --bg-form: #ffffff;
+          --bg-input: #ffffff;
+          --bg-error: #ffebee;
+          --bg-warning: #fff3cd;
+          --text-primary: #1a1a1a;
+          --text-secondary: #0d47a1;
+          --text-input: #1a1a1a;
+          --text-button: #ffffff;
+          --text-error: #c62828;
+          --text-warning: #856404;
+          --border-primary: #0070f3;
+          --border-input: #cccccc;
+          --border-error: #ffcdd2;
+          --btn-primary: #1976d2;
+          --btn-success: #28a745;
+          --btn-success-hover: #218838;
+        }
+
+        @media (prefers-color-scheme: dark) {
+          :root {
+            --bg-primary: #1e1e1e;
+            --bg-secondary: #1a3a52;
+            --bg-form: #2d2d2d;
+            --bg-input: #3d3d3d;
+            --bg-error: #4a2c2c;
+            --bg-warning: #4a3f2c;
+            --text-primary: #e8e8e8;
+            --text-secondary: #64b5f6;
+            --text-input: #e8e8e8;
+            --text-button: #ffffff;
+            --text-error: #ff8a8a;
+            --text-warning: #ffd54f;
+            --border-primary: #64b5f6;
+            --border-input: #555555;
+            --border-error: #8a5252;
+            --btn-primary: #42a5f5;
+            --btn-success: #4caf50;
+            --btn-success-hover: #45a049;
+          }
+        }
+      `}</style>
     </div>
   );
 };

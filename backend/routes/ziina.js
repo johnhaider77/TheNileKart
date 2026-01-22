@@ -51,9 +51,9 @@ router.post('/payment-intent', authenticateToken, async (req, res) => {
 
     // Prepare URLs with proper encoding
     const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-    const successUrl = encodeURI(`${baseUrl}/payment-success?orderId=${orderId}`);
-    const cancelUrl = encodeURI(`${baseUrl}/payment-cancel?orderId=${orderId}`);
-    const failureUrl = encodeURI(`${baseUrl}/payment-failure?orderId=${orderId}`);
+    const successUrl = encodeURI(`${baseUrl}/checkout?payment_status=success&orderId=${orderId}`);
+    const cancelUrl = encodeURI(`${baseUrl}/checkout?payment_status=cancelled&orderId=${orderId}`);
+    const failureUrl = encodeURI(`${baseUrl}/checkout?payment_status=failure&orderId=${orderId}`);
 
     console.log('Payment URLs:', {
       successUrl,

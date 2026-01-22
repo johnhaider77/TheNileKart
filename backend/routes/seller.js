@@ -14,12 +14,9 @@ router.post('/products', [
     { name: 'images', maxCount: 10 },
     { name: 'videos', maxCount: 2 }
   ]),
-  body('name').trim().isLength({ min: 2 }),
-  body('description').trim().isLength({ min: 10 }),
-  body('price').custom((value) => {
-    if (value === undefined || value === null || value === '') {
-      throw new Error('Price is required');
-    }
+  body('name').trim().notEmpty().withMessage('Product name is required').isLength({ min: 2 }).withMessage('Product name must be at least 2 characters'),
+  body('description').trim().notEmpty().withMessage('Description is required').isLength({ min: 10 }).withMessage('Description must be at least 10 characters'),
+  body('price').notEmpty().withMessage('Price is required').custom((value) => {
     const numValue = parseFloat(value);
     if (isNaN(numValue)) {
       throw new Error('Price must be a valid number');
@@ -29,7 +26,7 @@ router.post('/products', [
     }
     return true;
   }),
-  body('actual_buy_price').optional().custom((value) => {
+  body('actual_buy_price').optional({ checkFalsy: true }).custom((value) => {
     if (value === undefined || value === null || value === '') {
       return true; // Optional field, skip validation if empty
     }
@@ -42,11 +39,8 @@ router.post('/products', [
     }
     return true;
   }),
-  body('category').trim().isLength({ min: 2 }),
-  body('stock_quantity').custom((value) => {
-    if (value === undefined || value === null || value === '') {
-      throw new Error('Stock quantity is required');
-    }
+  body('category').trim().notEmpty().withMessage('Category is required').isLength({ min: 2 }).withMessage('Category must be at least 2 characters'),
+  body('stock_quantity').notEmpty().withMessage('Stock quantity is required').custom((value) => {
     const numValue = parseInt(value, 10);
     if (isNaN(numValue)) {
       throw new Error('Stock quantity must be a valid integer');
@@ -56,7 +50,7 @@ router.post('/products', [
     }
     return true;
   }),
-  body('sizes').optional().custom((value) => {
+  body('sizes').optional({ checkFalsy: true }).custom((value) => {
     if (!value) return true; // Optional field
     try {
       const parsed = typeof value === 'string' ? JSON.parse(value) : value;
@@ -68,9 +62,9 @@ router.post('/products', [
       throw new Error('Invalid sizes format');
     }
   }),
-  body('product_id').optional().trim(),
-  body('other_details').optional().trim(),
-  body('cod_eligible').optional().custom((value) => {
+  body('product_id').optional({ checkFalsy: true }).trim(),
+  body('other_details').optional({ checkFalsy: true }).trim(),
+  body('cod_eligible').optional({ checkFalsy: true }).custom((value) => {
     if (value === undefined || value === null || value === '') {
       return true; // Optional field, skip validation if empty
     }

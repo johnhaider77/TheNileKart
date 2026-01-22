@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import api from '../services/api';
 
@@ -17,6 +17,11 @@ const ForgotPassword: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+
+  // Scroll to top on page load
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
 
   // Format phone number for display (UAE format)
   const formatPhoneDisplay = (phone: string) => {
@@ -46,14 +51,14 @@ const ForgotPassword: React.FC = () => {
     try {
       let response;
       if (resetMethod === 'email') {
-        response = await api.post('/api/auth/forgot-password', { email });
+        response = await api.post('/auth/forgot-password', { email });
       } else {
         if (!isValidUAEPhone(phone)) {
           setError('Please enter a valid UAE phone number (e.g., +971501234567 or 0501234567)');
           setLoading(false);
           return;
         }
-        response = await api.post('/api/auth/forgot-password-mobile', { phone });
+        response = await api.post('/auth/forgot-password-mobile', { phone });
       }
       
       if (response.data.success) {
@@ -77,7 +82,7 @@ const ForgotPassword: React.FC = () => {
     setError(null);
 
     try {
-      const response = await api.post('/api/auth/verify-reset-code', { 
+      const response = await api.post('/auth/verify-reset-code', { 
         email: resetMethod === 'email' ? email : undefined,
         phone: resetMethod === 'phone' ? phone : undefined,
         code,
@@ -112,7 +117,7 @@ const ForgotPassword: React.FC = () => {
     }
 
     try {
-      const response = await api.post('/api/auth/reset-password', {
+      const response = await api.post('/auth/reset-password', {
         email: resetMethod === 'email' ? email : undefined,
         phone: resetMethod === 'phone' ? phone : undefined,
         code,
@@ -139,9 +144,9 @@ const ForgotPassword: React.FC = () => {
     try {
       let response;
       if (resetMethod === 'email') {
-        response = await api.post('/api/auth/forgot-password', { email });
+        response = await api.post('/auth/forgot-password', { email });
       } else {
-        response = await api.post('/api/auth/forgot-password-mobile', { phone });
+        response = await api.post('/auth/forgot-password-mobile', { phone });
       }
       
       if (response.data.success) {

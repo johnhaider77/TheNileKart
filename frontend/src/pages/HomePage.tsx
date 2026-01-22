@@ -131,65 +131,80 @@ const truncateProductName = (name: string, maxLength: number = 18): string => {
 
 // Footer Component for E-commerce
 const Footer: React.FC = () => {
+  const [activeModal, setActiveModal] = React.useState<string | null>(null);
+
+  const modals = {
+    about: {
+      title: "About",
+      content: "Welcome to TheNileKart — where everyday shopping meets extraordinary convenience. Founded by visionary entrepreneurs, TheNileKart was created with one powerful idea: to bring a world of quality products to your fingertips, all in one seamless destination.\n\nBased in the vibrant city of Dubai and officially registered in Sharjah, we proudly serve customers across the UAE, delivering fast, reliable, and hassle-free shopping experiences right to your doorstep. From fashion and electronics to home essentials, beauty, lifestyle, and beyond, TheNileKart deals in all kinds of product categories, carefully curated to match your needs, tastes, and budget.\n\nWe believe shopping should be exciting, simple, and trustworthy. That's why we focus on quality, competitive pricing, secure payments, and customer-first service. Every product we offer is chosen with care, and every order is handled with precision.\n\nAt TheNileKart, we're not just building an e-commerce platform — we're building a community of smart shoppers who value choice, convenience, and confidence.\n\nTheNileKart — Your World. Your Cart. Your Way."
+    },
+    contact: {
+      title: "Contact",
+      content: "Email: customer-service@thenilekart.com\nInstagram: @thenilekart\nTikTok: @the.nile.kart"
+    },
+    faq: {
+      title: "FAQ",
+      content: "Q: What payment methods do you accept?\nA: We accept PayPal, Credit/Debit cards, and Cash on Delivery.\n\nQ: How long does shipping take?\nA: Standard delivery: 3-5 business days. Express: 1-2 business days.\n\nQ: What is your return policy?\nA: 30-day hassle-free returns on most items. Original condition required.\n\nQ: Do you offer cash on delivery?\nA: Yes! COD is available for most areas in the UAE.\n\nQ: How can I track my order?\nA: You'll receive a tracking link via email once your order ships.\n\nQ: Is my personal information secure?\nA: Yes! We use industry-standard encryption to protect your data."
+    },
+    support: {
+      title: "Support",
+      content: "Reach out with your queries, suggestions and complaints at:\n\nEmail: customer-service@thenilekart.com\nInstagram: @thenilekart"
+    }
+  };
+
   return (
-    <footer className="site-footer">
-      <div className="container">
-        <div className="footer-content">
-          <div className="footer-section">
-            <div className="footer-logo">
-              <img src="/TheNileKart.jpeg" alt="TheNileKart" className="footer-logo-img" />
-              <h3>TheNileKart</h3>
+    <>
+      <footer className="site-footer">
+        <div className="container">
+          <div className="footer-content">
+            <div className="footer-section">
+              <div className="footer-logo">
+                <img src="/TheNileKart.jpeg" alt="TheNileKart" className="footer-logo-img" />
+                <h3>TheNileKart</h3>
+              </div>
+              <p>Your trusted marketplace for quality products from around the world.</p>
+              <div className="social-links">
+                <a href="mailto:customer-service@thenilekart.com" title="Email Us" className="social-icon">📧</a>
+                <a href="tel:+971505523717" title="Call Us" className="social-icon">📱</a>
+                <a href="https://www.instagram.com/thenilekart/" target="_blank" rel="noopener noreferrer" title="Instagram" className="social-icon">🐦</a>
+              </div>
             </div>
-            <p>Your trusted marketplace for quality products from around the world.</p>
-            <div className="social-links">
-              <span>📧</span>
-              <span>📱</span>
-              <span>🐦</span>
-              <span>📘</span>
+            
+            <div className="footer-section">
+              <h4>Quick Links</h4>
+              <div className="quick-links-modal">
+                <button className="link-button" onClick={() => setActiveModal('about')}>About</button>
+                <button className="link-button" onClick={() => setActiveModal('contact')}>Contact</button>
+                <button className="link-button" onClick={() => setActiveModal('faq')}>FAQ</button>
+                <button className="link-button" onClick={() => setActiveModal('support')}>Support</button>
+              </div>
             </div>
           </div>
           
-          <div className="footer-section">
-            <h4>Quick Links</h4>
-            <ul>
-              <li>About Us</li>
-              <li>Contact</li>
-              <li>FAQ</li>
-              <li>Support</li>
-            </ul>
-          </div>
-          
-          <div className="footer-section">
-            <h4>Categories</h4>
-            <ul>
-              <li>Mobiles & Tablets</li>
-              <li>Electronics</li>
-              <li>Fashion</li>
-              <li>Home & Kitchen</li>
-            </ul>
-          </div>
-          
-          <div className="footer-section">
-            <h4>Customer Service</h4>
-            <ul>
-              <li>Shipping Info</li>
-              <li>Returns</li>
-              <li>Order Tracking</li>
-              <li>Size Guide</li>
-            </ul>
+          <div className="footer-bottom">
+            <p>&copy; 2025 TheNileKart. All rights reserved.</p>
+            <div className="footer-links">
+              <span>Privacy Policy</span>
+              <span>Terms of Service</span>
+              <span>Cookies</span>
+            </div>
           </div>
         </div>
-        
-        <div className="footer-bottom">
-          <p>&copy; 2025 TheNileKart. All rights reserved.</p>
-          <div className="footer-links">
-            <span>Privacy Policy</span>
-            <span>Terms of Service</span>
-            <span>Cookies</span>
+      </footer>
+
+      {/* Modal Overlay */}
+      {activeModal && (
+        <div className="modal-overlay" onClick={() => setActiveModal(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => setActiveModal(null)}>✕</button>
+            <h2>{modals[activeModal as keyof typeof modals].title}</h2>
+            <p style={{ whiteSpace: 'pre-line' }}>
+              {modals[activeModal as keyof typeof modals].content}
+            </p>
           </div>
         </div>
-      </div>
-    </footer>
+      )}
+    </>
   );
 };
 
@@ -217,7 +232,7 @@ const HomePage: React.FC = () => {
   const [allProducts, setAllProducts] = useState<Product[]>([]);
   const [allProductsPage, setAllProductsPage] = useState(1);
   const [allProductsHasMore, setAllProductsHasMore] = useState(true);
-  const [allProductsLoading, setAllProductsLoading] = useState(false);
+  const [allProductsLoading, setAllProductsLoading] = useState(true);
 
   // Search functionality state
   const [isSearchActive, setIsSearchActive] = useState(false);
@@ -228,6 +243,11 @@ const HomePage: React.FC = () => {
   // Refs for search functionality
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // Scroll to top on page load
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => {
@@ -367,13 +387,13 @@ const HomePage: React.FC = () => {
       setLoading(true);
       
       // Fetch banners
-      const bannersResponse = await api.get('/api/banners');
+      const bannersResponse = await api.get('/banners');
       setBanners(bannersResponse.data.banners || []);
 
       // Fetch preferred products for logged-in users
       if (user) {
         try {
-          const preferredResponse = await api.get('/api/products/preferred');
+          const preferredResponse = await api.get('/products/preferred');
           setPreferredProducts(preferredResponse.data.products?.slice(0, 10) || []);
         } catch (error) {
           console.warn('Could not fetch preferred products:', error);
@@ -389,7 +409,7 @@ const HomePage: React.FC = () => {
 
       // Fetch trending products
       try {
-        const trendingResponse = await api.get('/api/products/trending');
+        const trendingResponse = await api.get('/products/trending');
         setTrendingProducts(trendingResponse.data.products || []);
       } catch (error) {
         console.warn('Could not fetch trending products:', error);
@@ -407,14 +427,20 @@ const HomePage: React.FC = () => {
 
   const fetchAllProducts = async (pageNum: number = 1) => {
     try {
+      // Always set loading state for first page
       if (pageNum === 1) {
         setAllProductsLoading(true);
+      } else {
+        setAllProductsLoading(true); // Also set during pagination
       }
 
       const limit = pageNum === 1 ? 10 : 4; // 10 for initial load, 4 for subsequent loads
       const params: any = { limit, page: pageNum };
 
+      console.log('Fetching all products with params:', params);
       const response = await productsAPI.getProducts(params);
+      
+      console.log('Products API response:', response);
       
       if (pageNum === 1) {
         setAllProducts(response.data.products || []);
@@ -425,10 +451,15 @@ const HomePage: React.FC = () => {
       // Check if there are more products to load
       const totalProducts = response.data.pagination?.totalProducts || 0;
       const hasMore = response.data.pagination?.hasNextPage || false;
+      console.log('Total products:', totalProducts, 'Has more:', hasMore);
       setAllProductsHasMore(hasMore);
       setAllProductsPage(pageNum);
     } catch (error) {
       console.error('Error fetching all products:', error);
+      // Ensure we show an empty state rather than the loading state
+      if (pageNum === 1) {
+        setAllProducts([]);
+      }
     } finally {
       setAllProductsLoading(false);
     }
@@ -1145,7 +1176,24 @@ const HomePage: React.FC = () => {
             </>
           ) : (
             <div style={{ textAlign: 'center', padding: '2rem' }}>
-              <p style={{ color: '#6b7280' }}>Loading products...</p>
+              {allProductsLoading ? (
+                <div>
+                  <div style={{ marginBottom: '12px' }}>
+                    <div style={{
+                      width: '40px',
+                      height: '40px',
+                      border: '3px solid #e5e7eb',
+                      borderTop: '3px solid #3b82f6',
+                      borderRadius: '50%',
+                      animation: 'spin 1s linear infinite',
+                      margin: '0 auto'
+                    }}></div>
+                  </div>
+                  <p style={{ color: '#6b7280' }}>Loading all products...</p>
+                </div>
+              ) : (
+                <p style={{ color: '#6b7280' }}>No products available at the moment</p>
+              )}
             </div>
           )}
         </section>

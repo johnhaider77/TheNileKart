@@ -15,11 +15,21 @@
   }
 }
 
+@keyframes zoomToCart {
+  0% {
+    transform: translateX(-50%) translateY(-50%) scale(1);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(calc(-50% + 35vw)) translateY(calc(-50% - 45vh)) scale(0.05);
+    opacity: 0;
+  }
+}
+
 .add-to-cart-notification {
   position: fixed;
   top: 50%;
   left: 50%;
-  transform: translateX(-50%) translateY(-50%);
   z-index: 9999;
   pointer-events: none;
 }
@@ -36,7 +46,7 @@
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
   font-weight: 600;
   font-size: 16px;
-  animation: zoomInOut 1s ease-in-out forwards;
+  animation: zoomToCart 2s cubic-bezier(0.4, 0, 0.2, 1) forwards;
   min-width: 200px;
   text-align: center;
 }
