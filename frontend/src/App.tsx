@@ -141,29 +141,17 @@ function AppRoutes() {
 
           <Route
             path="/payment-success"
-            element={
-              <ProtectedRoute requireCustomer>
-                <PaymentSuccessPage />
-              </ProtectedRoute>
-            }
+            element={<PaymentSuccessPage />}
           />
 
           <Route
             path="/payment-cancel"
-            element={
-              <ProtectedRoute requireCustomer>
-                <PaymentCancelPage />
-              </ProtectedRoute>
-            }
+            element={<PaymentCancelPage />}
           />
 
           <Route
             path="/payment-failure"
-            element={
-              <ProtectedRoute requireCustomer>
-                <PaymentFailurePage />
-              </ProtectedRoute>
-            }
+            element={<PaymentFailurePage />}
           />
 
           {/* Seller routes - Block customers from accessing */}
