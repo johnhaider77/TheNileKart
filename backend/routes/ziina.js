@@ -22,7 +22,7 @@ const {
 router.post('/payment-intent', authenticateToken, async (req, res) => {
   try {
     const { amount, orderId, items, shippingAddress } = req.body;
-    const userId = req.user.id;
+    const userId = req.userId;
 
     console.log('Creating payment intent:', {
       amount,
@@ -51,9 +51,9 @@ router.post('/payment-intent', authenticateToken, async (req, res) => {
 
     // Prepare URLs with proper encoding
     const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
-    const successUrl = encodeURI(`${baseUrl}/payment-success?orderId=${orderId}`);
-    const cancelUrl = encodeURI(`${baseUrl}/payment-cancel?orderId=${orderId}`);
-    const failureUrl = encodeURI(`${baseUrl}/payment-failure?orderId=${orderId}`);
+    const successUrl = encodeURI(`${baseUrl}/checkout?payment_status=success&orderId=${orderId}`);
+    const cancelUrl = encodeURI(`${baseUrl}/checkout?payment_status=cancelled&orderId=${orderId}`);
+    const failureUrl = encodeURI(`${baseUrl}/checkout?payment_status=failure&orderId=${orderId}`);
 
     console.log('Payment URLs:', {
       successUrl,
@@ -65,22 +65,17 @@ router.post('/payment-intent', authenticateToken, async (req, res) => {
     const itemCount = items ? items.length : 0;
     const message = `TheNileKart - ${itemCount} item${itemCount !== 1 ? 's' : ''}`;
 
-    // Determine if we're in production mode
-    const isProduction = process.env.NODE_ENV === 'production';
-    const testMode = !isProduction; // Only test mode in development
-
-    console.log('💳 Creating Ziina payment intent:', {
+    console.log('Calling Ziina createPaymentIntent with:', {
       amountInFils,
       currency: 'AED',
       message,
       successUrl: successUrl.substring(0, 50) + '...',
       cancelUrl: cancelUrl.substring(0, 50) + '...',
       failureUrl: failureUrl.substring(0, 50) + '...',
-      mode: testMode ? 'TEST' : 'PRODUCTION',
-      environment: process.env.NODE_ENV
+      test: true
     });
 
-    // Create payment intent (production mode in production, test mode in development)
+    // Create payment intent
     const paymentIntent = await createPaymentIntent(
       amountInFils,
       'AED',
@@ -88,7 +83,7 @@ router.post('/payment-intent', authenticateToken, async (req, res) => {
       successUrl,
       cancelUrl,
       failureUrl,
-      testMode // Use test mode only in development
+      true // Always use test mode for now
     );
 
     console.log('✅ Payment intent created successfully from Ziina:', {
@@ -168,7 +163,7 @@ router.get('/payment-intent/:paymentIntentId', authenticateToken, async (req, re
   try {
     const { paymentIntentId } = req.params;
     const { orderId } = req.query;
-    const userId = req.user.id;
+    const userId = req.userId;
 
     console.log('Checking payment intent status:', {
       paymentIntentId,
@@ -179,15 +174,6 @@ router.get('/payment-intent/:paymentIntentId', authenticateToken, async (req, re
     // Get payment intent from Ziina
     const paymentIntent = await getPaymentIntent(paymentIntentId);
 
-    console.log('📊 Payment intent details from Ziina:', {
-      id: paymentIntent.id,
-      status: paymentIntent.status,
-      amount: paymentIntent.amount,
-      created: paymentIntent.created,
-      paid: paymentIntent.paid,
-      operations: paymentIntent.operations?.length || 0
-    });
-
     // Update payment status in database
     await db.query(
       `UPDATE payments 
@@ -197,80 +183,21 @@ router.get('/payment-intent/:paymentIntentId', authenticateToken, async (req, re
     );
 
     // Check if payment is successful
-    // Note: In Ziina, paid can be true/false, and status can be 'completed', 'succeeded', or 'paid'
-    const isPaymentSuccessful = paymentIntent.status === 'completed' || 
-                                paymentIntent.status === 'succeeded' || 
-                                paymentIntent.status === 'paid' ||
-                                paymentIntent.paid === true;
-
-    console.log('💳 Payment success determination:', {
-      status: paymentIntent.status,
-      paid: paymentIntent.paid,
-      isSuccessful: isPaymentSuccessful
-    });
-
-    if (isPaymentSuccessful) {
-      // Get order details to decrement inventory
-      const orderResult = await db.query(
-        `SELECT id, customer_id FROM orders WHERE id = $1`,
-        [orderId]
+    if (paymentIntent.status === 'completed' || paymentIntent.status === 'succeeded') {
+      // Update order status to paid
+      await db.query(
+        `UPDATE orders 
+         SET payment_status = 'paid', status = 'confirmed'
+         WHERE id = $1 AND user_id = $2`,
+        [orderId, userId]
       );
 
-      if (orderResult.rows.length > 0) {
-        // Get all order items
-        const orderItems = await db.query(
-          `SELECT product_id, quantity, selected_size FROM order_items WHERE order_id = $1`,
-          [orderId]
-        );
-
-        // Decrement inventory for each item (using transaction to ensure consistency)
-        const client = await db.getClient();
-        try {
-          await client.query('BEGIN');
-
-          // Decrement inventory for all items
-          for (const item of orderItems.rows) {
-            console.log('Decrementing inventory for product:', {
-              product_id: item.product_id,
-              quantity: item.quantity,
-              size: item.selected_size
-            });
-
-            await client.query(
-              'SELECT update_product_size_quantity($1, $2, $3)',
-              [item.product_id, item.selected_size, -item.quantity]
-            );
-          }
-
-          // Update order status to paid
-          await client.query(
-            `UPDATE orders 
-             SET payment_status = 'paid', status = 'confirmed'
-             WHERE id = $1`,
-            [orderId]
-          );
-
-          await client.query('COMMIT');
-          console.log('✅ Payment verified and inventory decremented for order:', orderId);
-        } catch (error) {
-          await client.query('ROLLBACK');
-          console.error('Error decrementing inventory:', error);
-          throw error;
-        } finally {
-          client.release();
-        }
-      } else {
-        console.warn('Order not found for payment verification:', orderId);
-      }
-    } else {
-      console.log('⚠️ Payment not yet successful. Current status:', paymentIntent.status);
+      console.log('Order marked as paid:', orderId);
     }
 
     res.json({
-      success: isPaymentSuccessful,
       paymentIntentId,
       status: paymentIntent.status,
-      paid: paymentIntent.paid,
       amount: filsToAed(paymentIntent.amount),
       tipAmount: paymentIntent.tip_amount ? filsToAed(paymentIntent.tip_amount) : 0,
       feeAmount: paymentIntent.fee_amount ? filsToAed(paymentIntent.fee_amount) : 0,
@@ -296,7 +223,7 @@ router.get('/payment-intent/:paymentIntentId', authenticateToken, async (req, re
 router.post('/settlement', authenticateToken, async (req, res) => {
   try {
     const { operationId, sellerAccountId, amount } = req.body;
-    const adminUserId = req.user.id;
+    const adminUserId = req.userId;
 
     console.log('Creating settlement transfer:', {
       operationId,
@@ -369,7 +296,7 @@ router.post('/settlement', authenticateToken, async (req, res) => {
  */
 router.get('/account', authenticateToken, async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.userId;
 
     console.log('Fetching Ziina account information for user:', userId);
 

@@ -164,6 +164,7 @@ export const ordersAPI = {
       postal_code: string;
       phone: string;
     };
+    payment_method?: string;
   }) => api.post('/orders', orderData),
   
   calculateCOD: (items: any[]) => api.post('/orders/calculate-cod', { items }),

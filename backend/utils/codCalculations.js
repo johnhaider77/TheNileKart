@@ -10,11 +10,12 @@ const calculateCODFee = (orderValue) => {
     return 0; // Free COD for orders >= 100 AED
   }
   
-  const feeRate = 0.05; // 5% fee
+  const feeRate = 0.10; // 10% fee
   const maxFee = 10; // Maximum 10 AED
+  const minFee = 5; // Minimum 5 AED
   
   const calculatedFee = orderValue * feeRate;
-  return Math.min(calculatedFee, maxFee);
+  return Math.max(minFee, Math.min(calculatedFee, maxFee));
 };
 
 /**

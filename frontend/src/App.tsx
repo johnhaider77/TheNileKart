@@ -9,9 +9,6 @@ import ModernLogin from './pages/ModernLogin';
 import ModernProductListing from './pages/ModernProductListing';
 import CheckoutPage from './pages/CheckoutPage';
 import ThankYouPage from './pages/ThankYouPage';
-import PaymentSuccessPage from './pages/PaymentSuccessPage';
-import PaymentCancelPage from './pages/PaymentCancelPage';
-import PaymentFailurePage from './pages/PaymentFailurePage';
 import AccountPage from './pages/AccountPage';
 import ForgotPassword from './pages/ForgotPassword';
 import SellerLogin from './pages/SellerLogin';
@@ -37,8 +34,6 @@ import './App.css';
 function AppRoutes() {
   const { isAuthenticated, isSeller, isCustomer } = useAuth();
   const { showNotification, hideNotification } = useCart();
-  
-  console.log('🔵 AppRoutes rendered with auth state:', { isAuthenticated, isSeller, isCustomer });
 
   return (
     <div className="App">
@@ -46,22 +41,6 @@ function AppRoutes() {
       <AddToCartNotification isVisible={showNotification} onHide={hideNotification} />
       <main className="main-content">
         <Routes>
-          {/* Payment callback routes - Must come first to be matched before catch-all */}
-          <Route
-            path="/payment-success"
-            element={<PaymentSuccessPage />}
-          />
-
-          <Route
-            path="/payment-cancel"
-            element={<PaymentCancelPage />}
-          />
-
-          <Route
-            path="/payment-failure"
-            element={<PaymentFailurePage />}
-          />
-
           {/* Home page - Only for customers and guests. Sellers redirected to dashboard */}
           <Route 
             path="/" 

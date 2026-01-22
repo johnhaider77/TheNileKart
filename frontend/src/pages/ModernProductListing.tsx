@@ -133,65 +133,80 @@ const useResponsiveTruncation = (name: string) => {
 
 // Footer Component for E-commerce
 const Footer: React.FC = () => {
+  const [activeModal, setActiveModal] = React.useState<string | null>(null);
+
+  const modals = {
+    about: {
+      title: "About",
+      content: "Welcome to TheNileKart — where everyday shopping meets extraordinary convenience. Founded by visionary entrepreneurs, TheNileKart was created with one powerful idea: to bring a world of quality products to your fingertips, all in one seamless destination.\n\nBased in the vibrant city of Dubai and officially registered in Sharjah, we proudly serve customers across the UAE, delivering fast, reliable, and hassle-free shopping experiences right to your doorstep. From fashion and electronics to home essentials, beauty, lifestyle, and beyond, TheNileKart deals in all kinds of product categories, carefully curated to match your needs, tastes, and budget.\n\nWe believe shopping should be exciting, simple, and trustworthy. That's why we focus on quality, competitive pricing, secure payments, and customer-first service. Every product we offer is chosen with care, and every order is handled with precision.\n\nAt TheNileKart, we're not just building an e-commerce platform — we're building a community of smart shoppers who value choice, convenience, and confidence.\n\nTheNileKart — Your World. Your Cart. Your Way."
+    },
+    contact: {
+      title: "Contact",
+      content: "Email: customer-service@thenilekart.com\nInstagram: @thenilekart\nTikTok: @the.nile.kart"
+    },
+    faq: {
+      title: "FAQ",
+      content: "Q: What payment methods do you accept?\nA: We accept PayPal, Credit/Debit cards, and Cash on Delivery.\n\nQ: How long does shipping take?\nA: Standard delivery: 3-5 business days. Express: 1-2 business days.\n\nQ: What is your return policy?\nA: 30-day hassle-free returns on most items. Original condition required.\n\nQ: Do you offer cash on delivery?\nA: Yes! COD is available for most areas in the UAE.\n\nQ: How can I track my order?\nA: You'll receive a tracking link via email once your order ships.\n\nQ: Is my personal information secure?\nA: Yes! We use industry-standard encryption to protect your data."
+    },
+    support: {
+      title: "Support",
+      content: "Reach out with your queries, suggestions and complaints at:\n\nEmail: customer-service@thenilekart.com\nInstagram: @thenilekart"
+    }
+  };
+
   return (
-    <footer className="site-footer">
-      <div className="container">
-        <div className="footer-content">
-          <div className="footer-section">
-            <div className="footer-logo">
-              <img src="/TheNileKart.jpeg" alt="TheNileKart" className="footer-logo-img" />
-              <h3>TheNileKart</h3>
+    <>
+      <footer className="site-footer">
+        <div className="container">
+          <div className="footer-content">
+            <div className="footer-section">
+              <div className="footer-logo">
+                <img src="/TheNileKart.jpeg" alt="TheNileKart" className="footer-logo-img" />
+                <h3>TheNileKart</h3>
+              </div>
+              <p>Your trusted marketplace for quality products from around the world.</p>
+              <div className="social-links">
+                <a href="mailto:customer-service@thenilekart.com" title="Email Us" className="social-icon">📧</a>
+                <a href="tel:+971505523717" title="Call Us" className="social-icon">📱</a>
+                <a href="https://www.instagram.com/thenilekart/" target="_blank" rel="noopener noreferrer" title="Instagram" className="social-icon">🐦</a>
+              </div>
             </div>
-            <p>Your trusted marketplace for quality products from around the world.</p>
-            <div className="social-links">
-              <span>📧</span>
-              <span>📱</span>
-              <span>🐦</span>
-              <span>📘</span>
+            
+            <div className="footer-section">
+              <h4>Quick Links</h4>
+              <div className="quick-links-modal">
+                <button className="link-button" onClick={() => setActiveModal('about')}>About</button>
+                <button className="link-button" onClick={() => setActiveModal('contact')}>Contact</button>
+                <button className="link-button" onClick={() => setActiveModal('faq')}>FAQ</button>
+                <button className="link-button" onClick={() => setActiveModal('support')}>Support</button>
+              </div>
             </div>
           </div>
           
-          <div className="footer-section">
-            <h4>Quick Links</h4>
-            <ul>
-              <li>About Us</li>
-              <li>Contact</li>
-              <li>FAQ</li>
-              <li>Support</li>
-            </ul>
-          </div>
-          
-          <div className="footer-section">
-            <h4>Categories</h4>
-            <ul>
-              <li>Mobiles & Tablets</li>
-              <li>Electronics</li>
-              <li>Fashion</li>
-              <li>Home & Kitchen</li>
-            </ul>
-          </div>
-          
-          <div className="footer-section">
-            <h4>Customer Service</h4>
-            <ul>
-              <li>Shipping Info</li>
-              <li>Returns</li>
-              <li>Order Tracking</li>
-              <li>Size Guide</li>
-            </ul>
+          <div className="footer-bottom">
+            <p>&copy; 2025 TheNileKart. All rights reserved.</p>
+            <div className="footer-links">
+              <span>Privacy Policy</span>
+              <span>Terms of Service</span>
+              <span>Cookies</span>
+            </div>
           </div>
         </div>
-        
-        <div className="footer-bottom">
-          <p>&copy; 2025 TheNileKart. All rights reserved.</p>
-          <div className="footer-links">
-            <span>Privacy Policy</span>
-            <span>Terms of Service</span>
-            <span>Cookies</span>
+      </footer>
+
+      {/* Modal Overlay */}
+      {activeModal && (
+        <div className="modal-overlay" onClick={() => setActiveModal(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <button className="modal-close" onClick={() => setActiveModal(null)}>✕</button>
+            <h2>{modals[activeModal as keyof typeof modals].title}</h2>
+            <p style={{ whiteSpace: 'pre-line' }}>
+              {modals[activeModal as keyof typeof modals].content}
+            </p>
           </div>
         </div>
-      </div>
-    </footer>
+      )}
+    </>
   );
 };
 

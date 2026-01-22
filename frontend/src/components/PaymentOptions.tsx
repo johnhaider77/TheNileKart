@@ -76,8 +76,6 @@ const PaymentOptions: React.FC<PaymentOptionsProps> = ({
 
   return (
     <div className="payment-options">
-      <h3>3. Payment</h3>
-      
       {/* Payment Method Selection */}
       <div className="payment-methods">
         {/* Cash on Delivery */}
@@ -108,12 +106,12 @@ const PaymentOptions: React.FC<PaymentOptionsProps> = ({
                   <li>Pay the exact amount to our delivery partner</li>
                   <li>Cash payment only (no cards accepted at delivery)</li>
                   <li>Order will be processed immediately</li>
-                  {codDetails && codDetails.fee > 0 && (
-                    <li>COD fee: {codDetails.fee} AED (5% of order value, max 10 AED)</li>
-                  )}
-                  {codDetails && codDetails.fee === 0 && amount >= 100 && (
+                  {codDetails && codDetails.fee > 0 ? (
+                    <li>COD fee: {codDetails.fee} AED (10% of order value, min 5 AED, max 10 AED)</li>
+                  ) : null}
+                  {codDetails && codDetails.fee === 0 && amount >= 100 ? (
                     <li>✅ Free COD for orders above 100 AED</li>
-                  )}
+                  ) : null}
                 </ul>
               </div>
               
@@ -129,7 +127,7 @@ const PaymentOptions: React.FC<PaymentOptionsProps> = ({
         </div>
 
         {/* Ziina Online Payment */}
-        <div className={`payment-method-card ${selectedPaymentMethod === 'ziina' ? 'selected' : ''}`}>
+        <div className={`payment-method-card ${selectedPaymentMethod === 'ziina' ? 'selected' : ''} ${amount < 3 ? 'disabled' : ''}`}>
           <div className="payment-method-header">
             <input
               type="radio"
@@ -138,7 +136,7 @@ const PaymentOptions: React.FC<PaymentOptionsProps> = ({
               value="ziina"
               checked={selectedPaymentMethod === 'ziina'}
               onChange={() => handlePaymentMethodChange('ziina')}
-              disabled={disabled}
+              disabled={disabled || amount < 3}
             />
             <label htmlFor="ziina-radio" className="payment-method-label">
               <div className="payment-method-title pay-online-title">

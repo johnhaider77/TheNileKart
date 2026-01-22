@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { ordersAPI } from '../services/api';
 
 // Ziina payment component interface
 interface ZiinaPaymentProps {
@@ -54,14 +55,102 @@ const ZiinaPayment: React.FC<ZiinaPaymentProps> = ({
         throw new Error('User not authenticated');
       }
 
-      console.log('Creating Ziina payment intent for order:', {
-        orderId,
+      console.log('Step 1: Creating order in database before payment...');
+      
+      // STEP 1: Create order in database first
+      // Ensure all required fields are present in shipping address
+      const shippingAddressWithPhone = {
+        ...shippingAddress,
+        phone: shippingAddress.phone || shippingAddress.phoneNumber || shippingAddress.mobile || ''
+      };
+
+      // Validate required fields before sending - with detailed error messages
+      const requiredFields = [
+        { field: 'full_name', minLength: 2, name: 'Full Name' },
+        { field: 'address_line1', minLength: 5, name: 'Address' },
+        { field: 'city', minLength: 2, name: 'City' },
+        { field: 'state', minLength: 1, name: 'State/Province' },
+        { field: 'postal_code', minLength: 4, name: 'Postal Code' },
+        { field: 'phone', minLength: 8, name: 'Phone Number' }
+      ];
+
+      for (const fieldConfig of requiredFields) {
+        const value = shippingAddressWithPhone[fieldConfig.field as keyof typeof shippingAddressWithPhone];
+        
+        // Check if field exists and is not empty
+        if (!value || (typeof value === 'string' && value.trim() === '')) {
+          throw new Error(`Missing required field: ${fieldConfig.name}`);
+        }
+        
+        // Check minimum length
+        const trimmedValue = typeof value === 'string' ? value.trim() : String(value);
+        if (trimmedValue.length < fieldConfig.minLength) {
+          throw new Error(`${fieldConfig.name} must be at least ${fieldConfig.minLength} characters (currently: ${trimmedValue.length})`);
+        }
+      }
+
+      console.log('✅ Shipping address validation passed:', {
+        full_name: shippingAddressWithPhone.full_name,
+        address_line1: shippingAddressWithPhone.address_line1,
+        city: shippingAddressWithPhone.city,
+        state: shippingAddressWithPhone.state,
+        postal_code: shippingAddressWithPhone.postal_code,
+        phone: shippingAddressWithPhone.phone,
+        address_line2: shippingAddressWithPhone.address_line2 || 'N/A'
+      });
+
+      const orderData = {
+        items: items.map(item => ({
+          product_id: item.product.id,
+          quantity: item.quantity,
+          size: item.selectedSize || 'One Size'
+        })),
+        shipping_address: shippingAddressWithPhone,
+        payment_method: 'ziina'
+      };
+
+      console.log('📤 Sending order data to backend:', JSON.stringify(orderData, null, 2));
+      console.log('📊 Data validation summary:', {
+        itemsCount: orderData.items.length,
+        hasShippingAddress: !!orderData.shipping_address,
+        shippingAddressKeys: Object.keys(orderData.shipping_address),
+        paymentMethod: orderData.payment_method
+      });
+
+      try {
+        const orderResponse = await ordersAPI.createOrder(orderData);
+        console.log('✅ Order created successfully!', orderResponse.data);
+        
+        const realOrderId = orderResponse.data.order.id;
+        console.log('✅ Real order ID from database:', realOrderId);
+      } catch (backendError: any) {
+        console.error('❌ Backend order creation failed!');
+        console.error('Error response:', backendError.response?.data);
+        console.error('Error status:', backendError.response?.status);
+        console.error('Full error:', backendError);
+        throw new Error(
+          backendError.response?.data?.message || 
+          backendError.response?.data?.errors?.[0]?.msg ||
+          'Failed to create order - validation error'
+        );
+      }
+
+      const orderResponse = await ordersAPI.createOrder(orderData);
+      const realOrderId = orderResponse.data.order.id;
+      
+      console.log('Order created successfully:', {
+        realOrderId,
+        totalAmount: orderResponse.data.order.total_amount
+      });
+
+      console.log('Step 2: Creating Ziina payment intent for order:', {
+        orderId: realOrderId,
         amount,
         items: items.length,
         shippingAddress: !!shippingAddress
       });
 
-      // Call backend to create payment intent
+      // STEP 2: Call backend to create payment intent with the real order ID
       // Use /api for production (deployed on same server via Nginx proxy), localhost for development
       const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
       const apiUrl = isProduction ? '/api' : 'http://localhost:5000/api';
@@ -82,23 +171,17 @@ const ZiinaPayment: React.FC<ZiinaPaymentProps> = ({
             'Authorization': `Bearer ${token}`
           },
           body: JSON.stringify({
-            orderId,
+            orderId: realOrderId,  // Use the real database order ID
             amount,
             items,
-            shippingAddress,
-            payment_method: 'ziina'
+            shippingAddress
           })
         }
       );
 
       if (!response.ok) {
         const errorData = await response.json();
-        console.error('Backend error response:', {
-          status: response.status,
-          statusText: response.statusText,
-          errorData
-        });
-        throw new Error(errorData.message || `Request failed: ${response.statusText}`);
+        throw new Error(errorData.message || 'Failed to create payment intent');
       }
 
       const paymentData = await response.json();
@@ -107,21 +190,20 @@ const ZiinaPayment: React.FC<ZiinaPaymentProps> = ({
         redirectUrl: paymentData.redirectUrl
       });
 
-      // Store payment intent ID for later verification
+      // Store payment intent ID and order ID for later verification
       sessionStorage.setItem('ziinaPaymentIntentId', paymentData.paymentIntentId);
-      sessionStorage.setItem('ziinaOrderId', orderId);
+      sessionStorage.setItem('ziinaOrderId', realOrderId);  // Store the real order ID
 
-      // Redirect to Ziina payment page with full page navigation
+      // Redirect to Ziina payment page
       if (paymentData.redirectUrl) {
-        console.log('Redirecting to Ziina payment page with order ID:', orderId);
+        console.log('Redirecting to Ziina payment page with order ID:', realOrderId);
         // Store the current checkout state before redirecting
         sessionStorage.setItem('checkoutData', JSON.stringify({
           shippingAddress,
           items,
           amount,
-          orderId
+          orderId: realOrderId  // Store the real order ID
         }));
-        // Use direct redirect for Ziina (they expect full page navigation)
         window.location.href = paymentData.redirectUrl;
       } else {
         throw new Error('No redirect URL provided by payment gateway');
@@ -129,28 +211,7 @@ const ZiinaPayment: React.FC<ZiinaPaymentProps> = ({
 
     } catch (err) {
       console.error('Error initiating Ziina payment:', err);
-      
-      // Extract detailed error message
-      let errorMessage = 'Failed to process payment';
-      
-      if (err instanceof Error) {
-        errorMessage = err.message;
-        
-        // Try to extract backend error details if available
-        if ('response' in err && typeof err.response === 'object' && err.response !== null) {
-          const response = err.response as any;
-          if (response.data?.errors && Array.isArray(response.data.errors)) {
-            const validationErrors = response.data.errors
-              .map((e: any) => e.msg || e.message)
-              .join(', ');
-            errorMessage = `Validation error: ${validationErrors}`;
-          } else if (response.data?.message) {
-            errorMessage = response.data.message;
-          }
-        }
-      }
-      
-      console.log('Final error message for display:', errorMessage);
+      const errorMessage = err instanceof Error ? err.message : 'Failed to process payment';
       setError(errorMessage);
       setIsProcessing(false);
       onError(new Error(errorMessage));

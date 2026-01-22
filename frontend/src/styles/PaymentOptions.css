@@ -22,7 +22,7 @@
 .payment-method-card {
   border: 2px solid var(--border-color, #e1e5e9);
   border-radius: 12px;
-  background: white;
+  background: #050505;
   transition: all 0.3s ease;
   overflow: hidden;
 }
@@ -63,7 +63,7 @@
   gap: 0.75rem;
   font-weight: 600;
   font-size: 1.1rem;
-  color: var(--text-primary, #333);
+  color: white;
   margin-bottom: 0.5rem;
 }
 
@@ -77,7 +77,7 @@
 }
 
 .payment-method-description {
-  color: var(--text-secondary, #666);
+  color: #cccccc;
   font-size: 0.9rem;
   margin: 0;
   line-height: 1.4;
@@ -86,8 +86,8 @@
 /* Payment Method Content */
 .payment-method-content {
   padding: 0 1.25rem 1.25rem;
-  border-top: 1px solid var(--border-color, #e1e5e9);
-  background: rgba(var(--primary-rgb, 0, 123, 255), 0.02);
+  border-top: 1px solid #333333;
+  background: #0a0a0a;
 }
 
 /* COD Info */
@@ -99,7 +99,7 @@
 
 .cod-info li {
   padding: 0.5rem 0;
-  color: var(--text-secondary, #666);
+  color: #e0e0e0;
   font-size: 0.9rem;
   position: relative;
   padding-left: 1.5rem;

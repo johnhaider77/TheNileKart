@@ -83,6 +83,8 @@ const CheckoutPage: React.FC = () => {
 
     if (paymentStatus === 'success') {
       addToast('Payment successful! Processing your order...', 'success');
+      // Clear the cart since the order has been created
+      clearCart();
       // Navigate to thank you page after a short delay
       setTimeout(() => {
         navigate('/thank-you', { 
@@ -618,7 +620,8 @@ const CheckoutPage: React.FC = () => {
           {/* Shipping Address Step */}
           {step === 'address' && (
             <div className="checkout-step">
-              <h3>Shipping Address</h3>
+              <div className="address-form-wrapper">
+                <h3>Shipping Address</h3>
               
               {/* Saved Addresses Section */}
               {savedAddresses.length > 0 && (
@@ -778,6 +781,7 @@ const CheckoutPage: React.FC = () => {
                   </div>
                 </div>
               </form>
+              </div>
               
               <div className="step-actions">
                 <button 
@@ -815,7 +819,8 @@ const CheckoutPage: React.FC = () => {
           {/* Payment Step */}
           {step === 'payment' && (
             <div className="checkout-step">
-              {/* Payment Summary Header */}
+              <div className="payment-wrapper">
+                {/* Payment Summary Header */}
               <div className="payment-summary-header">
                 <h3>Complete Your Order</h3>
                 <div className="order-summary-card">
@@ -904,6 +909,7 @@ const CheckoutPage: React.FC = () => {
                 codDetails={codDetails}
                 onBackToCart={handleBackToCart}
               />
+              </div>
               
               <div className="step-actions">
                 <button 

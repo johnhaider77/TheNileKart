@@ -27,27 +27,18 @@ const app = express();
 const server = http.createServer(app);
 const PORT = process.env.PORT || 5000;
 
+// Trust proxy - required for rate limiting and X-Forwarded headers behind Nginx
+app.set('trust proxy', 1);
+
 // Security middleware
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-      "default-src": ["'self'"],
-      "script-src": ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://challenges.cloudflare.com", "https://*.ziina.app", "https://api.ziina.app", "https://pay.ziina.com", "blob:"],
-      "style-src": ["'self'", "'unsafe-inline'", "https://"],
-      "frame-src": ["'self'", "https://*.ziina.app", "https://challenges.cloudflare.com", "https://pay.ziina.com", "https://api.ziina.app"],
-      "connect-src": ["'self'", "https://api.ziina.app", "https://pay.ziina.com", "https://challenges.cloudflare.com", "ws:", "wss:"],
       "img-src": ["'self'", "data:", "https:", "http://localhost:*", "http://127.0.0.1:*"],
-      "font-src": ["'self'", "data:", "https:"],
-      "object-src": ["'none'"],
-      "base-uri": ["'self'"],
-      "form-action": ["'self'", "https://pay.ziina.com", "https://api.ziina.app"],
-      "frame-ancestors": ["'self'"]
     },
-    reportOnly: false
   },
-  crossOriginResourcePolicy: { policy: "cross-origin" },
-  referrerPolicy: { policy: "strict-origin-when-cross-origin" }
+  crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
 
 // Rate limiting
@@ -62,10 +53,8 @@ app.use(limiter);
 app.use(cors({
   origin: [
     'http://localhost:3000',
-    'http://localhost:5173',
-    'http://127.0.0.1:3000',
-    'https://www.thenilekart.com',
-    'https://thenilekart.com',
+    'http://192.168.1.137:3000',
+    'http://40.172.190.250:3000',
     process.env.FRONTEND_URL
   ].filter(Boolean),
   credentials: true,
@@ -78,10 +67,8 @@ const io = socketIo(server, {
   cors: {
     origin: [
       'http://localhost:3000',
-      'http://localhost:5173',
-      'http://127.0.0.1:3000',
-      'https://www.thenilekart.com',
-      'https://thenilekart.com',
+      'http://192.168.1.137:3000',
+      'http://40.172.190.250:3000',
       process.env.FRONTEND_URL
     ].filter(Boolean),
     methods: ["GET", "POST"],
@@ -142,12 +129,11 @@ app.use('/uploads', (req, res, next) => {
   next();
 }, express.static(path.join(__dirname, 'uploads')));
 
-// API Routes
+// API Routes - More specific routes first, then general routes at the end
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/seller', sellerRoutes);
-app.use('/api', bannerRoutes);
 app.use('/api/ziina', ziinaRoutes);
 app.use('/api/metrics', metricsRoutes);
 
@@ -159,6 +145,9 @@ app.get('/api/health', (req, res) => {
     uptime: process.uptime()
   });
 });
+
+// General banner routes at the end (catches /api/banners, /api/offers, etc.)
+app.use('/api', bannerRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -182,10 +171,8 @@ app.get('*', (req, res) => {
 
 // Start server on port 5000 for API
 server.listen(PORT, '0.0.0.0', () => {
-  const isProd = process.env.NODE_ENV === 'production';
   console.log(`🚀 Backend API running on port ${PORT}`);
   console.log(`📊 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`💳 Ziina Payment Mode: ${isProd ? '🔴 PRODUCTION (Real Payments)' : '🟢 TEST (No Real Charges)'}`);
   console.log(`🌐 API accessible at http://0.0.0.0:${PORT}`);
   console.log(`🔌 Socket.IO enabled for real-time metrics`);
 });
