@@ -770,7 +770,7 @@ router.get('/orders', [
 router.patch('/orders/:id/status', [
   authenticateToken,
   requireSeller,
-  body('status').isIn(['pending', 'processing', 'shipped', 'delivered', 'cancelled']),
+  body('status').isIn(['pending', 'processing', 'shipped', 'delivered', 'cancelled', 'payment_failed']),
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
