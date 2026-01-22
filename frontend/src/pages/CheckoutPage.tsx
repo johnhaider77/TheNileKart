@@ -113,9 +113,10 @@ const CheckoutPage: React.FC = () => {
       console.log('❌ Payment callback received - Failure for orderId:', orderId);
       sessionStorage.setItem('paymentStatusProcessed', paymentStatus + '_' + orderId);
       addToast('Payment failed. Please try another payment method or contact support.', 'error');
-      // Clear stored order data on failure
-      sessionStorage.removeItem('pendingOrderData');
+      // Clear stored payment data on failure, but keep cart items
       sessionStorage.removeItem('ziinaPaymentIntentId');
+      // Do NOT clear pendingOrderData - user might want to retry
+      // Do NOT clear cart - let user see what they were ordering
       // Keep on checkout page to allow retry
       setStep('payment');
       setTimeout(() => {
@@ -125,11 +126,12 @@ const CheckoutPage: React.FC = () => {
     } else if (paymentStatus === 'cancelled') {
       console.log('⚠️ Payment callback received - Cancelled for orderId:', orderId);
       sessionStorage.setItem('paymentStatusProcessed', paymentStatus + '_' + orderId);
-      addToast('Payment cancelled. Your order was not processed. Please try again.', 'warning');
-      // Clear stored order data on cancel
-      sessionStorage.removeItem('pendingOrderData');
+      addToast('Payment cancelled. Your order was not processed. You can retry payment or modify your order.', 'warning');
+      // Clear stored payment data on cancel, but keep cart items
       sessionStorage.removeItem('ziinaPaymentIntentId');
-      // Set step back to payment
+      // Do NOT clear pendingOrderData - user might want to retry
+      // Do NOT clear cart - let user see what they were ordering
+      // Set step back to payment so user can retry
       setStep('payment');
       setTimeout(() => {
         const paymentSection = document.querySelector('.payment-method-card');
@@ -354,7 +356,14 @@ const CheckoutPage: React.FC = () => {
 
       const response = await ordersAPI.createOrder(orderData);
       
-      clearCart();
+      // Store order data for payment processing
+      sessionStorage.setItem('pendingOrderData', JSON.stringify({
+        orderId: response.data.order.id,
+        totalAmount: response.data.order.total_amount,
+        items: items
+      }));
+      
+      // Don't clear cart yet - only clear on successful payment
       navigate('/thank-you', { 
         state: { 
           orderId: response.data.order.id,
