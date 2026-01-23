@@ -9,10 +9,9 @@ const fs = require('fs');
 const hasAwsCredentials = process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY;
 const forceLocalStorage = process.env.USE_LOCAL_STORAGE === 'true';
 
-// Determine if this is production environment (more flexible detection)
-const isProduction = process.env.NODE_ENV === 'production' || 
-                     process.env.DOMAIN_NAME?.includes('thenilekart.com') ||
-                     process.env.BACKEND_URL?.includes('thenilekart.com');
+// Determine if this is production environment (strict check - only NODE_ENV)
+// Allow fallback to local storage if AWS credentials aren't available
+const isProduction = process.env.NODE_ENV === 'production';
 
 let s3;
 let s3Available = false;
@@ -94,11 +93,21 @@ if (!fs.existsSync(uploadsDir)) {
 
 // Storage configuration function
 const getStorageConfig = (folder) => {
-  // In production, S3 is mandatory
-  if (!s3Available) {
-    if (isProduction) {
-      throw new Error(`S3 storage is required in production. Failed to configure S3 for ${folder}`);
-    }
+  if (s3Available) {
+    console.log('☁️ Using AWS S3 for', folder);
+    return multerS3({
+      s3: s3,
+      bucket: process.env.S3_BUCKET_NAME,
+      metadata: function (req, file, cb) {
+        cb(null, { fieldName: file.fieldname });
+      },
+      key: function (req, file, cb) {
+        const fileName = `${folder}/${Date.now()}-${file.originalname}`;
+        cb(null, fileName);
+      },
+      contentType: multerS3.AUTO_CONTENT_TYPE
+    });
+  } else {
     console.log('📁 Using local storage for', folder);
     return multer.diskStorage({
       destination: function (req, file, cb) {
@@ -112,20 +121,6 @@ const getStorageConfig = (folder) => {
         const fileName = `${Date.now()}-${file.originalname}`;
         cb(null, fileName);
       }
-    });
-  } else {
-    console.log('☁️ Using AWS S3 for', folder);
-    return multerS3({
-      s3: s3,
-      bucket: process.env.S3_BUCKET_NAME,
-      metadata: function (req, file, cb) {
-        cb(null, { fieldName: file.fieldname });
-      },
-      key: function (req, file, cb) {
-        const fileName = `${folder}/${Date.now()}-${file.originalname}`;
-        cb(null, fileName);
-      },
-      contentType: multerS3.AUTO_CONTENT_TYPE
     });
   }
 };
