@@ -22,23 +22,19 @@ const getAbsoluteUrl = (url) => {
 const isValidImageUrl = (url) => {
   if (!url) return false;
   
-  // Reject relative local paths (not S3)
-  if (url.startsWith('/uploads/') || url.startsWith('/videos/') || url.startsWith('/banners/')) {
-    console.warn('⚠️ Filtering out old local path URL:', url);
+  // Reject ANY local path (both relative and absolute) by checking for path patterns
+  if (url.includes('/uploads/') || url.includes('/videos/') || url.includes('/banners/')) {
+    console.warn('⚠️ Filtering out old local path URL:', url.substring(0, 80));
     return false;
   }
   
-  // Accept S3 URLs (both relative and absolute)
+  // Accept S3 URLs
   if (url.includes('.s3.') && url.includes('.amazonaws.com')) {
     return true;
   }
   
-  // Accept absolute URLs with valid protocols (but not local paths)
+  // Accept other HTTPS URLs (but they must not be local paths - already checked above)
   if (url.startsWith('https://')) {
-    if (url.includes('/uploads/') || url.includes('/videos/') || url.includes('/banners/')) {
-      console.warn('⚠️ Filtering out old local path URL:', url);
-      return false;
-    }
     return true;
   }
   
