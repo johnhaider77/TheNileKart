@@ -5,16 +5,20 @@ const path = require('path');
 const fs = require('fs');
 // Note: dotenv is already loaded by server.js or database.js, no need to load again
 
-// In production, enforce S3-only uploads (no fallback to local storage)
-const isProduction = process.env.NODE_ENV === 'production';
-const useLocalStorage = process.env.USE_LOCAL_STORAGE === 'true' || 
-                       !process.env.AWS_ACCESS_KEY_ID;
+// Check if we should use S3 (must have AWS credentials)
+const hasAwsCredentials = process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY;
+const forceLocalStorage = process.env.USE_LOCAL_STORAGE === 'true';
+
+// Determine if this is production environment (more flexible detection)
+const isProduction = process.env.NODE_ENV === 'production' || 
+                     process.env.DOMAIN_NAME?.includes('thenilekart.com') ||
+                     process.env.BACKEND_URL?.includes('thenilekart.com');
 
 let s3;
 let s3Available = false;
 
-// Only try to configure AWS if not forced to use local storage
-if (!useLocalStorage) {
+// Try to configure AWS S3 if credentials are available
+if (hasAwsCredentials && !forceLocalStorage) {
   try {
     // Configure AWS SDK with SSL workaround for local development
     const https = require('https');
@@ -53,23 +57,25 @@ if (!useLocalStorage) {
     });
     
     s3Available = true;
-    console.log('☁️ AWS S3 configured for file uploads (with SSL workaround)');
+    console.log('✅ AWS S3 configured successfully for file uploads');
   } catch (error) {
+    console.error('❌ Failed to configure AWS S3:', error.message);
+    s3Available = false;
     if (isProduction) {
-      console.error('❌ CRITICAL: AWS S3 configuration failed in production!');
-      console.error('Error:', error.message);
-      throw new Error('S3 configuration required in production');
-    } else {
-      console.warn('⚠️ AWS S3 configuration failed, falling back to local storage:', error.message);
-      s3Available = false;
+      throw error;
     }
   }
 } else {
-  if (isProduction) {
-    console.error('❌ CRITICAL: AWS credentials not configured in production!');
-    throw new Error('AWS S3 credentials required in production');
+  if (forceLocalStorage) {
+    console.log('📁 Using local file storage (forced via USE_LOCAL_STORAGE env var)');
+  } else if (!hasAwsCredentials) {
+    if (isProduction) {
+      console.warn('⚠️ AWS credentials not configured, but detected as production environment');
+      console.warn('Falling back to local storage (ensure this is temporary)');
+    } else {
+      console.log('📁 Using local file storage (development mode, no AWS credentials)');
+    }
   }
-  console.log('📁 Using local file storage (forced or development mode)');
 }
 
 // Create uploads directory for local storage fallback
