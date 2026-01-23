@@ -1570,13 +1570,19 @@ router.put('/products/:id/offers', [
 
     // Check if product belongs to seller
     const productCheck = await db.query(
-      'SELECT id FROM products WHERE id = $1 AND seller_id = $2',
+      'SELECT id, is_active FROM products WHERE id = $1 AND seller_id = $2',
       [product_id, seller_id]
     );
 
     if (productCheck.rows.length === 0) {
       return res.status(404).json({ message: 'Product not found or unauthorized' });
     }
+
+    const productIsActive = productCheck.rows[0].is_active;
+    console.log('ℹ️ Product status before offer assignment:', {
+      productId: product_id,
+      isActive: productIsActive
+    });
 
     // Start transaction
     await db.query('BEGIN');
@@ -1593,6 +1599,16 @@ router.put('/products/:id/offers', [
         await db.query(
           `INSERT INTO product_offers (product_id, offer_code) VALUES ${values}`,
           params
+        );
+      }
+
+      // CRITICAL: Ensure product is active when offers are assigned
+      // This ensures products are visible to customers when they click banners
+      if (!productIsActive) {
+        console.log('🔧 Activating product for offer visibility:', { productId: product_id });
+        await db.query(
+          'UPDATE products SET is_active = true WHERE id = $1',
+          [product_id]
         );
       }
 
