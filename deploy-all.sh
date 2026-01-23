@@ -73,7 +73,7 @@ deploy_backend() {
     
     echo "�🔄 Restarting server..."
     ssh -i "$EC2_KEY" "$EC2_USER@$EC2_HOST" \
-        "cd $EC2_PATH && pm2 restart server --update-env" || {
+        "cd $EC2_PATH && NODE_ENV=production pm2 restart server --update-env" || {
         echo "❌ Failed to restart server"
         return 1
     }
