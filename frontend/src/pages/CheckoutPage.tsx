@@ -76,6 +76,26 @@ const CheckoutPage: React.FC = () => {
     setToasts(prev => prev.filter(toast => toast.id !== id));
   };
 
+  // Helper function to calculate shipping fee based on cart contents
+  const calculateLocalShippingFee = (cartTotal: number, cartItems: any[]): number => {
+    // Check if cart contains any non-COD items
+    const hasNonCODItems = cartItems.some(item => !item.product?.cod_eligible);
+    
+    if (hasNonCODItems) {
+      // If cart contains any non-COD items: 5 AED if < 50, else FREE
+      return cartTotal < 50 ? 5 : 0;
+    } else {
+      // All items are COD: 10% of cart value (min 5 AED, max 10 AED) if < 100
+      if (cartTotal < 100) {
+        const calculatedFee = cartTotal * 0.1;
+        const fee = Math.max(5, Math.min(calculatedFee, 10));
+        // Round to 2 decimal places
+        return Math.round(fee * 100) / 100;
+      }
+      return 0; // FREE if total >= 100
+    }
+  };
+
   // Scroll to top when page loads or step changes
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -448,11 +468,12 @@ const CheckoutPage: React.FC = () => {
         return;
       }
       
-      // For other errors, fall back to a safe default
+      // For other errors, fall back to local calculation
+      const localFee = calculateLocalShippingFee(getTotalAmount(), items);
       setShippingFeeDetails({
         subtotal: getTotalAmount(),
-        fee: getTotalAmount() <= 50 ? 5 : 0,
-        total: getTotalAmount() + (getTotalAmount() <= 50 ? 5 : 0)
+        fee: localFee,
+        total: getTotalAmount() + localFee
       });
     }
   };
@@ -774,15 +795,15 @@ const CheckoutPage: React.FC = () => {
                     <h4>Order Summary</h4>
                     <div className="summary-line">
                       <span>Subtotal:</span>
-                      <span>{getTotalAmount().toFixed(2)}</span>
+                      <span>AED {getTotalAmount().toFixed(2)}</span>
                     </div>
                     <div className="summary-line">
                       <span>Shipping:</span>
-                      <span>FREE</span>
+                      <span>AED {calculateLocalShippingFee(getTotalAmount(), items).toFixed(2)}</span>
                     </div>
                     <div className="summary-line total">
                       <span>Total:</span>
-                      <span>{getTotalAmount().toFixed(2)}</span>
+                      <span>AED {(getTotalAmount() + calculateLocalShippingFee(getTotalAmount(), items)).toFixed(2)}</span>
                     </div>
                   </div>
                 </div>
