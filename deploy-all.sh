@@ -71,9 +71,17 @@ deploy_backend() {
         return 1
     }
     
-    echo "�🔄 Restarting server..."
+    echo "📄 Syncing ecosystem config..."
+    rsync -avz -e "ssh -i $EC2_KEY" \
+        "$LOCAL_PATH/ecosystem.config.js" \
+        "$EC2_USER@$EC2_HOST:$EC2_PATH/" || {
+        echo "❌ Ecosystem config sync failed"
+        return 1
+    }
+    
+    echo "🔄 Restarting server with ecosystem config..."
     ssh -i "$EC2_KEY" "$EC2_USER@$EC2_HOST" \
-        "cd $EC2_PATH && NODE_ENV=production pm2 restart server --update-env" || {
+        "cd $EC2_PATH && pm2 start ecosystem.config.js --only server --update-env || pm2 restart server --update-env" || {
         echo "❌ Failed to restart server"
         return 1
     }
