@@ -68,8 +68,8 @@ const Navbar: React.FC = () => {
         </div>
 
         {/* Desktop Menu */}
-        {/* Navigation Menu */}
-        <div className="navbar-menu desktop-only">
+        {/* Navigation Menu - HIDDEN, using hamburger menu instead */}
+        <div className="navbar-menu desktop-only" style={{ display: 'none' }}>
           <div className="nav-links">
             {/* Seller specific links */}
             {isAuthenticated && isSeller && (
@@ -91,8 +91,8 @@ const Navbar: React.FC = () => {
           </div>
         </div>
 
-        {/* User Menu */}
-        <div className="navbar-user desktop-only">
+        {/* User Menu - HIDDEN, using hamburger menu instead */}
+        <div className="navbar-user desktop-only" style={{ display: 'none' }}>
           {/* Cart for customers and guests only */}
           {!isSeller && (
             <button 
@@ -133,8 +133,8 @@ const Navbar: React.FC = () => {
           )}
         </div>
 
-        {/* Mobile Menu Button */}
-        <div className="mobile-controls mobile-only">
+        {/* Menu Controls - Hamburger shown on both mobile and desktop */}
+        <div className="mobile-controls">
           {/* Mobile Cart Button for customers and guests only */}
           {!isSeller && (
             <button
@@ -150,11 +150,11 @@ const Navbar: React.FC = () => {
             </button>
           )}
           
-          {/* Mobile Menu Button */}
+          {/* Menu Button - shown on all screen sizes */}
           <button
             className="mobile-menu-btn"
             onClick={toggleMobileMenu}
-            aria-label="Toggle mobile menu"
+            aria-label="Toggle menu"
           >
             <div className={`hamburger ${isMobileMenuOpen ? 'active' : ''}`}>
               <span></span>
@@ -236,6 +236,23 @@ const Navbar: React.FC = () => {
                         <Link to="/seller/create-product" className="mobile-nav-link" onClick={closeMobileMenu} style={{ display: 'block', padding: '12px 0', fontSize: '16px', color: '#333', textDecoration: 'none', borderBottom: '1px solid #f0f0f0' }}>Add Product</Link>
                         <Link to="/seller/inventory" className="mobile-nav-link" onClick={closeMobileMenu} style={{ display: 'block', padding: '12px 0', fontSize: '16px', color: '#333', textDecoration: 'none', borderBottom: '1px solid #f0f0f0' }}>Inventory</Link>
                         <Link to="/seller/orders" className="mobile-nav-link" onClick={closeMobileMenu} style={{ display: 'block', padding: '12px 0', fontSize: '16px', color: '#333', textDecoration: 'none', borderBottom: '1px solid #f0f0f0' }}>Orders</Link>
+                        <button 
+                          onClick={handleLogout} 
+                          style={{ 
+                            width: '100%', 
+                            padding: '12px', 
+                            marginTop: '12px',
+                            backgroundColor: '#dc3545', 
+                            color: 'white', 
+                            border: 'none', 
+                            borderRadius: '6px',
+                            fontSize: '16px', 
+                            cursor: 'pointer',
+                            fontWeight: '500'
+                          }}
+                        >
+                          Logout
+                        </button>
                       </>
                     )}
                   </div>

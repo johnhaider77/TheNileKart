@@ -706,6 +706,11 @@ nav.navbar .mobile-menu.active {
   display: none;
 }
 
+/* Mobile controls always visible on all screen sizes */
+.mobile-controls {
+  display: flex !important;
+}
+
 @media (max-width: 768px) {
   .desktop-only {
     display: none;
