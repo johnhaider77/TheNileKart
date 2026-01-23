@@ -681,9 +681,11 @@ const UpdateInventory: React.FC = () => {
       // Prepare form data for product update including images
       const formData = new FormData();
       
-      // Add basic product fields, but handle price specially
+      // Only send fields that should be updated (exclude read-only fields)
+      const allowedFields = ['name', 'description', 'category', 'product_id', 'stock_quantity', 'actual_buy_price', 'other_details', 'cod_eligible'];
+      
       Object.keys(editFormData).forEach(key => {
-        if (editFormData[key as keyof Product] !== undefined && key !== 'images' && key !== 'price') {
+        if (allowedFields.includes(key) && editFormData[key as keyof Product] !== undefined && key !== 'price') {
           formData.append(key, String(editFormData[key as keyof Product]));
         }
       });
@@ -706,10 +708,15 @@ const UpdateInventory: React.FC = () => {
       
       formData.append('price', String(parseFloat(priceToSend).toFixed(2)));
       
-      // Add new images with alt text
+      // Add new images with alt text and custom names
       editImages.forEach((image, index) => {
         formData.append('images', image);
-        formData.append(`imageAlt_${index}`, imageAltTexts[index] || '');
+        // Send image metadata including customName, alt text, and primary flag
+        formData.append(`imageData_${index}`, JSON.stringify({
+          customName: (image as any).customName || image.name,
+          alt: imageAltTexts[index] || '',
+          isPrimary: false
+        }));
       });
       
       // Add existing images order and deletions

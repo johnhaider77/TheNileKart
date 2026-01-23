@@ -309,7 +309,7 @@ export const sellerAPI = {
   // Product Offers Management
   getProductOffers: (productId: string) => api.get(`/seller/products/${productId}/offers`),
   updateProductOffers: (productId: string, offers: string[]) => 
-    api.post(`/seller/products/${productId}/offers`, { offers }),
+    api.put(`/seller/products/${productId}/offers`, { offers }),
 };
 
 export default api;

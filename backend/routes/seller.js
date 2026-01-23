@@ -1483,12 +1483,25 @@ router.put('/products/:id/offers', [
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      console.log('🚨 Validation errors for product offers update:', {
+        errors: errors.array(),
+        receivedBody: req.body,
+        receivedOffers: req.body.offers,
+        offersType: typeof req.body.offers
+      });
       return res.status(400).json({ errors: errors.array() });
     }
 
     const product_id = req.params.id;
     const seller_id = req.user.id;
     const { offers } = req.body;
+
+    console.log('🔄 Updating product offers:', {
+      productId: product_id,
+      sellerId: seller_id,
+      offers,
+      offersCount: offers?.length || 0
+    });
 
     // Check if product belongs to seller
     const productCheck = await db.query(
