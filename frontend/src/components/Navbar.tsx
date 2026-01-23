@@ -210,6 +210,23 @@ const Navbar: React.FC = () => {
                     {isCustomer && (
                       <>
                         <Link to="/account" className="mobile-nav-link" onClick={closeMobileMenu} style={{ display: 'block', padding: '12px 0', fontSize: '16px', color: '#333', textDecoration: 'none', borderBottom: '1px solid #f0f0f0' }}>Account</Link>
+                        <button 
+                          onClick={handleLogout} 
+                          style={{ 
+                            width: '100%', 
+                            padding: '12px 0', 
+                            backgroundColor: 'transparent',
+                            color: '#dc3545', 
+                            border: 'none', 
+                            borderBottom: '1px solid #f0f0f0',
+                            fontSize: '16px', 
+                            cursor: 'pointer',
+                            textAlign: 'left',
+                            fontWeight: '500'
+                          }}
+                        >
+                          Logout
+                        </button>
                       </>
                     )}
                     
@@ -247,23 +264,6 @@ const Navbar: React.FC = () => {
                       </div>
                     </div>
                   )}
-                  
-                  <button 
-                    onClick={handleLogout} 
-                    style={{ 
-                      width: '100%', 
-                      padding: '12px', 
-                      marginTop: '20px', 
-                      backgroundColor: '#dc3545', 
-                      color: 'white', 
-                      border: 'none', 
-                      borderRadius: '6px', 
-                      fontSize: '16px', 
-                      cursor: 'pointer'
-                    }}
-                  >
-                    Logout
-                  </button>
                 </>
               ) : (
                 <>
