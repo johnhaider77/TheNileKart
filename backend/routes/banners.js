@@ -141,9 +141,46 @@ router.post('/banners', authenticateToken, s3BannersUpload.single('background_im
 
     let background_image_data = null;
     if (req.file) {
+      let finalFileLocation = req.file.location;
+      
+      // If imageName provided, rename the S3 file to use custom name instead of timestamp-based name
+      if (imageName && imageName.trim()) {
+        try {
+          const currentS3Key = req.file.location.split('.amazonaws.com/')[1]; // e.g., "banners/1769138947068-original.jpg"
+          const fileExtension = imageName.includes('.') ? '' : req.file.originalname.split('.').pop();
+          const customFileName = fileExtension ? `${imageName}.${fileExtension}` : imageName;
+          const newS3Key = `banners/${customFileName}`;
+          
+          console.log('🔄 [CREATE] Renaming S3 file for custom imageName:', {
+            oldKey: currentS3Key,
+            newKey: newS3Key,
+            customImageName: imageName
+          });
+          
+          // Rename in S3 (copy + delete)
+          await renameS3File(currentS3Key, newS3Key);
+          
+          // Update final location to new S3 URL
+          finalFileLocation = `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION || 'me-central-1'}.amazonaws.com/${newS3Key}`;
+          
+          console.log('✅ [CREATE] S3 file renamed successfully:', {
+            newUrl: finalFileLocation.substring(0, 80)
+          });
+        } catch (renameError) {
+          console.error('⚠️ [CREATE] Could not rename S3 file, proceeding with auto-generated name:', renameError.message);
+          // Continue with original file location if rename fails
+        }
+      }
+      
       background_image_data = JSON.stringify({
-        url: req.file.location,
+        url: finalFileLocation,
         name: imageName || req.file.originalname
+      });
+      
+      console.log('📸 [CREATE] New S3 file uploaded:', {
+        location: finalFileLocation.substring(0, 80),
+        usedImageName: imageName ? 'YES (custom)' : 'NO (using originalname)',
+        finalName: imageName || req.file.originalname
       });
     }
 
@@ -151,6 +188,11 @@ router.post('/banners', authenticateToken, s3BannersUpload.single('background_im
       'INSERT INTO banners (title, subtitle, background_image, offer_page_url, display_order, created_by) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
       [title, subtitle, background_image_data, offer_page_url, display_order || 0, req.user.id]
     );
+
+    console.log('✅ [CREATE] Banner created successfully:', {
+      bannerId: result.rows[0]?.id,
+      backgroundImageStored: result.rows[0]?.background_image?.substring(0, 100)
+    });
 
     res.status(201).json({ success: true, banner: result.rows[0] });
   } catch (error) {
