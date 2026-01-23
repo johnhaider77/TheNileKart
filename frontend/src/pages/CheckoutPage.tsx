@@ -451,6 +451,7 @@ const CheckoutPage: React.FC = () => {
         return;
       }
 
+      // Store order data for payment processing (DO NOT CREATE ORDER YET)
       const orderData = {
         items: items.map(item => ({
           product_id: item.product.id,
@@ -460,22 +461,10 @@ const CheckoutPage: React.FC = () => {
         shipping_address: shippingAddress
       };
 
-      const response = await ordersAPI.createOrder(orderData);
+      sessionStorage.setItem('checkoutData', JSON.stringify(orderData));
       
-      // Store order data for payment processing
-      sessionStorage.setItem('pendingOrderData', JSON.stringify({
-        orderId: response.data.order.id,
-        totalAmount: response.data.order.total_amount,
-        items: items
-      }));
-      
-      // Don't clear cart yet - only clear on successful payment
-      navigate('/thank-you', { 
-        state: { 
-          orderId: response.data.order.id,
-          totalAmount: response.data.order.total_amount 
-        } 
-      });
+      // Move to payment step - DO NOT create order until payment is successful
+      setStep('payment');
     } catch (error: any) {
       // Handle authentication errors silently - let the interceptor handle redirect
       if (error.response?.status === 401 || error.name === 'AuthenticationError') {
@@ -491,7 +480,7 @@ const CheckoutPage: React.FC = () => {
       
       setError(
         error.response?.data?.message || 
-        'Failed to place order. Please try again.'
+        'Failed to process order. Please try again.'
       );
     } finally {
       setLoading(false);

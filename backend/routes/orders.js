@@ -104,6 +104,7 @@ router.post('/', [
   body('shipping_address.postal_code').trim().isLength({ min: 4 }),
   body('shipping_address.phone').trim().notEmpty().isLength({ min: 8 }),
   body('payment_method').optional().isIn(['cod', 'paypal', 'card', 'ziina']),
+  body('status').optional().isIn(['pending', 'pending_payment', 'payment_failed', 'confirmed', 'cancelled']),
 ], async (req, res) => {
   const client = await db.getClient();
   
@@ -119,11 +120,12 @@ router.post('/', [
       });
     }
 
-    const { items, shipping_address, payment_method = 'cod' } = req.body;
+    const { items, shipping_address, payment_method = 'cod', status = 'pending' } = req.body;
     const customer_id = req.user.id;
 
     console.log('📋 Order creation details:', {
       payment_method,
+      status,
       items_count: items?.length,
       shipping_address_keys: Object.keys(shipping_address || {}),
       customer_id
@@ -237,7 +239,7 @@ router.post('/', [
     const newOrder = await client.query(
       `INSERT INTO orders (customer_id, total_amount, cod_fee, status, shipping_address, payment_method)
        VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, created_at`,
-      [customer_id, final_total, cod_fee, 'pending', JSON.stringify(shipping_address), payment_method]
+      [customer_id, final_total, cod_fee, status, JSON.stringify(shipping_address), payment_method]
     );
 
     const order_id = newOrder.rows[0].id;
@@ -265,7 +267,7 @@ router.post('/', [
       order: {
         id: order_id,
         total_amount,
-        status: 'pending',
+        status: status,
         created_at: newOrder.rows[0].created_at
       }
     });
@@ -375,6 +377,48 @@ router.get('/:id', [authenticateToken, requireCustomer], async (req, res) => {
   } catch (error) {
     console.error('Order fetch error:', error);
     res.status(500).json({ message: 'Server error fetching order' });
+  }
+});
+
+// Update order status
+router.patch('/:id/status', [authenticateToken, requireCustomer], async (req, res) => {
+  const client = await db.getClient();
+  
+  try {
+    const { status } = req.body;
+    const orderId = req.params.id;
+    const customer_id = req.user.id;
+
+    if (!status || !['pending', 'payment_failed', 'pending_payment', 'confirmed', 'cancelled'].includes(status)) {
+      return res.status(400).json({ message: 'Invalid status value' });
+    }
+
+    // Verify order belongs to the customer
+    const orderCheck = await client.query(
+      'SELECT id, status FROM orders WHERE id = $1 AND customer_id = $2',
+      [orderId, customer_id]
+    );
+
+    if (orderCheck.rows.length === 0) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    // Update order status
+    const updateResult = await client.query(
+      'UPDATE orders SET status = $1, updated_at = NOW() WHERE id = $2 AND customer_id = $3 RETURNING *',
+      [status, orderId, customer_id]
+    );
+
+    console.log(`✅ Order ${orderId} status updated to: ${status}`);
+
+    res.json({
+      message: 'Order status updated successfully',
+      order: updateResult.rows[0]
+    });
+
+  } catch (error) {
+    console.error('Order status update error:', error);
+    res.status(500).json({ message: 'Server error updating order status' });
   }
 });
 

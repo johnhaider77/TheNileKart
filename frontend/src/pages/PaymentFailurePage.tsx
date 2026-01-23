@@ -12,24 +12,59 @@ const PaymentFailurePage: React.FC = () => {
   const { trackPaymentError } = useMetrics({ pageType: 'payment_failure', trackPageViews: false });
 
   useEffect(() => {
-    const orderId = searchParams.get('orderId');
-    
-    console.log('Payment Failed:', { orderId });
-    
-    // Track the payment failure
-    if (trackPaymentError) {
-      try {
-        trackPaymentError({
-          errorCode: 'PAYMENT_FAILED',
-          errorMessage: 'Payment was declined by the payment gateway',
-          errorDetails: { orderId }
-        });
-      } catch (error) {
-        console.error('Error tracking payment error:', error);
+    const updateOrderStatusOnPaymentFailure = async () => {
+      const orderId = searchParams.get('orderId');
+      
+      console.log('Payment Failed:', { orderId });
+      
+      // Update order status to payment_failed if order ID exists
+      if (orderId) {
+        const token = localStorage.getItem('token');
+        if (token) {
+          try {
+            const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+            const apiUrl = isProduction ? '/api' : 'http://localhost:5000/api';
+            
+            const response = await fetch(
+              `${apiUrl}/orders/${orderId}/status`,
+              {
+                method: 'PATCH',
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ status: 'payment_failed' })
+              }
+            );
+            
+            if (response.ok) {
+              console.log('✅ Order status updated to payment_failed');
+            } else {
+              console.error('Failed to update order status');
+            }
+          } catch (error) {
+            console.error('Error updating order status:', error);
+          }
+        }
       }
-    }
+      
+      // Track the payment failure
+      if (trackPaymentError) {
+        try {
+          trackPaymentError({
+            errorCode: 'PAYMENT_FAILED',
+            errorMessage: 'Payment was declined by the payment gateway',
+            errorDetails: { orderId }
+          });
+        } catch (error) {
+          console.error('Error tracking payment error:', error);
+        }
+      }
 
-    setLoading(false);
+      setLoading(false);
+    };
+
+    updateOrderStatusOnPaymentFailure();
   }, [searchParams, trackPaymentError]);
 
   const handleRetryPayment = () => {

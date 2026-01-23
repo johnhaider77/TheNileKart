@@ -106,7 +106,8 @@ const ZiinaPayment: React.FC<ZiinaPaymentProps> = ({
           size: item.selectedSize || 'One Size'
         })),
         shipping_address: shippingAddressWithPhone,
-        payment_method: 'ziina'
+        payment_method: 'ziina',
+        status: 'pending_payment'  // Set to pending_payment until payment is verified
       };
 
       console.log('📤 Sending order data to backend:', JSON.stringify(orderData, null, 2));

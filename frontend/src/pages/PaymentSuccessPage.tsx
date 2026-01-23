@@ -72,6 +72,25 @@ const PaymentSuccessPage: React.FC = () => {
         // Check if payment is successful or was already completed
         if (data.success || data.paid || data.status === 'completed' || data.status === 'succeeded') {
           console.log('🎉 Payment confirmed! Status:', data.status, 'Paid:', data.paid, 'Success:', data.success);
+          
+          // Update order status from pending_payment to pending on successful payment
+          try {
+            await fetch(
+              `${apiUrl}/orders/${orderId}/status`,
+              {
+                method: 'PATCH',
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ status: 'pending' })
+              }
+            );
+            console.log('✅ Order status updated to pending');
+          } catch (err) {
+            console.error('Failed to update order status:', err);
+          }
+          
           trackPaymentSuccess();
           setVerified(true);
         } else {
