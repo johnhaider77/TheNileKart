@@ -586,7 +586,63 @@ router.put('/products/:id', [
       console.log('Error parsing deleted images:', e);
     }
 
-    console.log('Processing image deletions:', { deletedImagesArray, existingImagesLength: existingImagesArray.length });
+    console.log('Processing image deletions and renames:', { deletedImagesArray, existingImagesLength: existingImagesArray.length });
+
+    // Handle renamed existing images (alt text changes requiring S3 renames)
+    let renamedExistingImagesArray = [];
+    try {
+      renamedExistingImagesArray = req.body.renamedExistingImages ? JSON.parse(req.body.renamedExistingImages) : [];
+    } catch (e) {
+      console.log('Error parsing renamed existing images:', e);
+    }
+
+    if (renamedExistingImagesArray.length > 0) {
+      console.log('🔄 [PRODUCT-UPDATE] Processing renamed existing images:', renamedExistingImagesArray);
+      
+      for (const renamedImage of renamedExistingImagesArray) {
+        try {
+          if (renamedImage.url && renamedImage.url.includes('s3')) {
+            const currentS3Key = renamedImage.url.split('.amazonaws.com/')[1];
+            const newAlt = renamedImage.newAlt || renamedImage.displayName;
+            const fileExtension = newAlt.includes('.') ? '' : currentS3Key.split('.').pop();
+            const customFileName = fileExtension ? `${newAlt}.${fileExtension}` : newAlt;
+            const newS3Key = `products/${customFileName}`;
+
+            console.log('🔄 [PRODUCT-UPDATE] Renaming existing S3 image:', {
+              oldKey: currentS3Key,
+              newKey: newS3Key,
+              oldAlt: renamedImage.oldAlt,
+              newAlt: newAlt
+            });
+
+            // Only rename if the new name is different from current S3 key
+            if (currentS3Key !== newS3Key) {
+              await renameS3File(currentS3Key, newS3Key);
+              
+              const newUrl = `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION || 'me-central-1'}.amazonaws.com/${newS3Key}`;
+              
+              console.log('✅ [PRODUCT-UPDATE] Existing S3 image renamed successfully:', {
+                newUrl: newUrl.substring(0, 80)
+              });
+
+              // Update the URL and alt in existingImagesArray
+              existingImagesArray = existingImagesArray.map(img => 
+                img.id === renamedImage.id ? { ...img, url: newUrl, alt: newAlt } : img
+              );
+            } else {
+              console.log('ℹ️ [PRODUCT-UPDATE] S3 image name unchanged, skipping rename');
+              // Just update the alt text without renaming
+              existingImagesArray = existingImagesArray.map(img => 
+                img.id === renamedImage.id ? { ...img, alt: newAlt } : img
+              );
+            }
+          }
+        } catch (renameError) {
+          console.error('⚠️ [PRODUCT-UPDATE] Could not rename existing S3 image:', renameError.message);
+          // Continue processing other images if one fails
+        }
+      }
+    }
 
     // Keep existing images that weren't deleted
     updatedImages = existingImagesArray.filter((img, index) => {

@@ -74,6 +74,7 @@ const UpdateInventory: React.FC = () => {
   const [imagePreviews, setImagePreviews] = useState<string[]>([]);
   const [imageAltTexts, setImageAltTexts] = useState<string[]>([]);
   const [existingImages, setExistingImages] = useState<any[]>([]);
+  const [originalExistingImages, setOriginalExistingImages] = useState<any[]>([]); // Track original for detecting changes
   const [deletedImages, setDeletedImages] = useState<string[]>([]);
   const [pendingSizeChanges, setPendingSizeChanges] = useState<{
     [productId: number]: {
@@ -566,8 +567,11 @@ const UpdateInventory: React.FC = () => {
         index: index // Keep track of original index
       }));
       setExistingImages(imagesWithIds);
+      // Store original for change detection
+      setOriginalExistingImages(JSON.parse(JSON.stringify(imagesWithIds)));
     } else {
       setExistingImages([]);
+      setOriginalExistingImages([]);
     }
     
     // Clear any new image state
@@ -584,6 +588,7 @@ const UpdateInventory: React.FC = () => {
     setImagePreviews([]);
     setImageAltTexts([]);
     setExistingImages([]);
+    setOriginalExistingImages([]);
     setDeletedImages([]);
     // Clear any pending size changes for the product being closed
     if (editingProduct) {
@@ -721,6 +726,27 @@ const UpdateInventory: React.FC = () => {
           isPrimary: false
         }));
       });
+      
+      // Detect and send changes to existing images (alt text changes that require S3 renames)
+      const renamedExistingImages: any[] = [];
+      existingImages.forEach((image, index) => {
+        const originalImage = originalExistingImages[index];
+        // Check if alt text has changed
+        if (originalImage && (image.alt !== originalImage.alt || image.alt !== originalImage.displayName)) {
+          renamedExistingImages.push({
+            id: image.id,
+            url: image.url,
+            oldAlt: originalImage.alt || originalImage.displayName,
+            newAlt: image.alt || image.name,
+            displayName: image.displayName || originalImage.displayName
+          });
+        }
+      });
+      
+      if (renamedExistingImages.length > 0) {
+        formData.append('renamedExistingImages', JSON.stringify(renamedExistingImages));
+        console.log('📝 Existing images with alt text changes:', renamedExistingImages);
+      }
       
       // Add existing images order and deletions
       formData.append('existingImages', JSON.stringify(existingImages));
