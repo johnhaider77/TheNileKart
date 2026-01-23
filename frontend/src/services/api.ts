@@ -169,6 +169,8 @@ export const ordersAPI = {
   
   calculateCOD: (items: any[]) => api.post('/orders/calculate-cod', { items }),
   
+  calculateShipping: (items: any[]) => api.post('/orders/calculate-shipping', { items }),
+  
   getOrders: () => api.get('/orders'),
   
   getOrder: (id: string) => api.get(`/orders/${id}`),

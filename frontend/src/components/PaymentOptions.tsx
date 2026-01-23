@@ -16,6 +16,11 @@ interface PaymentOptionsProps {
     fee: number;
     nonEligibleItems: any[];
   };
+  shippingFeeDetails?: {
+    subtotal: number;
+    fee: number;
+    total: number;
+  };
   onBackToCart?: () => void;
 }
 
@@ -28,6 +33,7 @@ const PaymentOptions: React.FC<PaymentOptionsProps> = ({
   onCODOrder,
   disabled = false,
   codDetails,
+  shippingFeeDetails,
   onBackToCart
 }) => {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'cod' | 'ziina'>('cod');
@@ -151,10 +157,28 @@ const PaymentOptions: React.FC<PaymentOptionsProps> = ({
               <div className="ziina-payment-wrapper">
                 {/* Order Amount and Payment Method Display */}
                 <div className="ziina-simple-summary">
-                  <div className="summary-row simple">
-                    <span>Order Amount:</span>
-                    <span className="amount">{amount.toFixed(2)} AED</span>
-                  </div>
+                  {shippingFeeDetails && shippingFeeDetails.fee > 0 && (
+                    <>
+                      <div className="summary-row simple">
+                        <span>Order Subtotal:</span>
+                        <span className="amount">{shippingFeeDetails.subtotal.toFixed(2)} AED</span>
+                      </div>
+                      <div className="summary-row simple">
+                        <span>Shipping Fee:</span>
+                        <span className="amount shipping-fee">{shippingFeeDetails.fee.toFixed(2)} AED</span>
+                      </div>
+                      <div className="summary-row simple total-row">
+                        <span>Total to Pay:</span>
+                        <span className="amount total">{amount.toFixed(2)} AED</span>
+                      </div>
+                    </>
+                  )}
+                  {!shippingFeeDetails || shippingFeeDetails.fee === 0 ? (
+                    <div className="summary-row simple">
+                      <span>Order Amount:</span>
+                      <span className="amount">{amount.toFixed(2)} AED</span>
+                    </div>
+                  ) : null}
                   <div className="summary-row simple">
                     <span>Payment Method:</span>
                     <span className="method">Card / Apple Pay / Google Pay</span>

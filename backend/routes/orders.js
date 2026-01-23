@@ -2,7 +2,7 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const db = require('../config/database');
 const { authenticateToken, requireCustomer } = require('../middleware/auth');
-const { calculateOrderWithCOD } = require('../utils/codCalculations');
+const { calculateOrderWithCOD, calculateOrderWithOnlineShipping } = require('../utils/codCalculations');
 
 const router = express.Router();
 
@@ -85,6 +85,74 @@ router.post('/calculate-cod', [
   } catch (error) {
     console.error('COD calculation error:', error);
     res.status(500).json({ message: 'Server error calculating COD' });
+  }
+});
+
+// Calculate shipping fee for online (pre-paid) payments
+router.post('/calculate-shipping', [
+  authenticateToken,
+  body('items').isArray({ min: 1 }),
+  body('items.*.product_id').isInt(),
+  body('items.*.selectedSize').isString(),
+  body('items.*.quantity').isInt({ min: 1 }),
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { items } = req.body;
+    const cartItems = [];
+
+    // Fetch product details for all items including size-specific pricing
+    for (const item of items) {
+      const product = await db.query(
+        'SELECT id, name, price, sizes FROM products WHERE id = $1 AND is_active = true',
+        [item.product_id]
+      );
+
+      if (product.rows.length === 0) {
+        return res.status(400).json({ 
+          message: `Product with ID ${item.product_id} not found` 
+        });
+      }
+
+      const productData = product.rows[0];
+      let itemPrice = productData.price;
+      
+      // Check if product has sizes and find size-specific pricing
+      if (productData.sizes && Array.isArray(productData.sizes) && item.selectedSize) {
+        const sizeData = productData.sizes.find(size => size.size === item.selectedSize);
+        if (sizeData) {
+          itemPrice = sizeData.price || productData.price || 0;
+        }
+      }
+
+      cartItems.push({
+        product_id: item.product_id,
+        name: productData.name,
+        price: itemPrice,
+        quantity: item.quantity,
+        selectedSize: item.selectedSize
+      });
+    }
+
+    // Calculate shipping fee for online payment
+    const shippingCalculation = calculateOrderWithOnlineShipping(cartItems);
+
+    res.json({
+      subtotal: shippingCalculation.subtotal,
+      shippingFee: shippingCalculation.shippingFee,
+      total: shippingCalculation.total,
+      message: shippingCalculation.shippingFee === 0 ? 
+        'Free shipping (order value > 50 AED)' : 
+        `Shipping fee: ${shippingCalculation.shippingFee} AED`
+    });
+
+  } catch (error) {
+    console.error('Shipping fee calculation error:', error);
+    res.status(500).json({ message: 'Server error calculating shipping fee' });
   }
 });
 
@@ -224,22 +292,39 @@ router.post('/', [
       });
     }
 
-    console.log('✅ Payment validation passed:', {
-      payment_method,
-      codEligible: orderCalculation.codEligible,
-      total_amount,
-      cod_fee: orderCalculation.codFee
-    });
+    // Calculate shipping fee for online payments
+    let shippingFee = 0;
+    let final_total = total_amount;
+    let cod_fee = 0;
 
-    // Use calculated total including COD fee
-    const final_total = payment_method === 'cod' ? orderCalculation.total : total_amount;
-    const cod_fee = payment_method === 'cod' ? orderCalculation.codFee : 0;
+    if (payment_method === 'cod') {
+      // COD: use calculated total with COD fee
+      final_total = orderCalculation.total;
+      cod_fee = orderCalculation.codFee;
+      console.log('✅ COD payment:', {
+        codEligible: orderCalculation.codEligible,
+        total_amount,
+        cod_fee,
+        final_total
+      });
+    } else {
+      // Online payment (ziina, paypal, card): apply flat 5 AED shipping fee for orders <= 50 AED
+      const onlineCalc = calculateOrderWithOnlineShipping(orderItems);
+      shippingFee = onlineCalc.shippingFee;
+      final_total = onlineCalc.total;
+      console.log('✅ Online payment:', {
+        payment_method,
+        total_amount,
+        shipping_fee: shippingFee,
+        final_total
+      });
+    }
 
     // Create order
     const newOrder = await client.query(
-      `INSERT INTO orders (customer_id, total_amount, cod_fee, status, shipping_address, payment_method)
-       VALUES ($1, $2, $3, $4, $5, $6) RETURNING id, created_at`,
-      [customer_id, final_total, cod_fee, status, JSON.stringify(shipping_address), payment_method]
+      `INSERT INTO orders (customer_id, total_amount, cod_fee, shipping_fee, status, shipping_address, payment_method)
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, created_at`,
+      [customer_id, final_total, cod_fee, shippingFee, status, JSON.stringify(shipping_address), payment_method]
     );
 
     const order_id = newOrder.rows[0].id;

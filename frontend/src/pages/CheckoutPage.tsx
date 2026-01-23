@@ -60,6 +60,11 @@ const CheckoutPage: React.FC = () => {
     fee: number;
     nonEligibleItems: any[];
   } | undefined>(undefined);
+  const [shippingFeeDetails, setShippingFeeDetails] = useState<{
+    subtotal: number;
+    fee: number;
+    total: number;
+  } | undefined>(undefined);
 
   // Helper function to add toast messages
   const addToast = (message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info') => {
@@ -258,6 +263,13 @@ const CheckoutPage: React.FC = () => {
       fetchSavedAddresses();
     }
   }, [step]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (step === 'payment' && items.length > 0) {
+      // Calculate shipping fee for online payments when entering payment step
+      calculateShippingFee();
+    }
+  }, [step]); // eslint-disable-line react-hooks/exhaustive-deps
   
   // Track checkout start when component mounts
   useEffect(() => {
@@ -407,6 +419,40 @@ const CheckoutPage: React.FC = () => {
         eligible: true, // Default to COD available to avoid blocking users
         fee: 0,
         nonEligibleItems: []
+      });
+    }
+  };
+
+  const calculateShippingFee = async () => {
+    try {
+      const cartItems = items.map(item => ({
+        product_id: item.product.id,
+        selectedSize: item.selectedSize || 'One Size',
+        quantity: item.quantity
+      }));
+
+      const response = await ordersAPI.calculateShipping(cartItems);
+      const data = response.data;
+      
+      setShippingFeeDetails({
+        subtotal: data.subtotal,
+        fee: data.shippingFee || 0,
+        total: data.total
+      });
+    } catch (error: any) {
+      console.error('Error calculating shipping fee:', error);
+      
+      // Handle authentication errors specifically
+      if (error.response?.status === 401) {
+        setError('Session expired. Please log in again to continue with checkout.');
+        return;
+      }
+      
+      // For other errors, fall back to a safe default
+      setShippingFeeDetails({
+        subtotal: getTotalAmount(),
+        fee: getTotalAmount() <= 50 ? 5 : 0,
+        total: getTotalAmount() + (getTotalAmount() <= 50 ? 5 : 0)
       });
     }
   };
@@ -1009,8 +1055,18 @@ const CheckoutPage: React.FC = () => {
                     <span className="summary-value">{items.reduce((total, item) => total + item.quantity, 0)}</span>
                   </div>
                   <div className="summary-row">
-                    <span className="summary-label">Order Total:</span>
+                    <span className="summary-label">Subtotal:</span>
                     <span className="summary-value">AED {getTotalAmount().toFixed(2)}</span>
+                  </div>
+                  {shippingFeeDetails && shippingFeeDetails.fee > 0 && (
+                    <div className="summary-row">
+                      <span className="summary-label">Shipping Fee:</span>
+                      <span className="summary-value">AED {shippingFeeDetails.fee.toFixed(2)}</span>
+                    </div>
+                  )}
+                  <div className="summary-row total-row">
+                    <span className="summary-label">Order Total:</span>
+                    <span className="summary-value">AED {(shippingFeeDetails?.total || getTotalAmount()).toFixed(2)}</span>
                   </div>
                 </div>
               </div>
@@ -1079,7 +1135,7 @@ const CheckoutPage: React.FC = () => {
               )}
               
               <PaymentOptions
-                amount={getTotalAmount()}
+                amount={shippingFeeDetails?.total || getTotalAmount()}
                 items={items}
                 shippingAddress={shippingAddress}
                 onPaymentSuccess={handlePaymentSuccess}
@@ -1087,6 +1143,7 @@ const CheckoutPage: React.FC = () => {
                 onCODOrder={handleCODOrder}
                 disabled={loading}
                 codDetails={codDetails}
+                shippingFeeDetails={shippingFeeDetails}
                 onBackToCart={handleBackToCart}
               />
               </div>

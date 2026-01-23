@@ -107,9 +107,52 @@ const calculateOrderWithCOD = (items, shippingFee = 0) => {
   };
 };
 
+/**
+ * Calculate shipping fee for online (pre-paid) payments
+ * Rule: Flat 5 AED for orders <= 50 AED, else free
+ * @param {number} orderValue - Total order value in AED
+ * @returns {number} Shipping fee in AED
+ */
+const calculateOnlineShippingFee = (orderValue) => {
+  if (orderValue <= 50) {
+    return 5; // 5 AED flat fee for orders <= 50 AED
+  }
+  return 0; // Free shipping for orders > 50 AED
+};
+
+/**
+ * Calculate order totals with online payment shipping fee
+ * @param {Array} items - Array of cart items
+ * @returns {Object} Order calculations including online shipping fee
+ */
+const calculateOrderWithOnlineShipping = (items) => {
+  if (!items || items.length === 0) {
+    return {
+      subtotal: 0,
+      shippingFee: 0,
+      total: 0
+    };
+  }
+  
+  const subtotal = items.reduce((total, item) => {
+    return total + (item.price * item.quantity);
+  }, 0);
+  
+  const shippingFee = calculateOnlineShippingFee(subtotal);
+  const total = subtotal + shippingFee;
+  
+  return {
+    subtotal: parseFloat(subtotal.toFixed(2)),
+    shippingFee: parseFloat(shippingFee.toFixed(2)),
+    total: parseFloat(total.toFixed(2))
+  };
+};
+
 module.exports = {
   calculateCODFee,
   areAllItemsCODEligible,
   getNonCODEligibleItems,
-  calculateOrderWithCOD
+  calculateOrderWithCOD,
+  calculateOnlineShippingFee,
+  calculateOrderWithOnlineShipping
 };
