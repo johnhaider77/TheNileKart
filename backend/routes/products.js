@@ -18,41 +18,65 @@ const getAbsoluteUrl = (url) => {
 
 // Helper function to validate image URLs - reject old local paths
 const isValidImageUrl = (url) => {
-  if (!url) return false;
+  if (!url) {
+    console.log('🔍 isValidImageUrl: empty URL');
+    return false;
+  }
+  
+  console.log('🔍 isValidImageUrl checking:', url.substring(0, 80));
   
   // Reject ANY local path (both relative and absolute) by checking for path patterns
   if (url.includes('/uploads/') || url.includes('/videos/') || url.includes('/banners/')) {
-    console.warn('⚠️ Rejecting local path URL:', url.substring(0, 80));
+    console.warn('⚠️ REJECTED - contains local path:', url.substring(0, 80));
     return false;
   }
   
   // Accept S3 URLs
   if (url.includes('.s3.') && url.includes('.amazonaws.com')) {
+    console.log('✅ ACCEPTED - S3 URL');
     return true;
   }
   
   // Accept other HTTPS URLs (but they must not be local paths - already checked above)
   if (url.startsWith('https://')) {
+    console.log('✅ ACCEPTED - HTTPS URL');
     return true;
   }
   
+  console.log('❌ REJECTED - not HTTPS or S3');
   return false;
 };
 
 // Helper function to convert image URLs in product object
 const convertProductImageUrls = (product) => {
+  try {
+    const fs = require('fs');
+    fs.appendFileSync('/tmp/product-debug.log', `\n=== convertProductImageUrls called at ${new Date().toISOString()} === product.id: ${product?.id}\n`);
+  } catch (e) {
+    // Ignore errors
+  }
+  
   if (!product) return product;
   if (product.image_url) {
     product.image_url = getAbsoluteUrl(product.image_url);
   }
   if (product.images && Array.isArray(product.images)) {
-    // Filter and convert images
-    product.images = product.images
-      .filter(img => isValidImageUrl(img.url))
-      .map(img => ({
-        ...img,
-        url: getAbsoluteUrl(img.url)
-      }));
+    try {
+      const fs = require('fs');
+      fs.appendFileSync('/tmp/product-debug.log', `Processing ${product.images.length} images for id ${product.id}\n`);
+    } catch (e) {}
+    
+    const filtered = product.images.filter(img => isValidImageUrl(img.url));
+    
+    try {
+      const fs = require('fs');
+      fs.appendFileSync('/tmp/product-debug.log', `After filter: ${filtered.length} images\n`);
+    } catch (e) {}
+    
+    product.images = filtered.map(img => ({
+      ...img,
+      url: getAbsoluteUrl(img.url)
+    }));
   }
   if (product.videos && Array.isArray(product.videos)) {
     product.videos = product.videos.map(video => ({
