@@ -2,7 +2,7 @@ const express = require('express');
 const { body, query, validationResult } = require('express-validator');
 const db = require('../config/database');
 const { authenticateToken, requireSeller } = require('../middleware/auth');
-const { s3ProductsUpload, deleteS3File } = require('../config/s3Upload');
+const { s3ProductsUpload, deleteS3File, renameS3File } = require('../config/s3Upload');
 
 const router = express.Router();
 
@@ -112,10 +112,39 @@ router.post('/products', [
         }
 
         // Handle both S3 and local file storage
-        const fileUrl = imageFile.location || `/uploads/products/${imageFile.filename}`;
+        let fileUrl = imageFile.location || `/uploads/products/${imageFile.filename}`;
         
         // Use customName if provided, otherwise use original filename
         const displayName = imageData.customName || imageFile.originalname;
+        
+        // If customName provided and file is on S3, rename it
+        if (displayName && displayName !== imageFile.originalname && imageFile.location && imageFile.location.includes('s3')) {
+          try {
+            const currentS3Key = imageFile.location.split('.amazonaws.com/')[1];
+            const fileExtension = displayName.includes('.') ? '' : imageFile.originalname.split('.').pop();
+            const customFileName = fileExtension ? `${displayName}.${fileExtension}` : displayName;
+            const newS3Key = `products/${customFileName}`;
+            
+            console.log('🔄 [PRODUCT-CREATE] Renaming S3 image for custom name:', {
+              oldKey: currentS3Key,
+              newKey: newS3Key,
+              customName: displayName
+            });
+            
+            // Rename in S3 (copy + delete)
+            await renameS3File(currentS3Key, newS3Key);
+            
+            // Update file URL to new location
+            fileUrl = `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION || 'me-central-1'}.amazonaws.com/${newS3Key}`;
+            
+            console.log('✅ [PRODUCT-CREATE] S3 image renamed successfully:', {
+              newUrl: fileUrl.substring(0, 80)
+            });
+          } catch (renameError) {
+            console.error('⚠️ [PRODUCT-CREATE] Could not rename S3 image, proceeding with auto-generated name:', renameError.message);
+            // Continue with original file location if rename fails
+          }
+        }
 
         images.push({
           id: Date.now() + '_' + i,
@@ -142,10 +171,39 @@ router.post('/products', [
         }
 
         // Handle both S3 and local file storage
-        const fileUrl = videoFile.location || `/uploads/products/${videoFile.filename}`;
+        let fileUrl = videoFile.location || `/uploads/products/${videoFile.filename}`;
         
         // Use customName if provided, otherwise use original filename
         const displayName = videoData.customName || videoFile.originalname;
+        
+        // If customName provided and file is on S3, rename it
+        if (displayName && displayName !== videoFile.originalname && videoFile.location && videoFile.location.includes('s3')) {
+          try {
+            const currentS3Key = videoFile.location.split('.amazonaws.com/')[1];
+            const fileExtension = displayName.includes('.') ? '' : videoFile.originalname.split('.').pop();
+            const customFileName = fileExtension ? `${displayName}.${fileExtension}` : displayName;
+            const newS3Key = `products/${customFileName}`;
+            
+            console.log('🔄 [PRODUCT-CREATE] Renaming S3 video for custom name:', {
+              oldKey: currentS3Key,
+              newKey: newS3Key,
+              customName: displayName
+            });
+            
+            // Rename in S3 (copy + delete)
+            await renameS3File(currentS3Key, newS3Key);
+            
+            // Update file URL to new location
+            fileUrl = `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION || 'me-central-1'}.amazonaws.com/${newS3Key}`;
+            
+            console.log('✅ [PRODUCT-CREATE] S3 video renamed successfully:', {
+              newUrl: fileUrl.substring(0, 80)
+            });
+          } catch (renameError) {
+            console.error('⚠️ [PRODUCT-CREATE] Could not rename S3 video, proceeding with auto-generated name:', renameError.message);
+            // Continue with original file location if rename fails
+          }
+        }
 
         videos.push({
           id: Date.now() + '_video_' + i,
@@ -572,8 +630,37 @@ router.put('/products/:id', [
           imageData = {};
         }
         
-        const fileUrl = file.location || `/uploads/products/${file.filename}`;
+        let fileUrl = file.location || `/uploads/products/${file.filename}`;
         const displayName = imageData.customName || file.originalname;
+        
+        // If customName provided and file is on S3, rename it
+        if (displayName && displayName !== file.originalname && file.location && file.location.includes('s3')) {
+          try {
+            const currentS3Key = file.location.split('.amazonaws.com/')[1];
+            const fileExtension = displayName.includes('.') ? '' : file.originalname.split('.').pop();
+            const customFileName = fileExtension ? `${displayName}.${fileExtension}` : displayName;
+            const newS3Key = `products/${customFileName}`;
+            
+            console.log('🔄 [PRODUCT-UPDATE] Renaming S3 image for custom name:', {
+              oldKey: currentS3Key,
+              newKey: newS3Key,
+              customName: displayName
+            });
+            
+            // Rename in S3 (copy + delete)
+            await renameS3File(currentS3Key, newS3Key);
+            
+            // Update file URL to new location
+            fileUrl = `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION || 'me-central-1'}.amazonaws.com/${newS3Key}`;
+            
+            console.log('✅ [PRODUCT-UPDATE] S3 image renamed successfully:', {
+              newUrl: fileUrl.substring(0, 80)
+            });
+          } catch (renameError) {
+            console.error('⚠️ [PRODUCT-UPDATE] Could not rename S3 image, proceeding with auto-generated name:', renameError.message);
+            // Continue with original file location if rename fails
+          }
+        }
         
         updatedImages.push({
           id: Date.now() + '_' + index,

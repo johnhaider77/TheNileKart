@@ -560,18 +560,18 @@ const CreateProduct: React.FC = () => {
                     <div className="media-controls">
                       <input
                         type="text"
+                        value={image.alt}
+                        onChange={(e) => updateImageAlt(image.id, e.target.value)}
+                        placeholder="Alt text"
+                        className="alt-input"
+                      />
+                      <input
+                        type="text"
                         value={image.customName}
                         onChange={(e) => updateImageName(image.id, e.target.value)}
                         placeholder="File name"
                         className="alt-input"
                         style={{ marginBottom: '8px' }}
-                      />
-                      <input
-                        type="text"
-                        value={image.alt}
-                        onChange={(e) => updateImageAlt(image.id, e.target.value)}
-                        placeholder="Alt text"
-                        className="alt-input"
                       />
                       <div className="media-buttons">
                         {!image.isPrimary && (
@@ -627,18 +627,18 @@ const CreateProduct: React.FC = () => {
                     <div className="media-controls">
                       <input
                         type="text"
+                        value={video.title}
+                        onChange={(e) => updateVideoTitle(video.id, e.target.value)}
+                        placeholder="Video title"
+                        className="alt-input"
+                      />
+                      <input
+                        type="text"
                         value={video.customName}
                         onChange={(e) => updateVideoName(video.id, e.target.value)}
                         placeholder="File name"
                         className="alt-input"
                         style={{ marginBottom: '8px' }}
-                      />
-                      <input
-                        type="text"
-                        value={video.title}
-                        onChange={(e) => updateVideoTitle(video.id, e.target.value)}
-                        placeholder="Video title"
-                        className="alt-input"
                       />
                       <button
                         type="button"
