@@ -78,6 +78,19 @@ const CheckoutPage: React.FC = () => {
 
   // Helper function to calculate shipping fee based on cart contents
   const calculateLocalShippingFee = (cartTotal: number, cartItems: any[]): number => {
+    console.log('🚚 Calculating shipping fee for cart:', {
+      cartTotal,
+      itemsCount: cartItems.length,
+      items: cartItems.map(item => ({
+        productId: item.product?.id,
+        productName: item.product?.name,
+        selectedSize: item.selectedSize,
+        hasSizesArray: !!item.product?.sizes,
+        sizesCount: item.product?.sizes?.length || 0,
+        sizes: item.product?.sizes?.map((s: any) => ({ size: s.size, cod_eligible: s.cod_eligible }))
+      }))
+    });
+    
     // Check if cart contains any non-COD items
     const hasNonCODItems = cartItems.some(item => {
       // Check if item has a selected size with sizes array
@@ -85,24 +98,34 @@ const CheckoutPage: React.FC = () => {
         const sizeData = item.product.sizes.find((s: any) => s.size === item.selectedSize);
         if (sizeData) {
           // If size has explicit cod_eligible flag, use it; otherwise default to true
-          return sizeData.cod_eligible === false;
+          const isCODIneligible = sizeData.cod_eligible === false;
+          console.log(`  📦 ${item.product.name} (size: ${item.selectedSize}): cod_eligible=${sizeData.cod_eligible}, isCODIneligible=${isCODIneligible}`);
+          return isCODIneligible;
         }
       }
       // Check product-level cod_eligible as fallback
-      return item.product?.cod_eligible === false;
+      const isCODIneligible = item.product?.cod_eligible === false;
+      console.log(`  📦 ${item.product?.name} (product-level): cod_eligible=${item.product?.cod_eligible}, isCODIneligible=${isCODIneligible}`);
+      return isCODIneligible;
     });
+    
+    console.log('  ✅ hasNonCODItems:', hasNonCODItems);
     
     if (hasNonCODItems) {
       // If cart contains any non-COD items: 5 AED if < 50, else FREE
-      return cartTotal < 50 ? 5 : 0;
+      const fee = cartTotal < 50 ? 5 : 0;
+      console.log(`  💳 Mixed/Non-COD cart (${cartTotal} AED < 50?): fee = ${fee}`);
+      return fee;
     } else {
       // All items are COD: 10% of cart value (min 5 AED, max 10 AED) if < 100
       if (cartTotal < 100) {
         const calculatedFee = cartTotal * 0.1;
         const fee = Math.max(5, Math.min(calculatedFee, 10));
-        // Round to 2 decimal places
-        return Math.round(fee * 100) / 100;
+        const finalFee = Math.round(fee * 100) / 100;
+        console.log(`  🎁 All COD cart (${cartTotal} AED < 100): 10% = ${calculatedFee}, clamped to [5,10] = ${fee}, final = ${finalFee}`);
+        return finalFee;
       }
+      console.log(`  🎁 All COD cart (${cartTotal} AED >= 100): FREE`);
       return 0; // FREE if total >= 100
     }
   };
@@ -331,6 +354,48 @@ const CheckoutPage: React.FC = () => {
         break;
     }
   }, [step]); // Track whenever step changes
+
+  // Fetch full product details to ensure we have sizes data for shipping calculation
+  useEffect(() => {
+    const enrichCartWithFullProducts = async () => {
+      if (items.length === 0) return;
+      
+      console.log('📥 Enriching cart items with full product data (including sizes)...');
+      try {
+        // Fetch full product details for each cart item
+        const enrichedItems = await Promise.all(
+          items.map(async (cartItem) => {
+            try {
+              // Fetch full product details
+              const response = await api.get(`/products/${cartItem.product.id}`);
+              if (response.data.success && response.data.product) {
+                console.log(`✅ Fetched full product data for ${cartItem.product.name}:`, {
+                  hasSize: !!response.data.product.sizes,
+                  sizesCount: response.data.product.sizes?.length || 0
+                });
+                return {
+                  ...cartItem,
+                  product: response.data.product // Replace with full product data
+                };
+              }
+            } catch (err) {
+              console.warn(`⚠️ Failed to fetch full product for ${cartItem.product.id}:`, err);
+            }
+            return cartItem; // Return original if fetch fails
+          })
+        );
+        
+        // Update cart items in state - but we can't directly modify cart, so we'll use the enriched data for calculations
+        // Store in window for debugging
+        (window as any).__enrichedCheckoutItems = enrichedItems;
+        console.log('📦 Enriched items stored for shipping calculation');
+      } catch (error) {
+        console.error('Error enriching cart items:', error);
+      }
+    };
+    
+    enrichCartWithFullProducts();
+  }, [items.length]); // Run when items count changes
 
   const fetchSavedAddresses = async () => {
     try {
@@ -810,11 +875,11 @@ const CheckoutPage: React.FC = () => {
                     </div>
                     <div className="summary-line">
                       <span>Shipping:</span>
-                      <span>AED {calculateLocalShippingFee(getTotalAmount(), items).toFixed(2)}</span>
+                      <span>AED {calculateLocalShippingFee(getTotalAmount(), (window as any).__enrichedCheckoutItems || items).toFixed(2)}</span>
                     </div>
                     <div className="summary-line total">
                       <span>Total:</span>
-                      <span>AED {(getTotalAmount() + calculateLocalShippingFee(getTotalAmount(), items)).toFixed(2)}</span>
+                      <span>AED {(getTotalAmount() + calculateLocalShippingFee(getTotalAmount(), (window as any).__enrichedCheckoutItems || items)).toFixed(2)}</span>
                     </div>
                   </div>
                 </div>
