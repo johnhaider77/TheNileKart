@@ -5,6 +5,38 @@ const { authenticateToken } = require('../middleware/auth');
 
 const router = express.Router();
 
+// Helper function to convert relative URLs to absolute URLs
+const getAbsoluteUrl = (url) => {
+  if (!url) return url;
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
+  }
+  // Convert relative path to absolute URL using server domain
+  const serverUrl = process.env.BACKEND_URL || process.env.SERVER_URL || `https://${process.env.DOMAIN_NAME || 'thenilekart.com'}`;
+  return `${serverUrl}${url}`;
+};
+
+// Helper function to convert image URLs in product object
+const convertProductImageUrls = (product) => {
+  if (!product) return product;
+  if (product.image_url) {
+    product.image_url = getAbsoluteUrl(product.image_url);
+  }
+  if (product.images && Array.isArray(product.images)) {
+    product.images = product.images.map(img => ({
+      ...img,
+      url: getAbsoluteUrl(img.url)
+    }));
+  }
+  if (product.videos && Array.isArray(product.videos)) {
+    product.videos = product.videos.map(video => ({
+      ...video,
+      url: getAbsoluteUrl(video.url)
+    }));
+  }
+  return product;
+};
+
 // Get all products with pagination and filters
 router.get('/', [
   query('page').optional().isInt({ min: 1 }),
@@ -82,7 +114,7 @@ router.get('/', [
     const totalCount = await db.query(countQuery, queryParams.slice(0, paramCount));
 
     res.json({
-      products: products.rows,
+      products: products.rows.map(convertProductImageUrls),
       pagination: {
         currentPage: page,
         totalPages: Math.ceil(totalCount.rows[0].total / limit),
@@ -125,10 +157,10 @@ router.get('/trending', async (req, res) => {
       `;
       
       const fallbackResult = await db.query(fallbackQuery);
-      return res.json({ products: fallbackResult.rows });
+      return res.json({ products: fallbackResult.rows.map(convertProductImageUrls) });
     }
     
-    res.json({ products: result.rows });
+    res.json({ products: result.rows.map(convertProductImageUrls) });
   } catch (error) {
     console.error('Error fetching trending products:', error);
     res.status(500).json({ message: 'Server error fetching trending products' });
@@ -191,7 +223,7 @@ router.get('/preferred', authenticateToken, async (req, res) => {
     }
     
     const result = await db.query(query, queryParams);
-    res.json({ products: result.rows });
+    res.json({ products: result.rows.map(convertProductImageUrls) });
     
   } catch (error) {
     console.error('Error fetching preferred products:', error);
@@ -256,7 +288,7 @@ router.get('/:id', async (req, res) => {
       return res.status(404).json({ message: 'Product not found' });
     }
 
-    res.json({ product: product.rows[0] });
+    res.json({ product: convertProductImageUrls(product.rows[0]) });
 
   } catch (error) {
     console.error('Product fetch error:', error);

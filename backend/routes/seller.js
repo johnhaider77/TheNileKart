@@ -6,6 +6,17 @@ const { s3ProductsUpload, deleteS3File, renameS3File } = require('../config/s3Up
 
 const router = express.Router();
 
+// Helper function to convert relative URLs to absolute URLs
+const getAbsoluteUrl = (url) => {
+  if (!url) return url;
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
+  }
+  // Convert relative path to absolute URL using server domain
+  const serverUrl = process.env.BACKEND_URL || process.env.SERVER_URL || `https://${process.env.DOMAIN_NAME || 'thenilekart.com'}`;
+  return `${serverUrl}${url}`;
+};
+
 // Create new product
 router.post('/products', [
   authenticateToken,
@@ -114,6 +125,9 @@ router.post('/products', [
         // Handle both S3 and local file storage
         let fileUrl = imageFile.location || `/uploads/products/${imageFile.filename}`;
         
+        // Convert relative URLs to absolute
+        fileUrl = getAbsoluteUrl(fileUrl);
+        
         // Use customName if provided, otherwise use original filename
         const displayName = imageData.customName || imageFile.originalname;
         
@@ -173,6 +187,9 @@ router.post('/products', [
 
         // Handle both S3 and local file storage
         let fileUrl = videoFile.location || `/uploads/products/${videoFile.filename}`;
+        
+        // Convert relative URLs to absolute
+        fileUrl = getAbsoluteUrl(fileUrl);
         
         // Use customName if provided, otherwise use original filename
         const displayName = videoData.customName || videoFile.originalname;
@@ -696,6 +713,9 @@ router.put('/products/:id', [
         
         let fileUrl = file.location || `/uploads/products/${file.filename}`;
         const displayName = imageData.customName || file.originalname;
+        
+        // Convert relative URLs to absolute
+        fileUrl = getAbsoluteUrl(fileUrl);
         
         // Always rename S3 files to use clean custom names (without timestamps)
         if (file.location && file.location.includes('s3')) {
