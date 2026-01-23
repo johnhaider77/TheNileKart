@@ -289,7 +289,7 @@ const Navbar: React.FC = () => {
                     </Link>
                   </div>
                   
-                  <div style={{ marginBottom: '30px', paddingBottom: '20px', borderBottom: '1px solid #eee' }}>
+                  <div style={{ marginBottom: '30px', paddingBottom: '100px', borderBottom: '1px solid #eee' }}>
                     <h3 style={{ marginBottom: '15px', fontSize: '16px', fontWeight: 'bold', color: '#333' }}>Shop by Category</h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       <Link to="/products" onClick={closeMobileMenu} style={{ color: '#007bff', textDecoration: 'none', padding: '8px 0' }}>All Categories</Link>
