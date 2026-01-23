@@ -214,14 +214,14 @@ const Navbar: React.FC = () => {
                           onClick={handleLogout} 
                           style={{ 
                             width: '100%', 
-                            padding: '12px 0', 
-                            backgroundColor: 'transparent',
-                            color: '#dc3545', 
+                            padding: '12px', 
+                            marginTop: '12px',
+                            backgroundColor: '#dc3545', 
+                            color: 'white', 
                             border: 'none', 
-                            borderBottom: '1px solid #f0f0f0',
+                            borderRadius: '6px',
                             fontSize: '16px', 
                             cursor: 'pointer',
-                            textAlign: 'left',
                             fontWeight: '500'
                           }}
                         >
@@ -241,7 +241,7 @@ const Navbar: React.FC = () => {
                   </div>
 
                   {isCustomer && (
-                    <div style={{ marginTop: '30px', paddingTop: '20px', borderTop: '1px solid #eee', marginBottom: '20px', paddingBottom: '20px' }}>
+                    <div style={{ marginTop: '30px', paddingTop: '20px', borderTop: '1px solid #eee', marginBottom: '20px', paddingBottom: '100px' }}>
                       <h3 style={{ marginBottom: '15px', fontSize: '16px', fontWeight: 'bold', color: '#333' }}>Shop by Category</h3>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                         <Link to="/products" onClick={closeMobileMenu} style={{ color: '#007bff', textDecoration: 'none', padding: '8px 0' }}>All Categories</Link>
