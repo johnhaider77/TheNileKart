@@ -79,7 +79,18 @@ const CheckoutPage: React.FC = () => {
   // Helper function to calculate shipping fee based on cart contents
   const calculateLocalShippingFee = (cartTotal: number, cartItems: any[]): number => {
     // Check if cart contains any non-COD items
-    const hasNonCODItems = cartItems.some(item => !item.product?.cod_eligible);
+    const hasNonCODItems = cartItems.some(item => {
+      // Check if item has a selected size with sizes array
+      if (item.selectedSize && item.product?.sizes && Array.isArray(item.product.sizes)) {
+        const sizeData = item.product.sizes.find((s: any) => s.size === item.selectedSize);
+        if (sizeData) {
+          // If size has explicit cod_eligible flag, use it; otherwise default to true
+          return sizeData.cod_eligible === false;
+        }
+      }
+      // Check product-level cod_eligible as fallback
+      return item.product?.cod_eligible === false;
+    });
     
     if (hasNonCODItems) {
       // If cart contains any non-COD items: 5 AED if < 50, else FREE
