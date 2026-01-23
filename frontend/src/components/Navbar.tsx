@@ -267,14 +267,23 @@ const Navbar: React.FC = () => {
                   <div style={{ marginBottom: '30px', paddingBottom: '20px', borderBottom: '1px solid #eee' }}>
                     <h3 style={{ marginBottom: '15px', fontSize: '16px', fontWeight: 'bold', color: '#333' }}>Shop by Category</h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <Link to="/products" onClick={closeMobileMenu} style={{ color: '#007bff', textDecoration: 'none', padding: '8px 0' }}>All Categories</Link>
+                      <Link to="/products?category=Mobiles, Tablets & Accessories" onClick={closeMobileMenu} style={{ color: '#007bff', textDecoration: 'none', padding: '8px 0' }}>📱 Mobiles, Tablets & Accessories</Link>
+                      <Link to="/products?category=Computers & Office Supplies" onClick={closeMobileMenu} style={{ color: '#007bff', textDecoration: 'none', padding: '8px 0' }}>💻 Computers & Office Supplies</Link>
+                      <Link to="/products?category=TV, Appliances & Electronics" onClick={closeMobileMenu} style={{ color: '#007bff', textDecoration: 'none', padding: '8px 0' }}>📺 TV, Appliances & Electronics</Link>
                       <Link to="/products?category=Women's Fashion" onClick={closeMobileMenu} style={{ color: '#007bff', textDecoration: 'none', padding: '8px 0' }}>👗 Women's Fashion</Link>
                       <Link to="/products?category=Men's Fashion" onClick={closeMobileMenu} style={{ color: '#007bff', textDecoration: 'none', padding: '8px 0' }}>👔 Men's Fashion</Link>
+                      <Link to="/products?category=Kids Fashion" onClick={closeMobileMenu} style={{ color: '#007bff', textDecoration: 'none', padding: '8px 0' }}>👶 Kids Fashion</Link>
                       <Link to="/products?category=Health, Beauty & Perfumes" onClick={closeMobileMenu} style={{ color: '#007bff', textDecoration: 'none', padding: '8px 0' }}>💄 Health, Beauty & Perfumes</Link>
-                      <Link to="/products?category=Electronics" onClick={closeMobileMenu} style={{ color: '#007bff', textDecoration: 'none', padding: '8px 0' }}>📱 Electronics</Link>
-                      <Link to="/products?category=Home & Living" onClick={closeMobileMenu} style={{ color: '#007bff', textDecoration: 'none', padding: '8px 0' }}>🏠 Home & Living</Link>
-                      <Link to="/products?category=Sports & Outdoors" onClick={closeMobileMenu} style={{ color: '#007bff', textDecoration: 'none', padding: '8px 0' }}>⚽ Sports & Outdoors</Link>
-                      <Link to="/products?category=Books & Media" onClick={closeMobileMenu} style={{ color: '#007bff', textDecoration: 'none', padding: '8px 0' }}>📚 Books & Media</Link>
-                      <Link to="/products?category=Kids & Toys" onClick={closeMobileMenu} style={{ color: '#007bff', textDecoration: 'none', padding: '8px 0' }}>🧸 Kids & Toys</Link>
+                      <Link to="/products?category=Intimacy" onClick={closeMobileMenu} style={{ color: '#007bff', textDecoration: 'none', padding: '8px 0' }}>💝 Intimacy</Link>
+                      <Link to="/products?category=Grocery" onClick={closeMobileMenu} style={{ color: '#007bff', textDecoration: 'none', padding: '8px 0' }}>🛒 Grocery</Link>
+                      <Link to="/products?category=Home, Kitchen & Pets" onClick={closeMobileMenu} style={{ color: '#007bff', textDecoration: 'none', padding: '8px 0' }}>🏠 Home, Kitchen & Pets</Link>
+                      <Link to="/products?category=Tools & Home Improvement" onClick={closeMobileMenu} style={{ color: '#007bff', textDecoration: 'none', padding: '8px 0' }}>🔧 Tools & Home Improvement</Link>
+                      <Link to="/products?category=Toys, Games & Baby" onClick={closeMobileMenu} style={{ color: '#007bff', textDecoration: 'none', padding: '8px 0' }}>🧸 Toys, Games & Baby</Link>
+                      <Link to="/products?category=Sports, Fitness & Outdoors" onClick={closeMobileMenu} style={{ color: '#007bff', textDecoration: 'none', padding: '8px 0' }}>⚽ Sports, Fitness & Outdoors</Link>
+                      <Link to="/products?category=Books" onClick={closeMobileMenu} style={{ color: '#007bff', textDecoration: 'none', padding: '8px 0' }}>📚 Books</Link>
+                      <Link to="/products?category=Video Games" onClick={closeMobileMenu} style={{ color: '#007bff', textDecoration: 'none', padding: '8px 0' }}>🎮 Video Games</Link>
+                      <Link to="/products?category=Automotive" onClick={closeMobileMenu} style={{ color: '#007bff', textDecoration: 'none', padding: '8px 0' }}>🚗 Automotive</Link>
                     </div>
                   </div>
                 </>
