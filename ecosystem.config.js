@@ -3,11 +3,12 @@ module.exports = {
     {
       name: 'server',
       script: './backend/server.js',
-      cwd: '/home/ubuntu/var/www/thenilekart/TheNileKart',
+      cwd: process.env.APP_ROOT || '/home/ubuntu/var/www/thenilekart/TheNileKart',
       instances: 1,
       exec_mode: 'fork',
       env: {
-        NODE_ENV: 'production'
+        NODE_ENV: 'production',
+        PORT: '5000'
       },
       error_file: '/home/ubuntu/.pm2/logs/server-error.log',
       out_file: '/home/ubuntu/.pm2/logs/server-out.log',
