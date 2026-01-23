@@ -124,11 +124,12 @@ router.post('/products', [
 
         // Handle both S3 and local file storage
         let fileUrl = imageFile.location || (() => {
-          // In production, S3 is mandatory
-          if (process.env.NODE_ENV === 'production') {
-            throw new Error(`Image upload to S3 failed for image: ${imageFile.originalname}`);
+          // For local storage (when S3 unavailable)
+          if (imageFile.filename) {
+            return `/uploads/products/${imageFile.filename}`;
           }
-          return `/uploads/products/${imageFile.filename}`;
+          // Only throw error if both S3 and local storage failed
+          throw new Error(`Image upload failed for image: ${imageFile.originalname}`);
         })();
         
         // Convert relative URLs to absolute
@@ -193,11 +194,12 @@ router.post('/products', [
 
         // Handle both S3 and local file storage
         let fileUrl = videoFile.location || (() => {
-          // In production, S3 is mandatory
-          if (process.env.NODE_ENV === 'production') {
-            throw new Error(`Video upload to S3 failed for video: ${videoFile.originalname}`);
+          // For local storage (when S3 unavailable)
+          if (videoFile.filename) {
+            return `/uploads/products/${videoFile.filename}`;
           }
-          return `/uploads/products/${videoFile.filename}`;
+          // Only throw error if both S3 and local storage failed
+          throw new Error(`Video upload failed for video: ${videoFile.originalname}`);
         })();
         
         // Convert relative URLs to absolute
@@ -724,11 +726,12 @@ router.put('/products/:id', [
         }
         
         let fileUrl = file.location || (() => {
-          // In production, S3 is mandatory
-          if (process.env.NODE_ENV === 'production') {
-            throw new Error(`Image upload to S3 failed for image: ${file.originalname}`);
+          // For local storage (when S3 unavailable)
+          if (file.filename) {
+            return `/uploads/products/${file.filename}`;
           }
-          return `/uploads/products/${file.filename}`;
+          // Only throw error if both S3 and local storage failed
+          throw new Error(`Image upload failed for image: ${file.originalname}`);
         })();
         const displayName = imageData.customName || file.originalname;
         
