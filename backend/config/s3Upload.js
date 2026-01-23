@@ -9,14 +9,28 @@ const fs = require('fs');
 const hasAwsCredentials = process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY;
 const forceLocalStorage = process.env.USE_LOCAL_STORAGE === 'true';
 
-// Determine if this is production environment (strict check - only NODE_ENV)
-// Allow fallback to local storage if AWS credentials aren't available
+// Determine if this is production environment
 const isProduction = process.env.NODE_ENV === 'production';
 
 let s3;
 let s3Available = false;
 
-// Try to configure AWS S3 if credentials are available
+// S3 is REQUIRED - no local storage fallback allowed
+if (!hasAwsCredentials || forceLocalStorage) {
+  if (forceLocalStorage) {
+    console.log('📁 Local storage mode forced via USE_LOCAL_STORAGE env var');
+  } else {
+    console.error('❌ CRITICAL ERROR: AWS S3 credentials are REQUIRED but not configured!');
+    console.error('Required environment variables: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION, S3_BUCKET_NAME');
+    if (!isProduction) {
+      console.warn('⚠️ Proceeding in development mode with local storage as fallback');
+    } else {
+      throw new Error('AWS S3 credentials required in production. Images MUST be uploaded to S3 only.');
+    }
+  }
+}
+
+// Configure AWS S3
 if (hasAwsCredentials && !forceLocalStorage) {
   try {
     // Configure AWS SDK with SSL workaround for local development
@@ -30,7 +44,7 @@ if (hasAwsCredentials && !forceLocalStorage) {
     AWS.config.update({
       accessKeyId: process.env.AWS_ACCESS_KEY_ID,
       secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-      region: process.env.AWS_REGION || 'us-east-1',
+      region: process.env.AWS_REGION || 'me-central-1',
       httpOptions: {
         agent: customAgent,
         timeout: 30000
@@ -46,34 +60,24 @@ if (hasAwsCredentials && !forceLocalStorage) {
     s3 = new AWS.S3({
       accessKeyId: process.env.AWS_ACCESS_KEY_ID,
       secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-      region: process.env.AWS_REGION || 'us-east-1',
+      region: process.env.AWS_REGION || 'me-central-1',
       signatureVersion: 'v4',
       s3ForcePathStyle: false,
       httpOptions: {
         agent: customAgent,
         timeout: 30000
-      }
+      },
+      maxRetries: 3
     });
     
     s3Available = true;
-    console.log('✅ AWS S3 configured successfully for file uploads');
+    console.log('✅ AWS S3 configured successfully - images MUST upload to S3 only');
+    console.log('🔒 S3 Bucket:', process.env.S3_BUCKET_NAME);
+    console.log('🌍 S3 Region:', process.env.AWS_REGION || 'me-central-1');
   } catch (error) {
-    console.error('❌ Failed to configure AWS S3:', error.message);
+    console.error('❌ CRITICAL ERROR: Failed to configure AWS S3:', error.message);
     s3Available = false;
-    if (isProduction) {
-      throw error;
-    }
-  }
-} else {
-  if (forceLocalStorage) {
-    console.log('📁 Using local file storage (forced via USE_LOCAL_STORAGE env var)');
-  } else if (!hasAwsCredentials) {
-    if (isProduction) {
-      console.warn('⚠️ AWS credentials not configured, but detected as production environment');
-      console.warn('Falling back to local storage (ensure this is temporary)');
-    } else {
-      console.log('📁 Using local file storage (development mode, no AWS credentials)');
-    }
+    throw new Error('Cannot initialize S3 service. Images MUST be uploaded to S3.');
   }
 }
 

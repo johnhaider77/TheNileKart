@@ -122,15 +122,12 @@ router.post('/products', [
           imageData = {};
         }
 
-        // Handle both S3 and local file storage
-        let fileUrl = imageFile.location || (() => {
-          // For local storage (when S3 unavailable)
-          if (imageFile.filename) {
-            return `/uploads/products/${imageFile.filename}`;
-          }
-          // Only throw error if both S3 and local storage failed
-          throw new Error(`Image upload failed for image: ${imageFile.originalname}`);
-        })();
+        // ENFORCE S3-ONLY UPLOADS - No local storage fallback
+        if (!imageFile.location) {
+          throw new Error(`Image upload to S3 failed for image: ${imageFile.originalname}. Images MUST be uploaded to S3.`);
+        }
+        
+        let fileUrl = imageFile.location;
         
         // Convert relative URLs to absolute
         fileUrl = getAbsoluteUrl(fileUrl);
@@ -192,15 +189,12 @@ router.post('/products', [
           videoData = {};
         }
 
-        // Handle both S3 and local file storage
-        let fileUrl = videoFile.location || (() => {
-          // For local storage (when S3 unavailable)
-          if (videoFile.filename) {
-            return `/uploads/products/${videoFile.filename}`;
-          }
-          // Only throw error if both S3 and local storage failed
-          throw new Error(`Video upload failed for video: ${videoFile.originalname}`);
-        })();
+        // ENFORCE S3-ONLY UPLOADS - No local storage fallback
+        if (!videoFile.location) {
+          throw new Error(`Video upload to S3 failed for video: ${videoFile.originalname}. Videos MUST be uploaded to S3.`);
+        }
+        
+        let fileUrl = videoFile.location;
         
         // Convert relative URLs to absolute
         fileUrl = getAbsoluteUrl(fileUrl);
@@ -725,14 +719,12 @@ router.put('/products/:id', [
           imageData = {};
         }
         
-        let fileUrl = file.location || (() => {
-          // For local storage (when S3 unavailable)
-          if (file.filename) {
-            return `/uploads/products/${file.filename}`;
-          }
-          // Only throw error if both S3 and local storage failed
-          throw new Error(`Image upload failed for image: ${file.originalname}`);
-        })();
+        // ENFORCE S3-ONLY UPLOADS - No local storage fallback
+        if (!file.location) {
+          throw new Error(`Image upload to S3 failed for image: ${file.originalname}. Images MUST be uploaded to S3.`);
+        }
+        
+        let fileUrl = file.location;
         const displayName = imageData.customName || file.originalname;
         
         // Convert relative URLs to absolute
