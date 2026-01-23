@@ -256,7 +256,23 @@ const BannerManagement: React.FC = () => {
       });
       setEditingBanner(banner);
       if (banner.background_image) {
-        setPreviewImage(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}${banner.background_image}`);
+        let imageUrl = banner.background_image;
+        // Parse JSON if stored as JSON (new format with metadata)
+        if (typeof banner.background_image === 'string' && banner.background_image.startsWith('{')) {
+          try {
+            const imageData = JSON.parse(banner.background_image);
+            imageUrl = imageData.url;
+          } catch (e) {
+            // If not JSON, use as-is
+            imageUrl = banner.background_image;
+          }
+        }
+        // Extract URL - if it's already an S3 URL, use it directly
+        if (imageUrl.startsWith('http')) {
+          setPreviewImage(imageUrl);
+        } else {
+          setPreviewImage(`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}${imageUrl}`);
+        }
       }
     } else {
       resetBannerForm();
@@ -334,43 +350,64 @@ const BannerManagement: React.FC = () => {
       <div className="banners-section">
         <h3>Banners</h3>
         <div className="banners-grid">
-          {banners.map((banner) => (
-            <div key={banner.id} className="banner-card">
-              <div className="banner-preview">
-                {banner.background_image ? (
-                  <img 
-                    src={`${process.env.REACT_APP_API_URL || 'http://localhost:5000'}${banner.background_image}`}
-                    alt={banner.title}
-                    className="banner-image"
-                  />
-                ) : (
-                  <div className="banner-placeholder">
-                    <span>No Image</span>
+          {banners.map((banner) => {
+            // Parse banner image URL to handle both old (string) and new (JSON) formats
+            let bannerImageUrl = '';
+            if (banner.background_image) {
+              if (typeof banner.background_image === 'string' && banner.background_image.startsWith('{')) {
+                try {
+                  const imageData = JSON.parse(banner.background_image);
+                  bannerImageUrl = imageData.url;
+                } catch (e) {
+                  bannerImageUrl = banner.background_image;
+                }
+              } else {
+                bannerImageUrl = banner.background_image;
+              }
+              // Ensure we have proper URL format
+              if (!bannerImageUrl.startsWith('http')) {
+                bannerImageUrl = `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}${bannerImageUrl}`;
+              }
+            }
+
+            return (
+              <div key={banner.id} className="banner-card">
+                <div className="banner-preview">
+                  {bannerImageUrl ? (
+                    <img 
+                      src={bannerImageUrl}
+                      alt={banner.title}
+                      className="banner-image"
+                    />
+                  ) : (
+                    <div className="banner-placeholder">
+                      <span>No Image</span>
+                    </div>
+                  )}
+                  <div className="banner-content">
+                    <h4>{banner.title}</h4>
+                    {banner.subtitle && <p>{banner.subtitle}</p>}
                   </div>
-                )}
-                <div className="banner-content">
-                  <h4>{banner.title}</h4>
-                  {banner.subtitle && <p>{banner.subtitle}</p>}
+                </div>
+                <div className="banner-info">
+                  <p><strong>Offer:</strong> {banner.offer_name}</p>
+                  <p><strong>Order:</strong> {banner.display_order}</p>
+                  <span className={`status ${banner.is_active ? 'active' : 'inactive'}`}>
+                    {banner.is_active ? 'Active' : 'Inactive'}
+                  </span>
+                </div>
+                <div className="banner-actions">
+                  <button onClick={() => openBannerModal(banner)}>Edit</button>
+                  <button 
+                    onClick={() => handleDeleteBanner(banner.id)}
+                    className="btn-danger"
+                  >
+                    Delete
+                  </button>
                 </div>
               </div>
-              <div className="banner-info">
-                <p><strong>Offer:</strong> {banner.offer_name}</p>
-                <p><strong>Order:</strong> {banner.display_order}</p>
-                <span className={`status ${banner.is_active ? 'active' : 'inactive'}`}>
-                  {banner.is_active ? 'Active' : 'Inactive'}
-                </span>
-              </div>
-              <div className="banner-actions">
-                <button onClick={() => openBannerModal(banner)}>Edit</button>
-                <button 
-                  onClick={() => handleDeleteBanner(banner.id)}
-                  className="btn-danger"
-                >
-                  Delete
-                </button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 

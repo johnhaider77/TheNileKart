@@ -141,15 +141,15 @@ router.post('/banners', authenticateToken, s3BannersUpload.single('background_im
 
     let background_image_data = null;
     if (req.file) {
-      background_image_data = {
+      background_image_data = JSON.stringify({
         url: req.file.location,
         name: imageName || req.file.originalname
-      };
+      });
     }
 
     const result = await db.query(
       'INSERT INTO banners (title, subtitle, background_image, offer_page_url, display_order, created_by) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-      [title, subtitle, JSON.stringify(background_image_data), offer_page_url, display_order || 0, req.user.id]
+      [title, subtitle, background_image_data, offer_page_url, display_order || 0, req.user.id]
     );
 
     res.status(201).json({ success: true, banner: result.rows[0] });
@@ -203,16 +203,17 @@ router.put('/banners/:id', authenticateToken, s3BannersUpload.single('background
         }
       }
 
-      // Update with new image
-      background_image_data = {
+      // Update with new image (as JSON object)
+      background_image_data = JSON.stringify({
         url: req.file.location,
         name: imageName || req.file.originalname
-      };
+      });
     }
+    // If no new file, keep existing background_image_data as-is (already in DB format)
 
     const result = await db.query(
       'UPDATE banners SET title = $1, subtitle = $2, background_image = $3, offer_page_url = $4, display_order = $5, is_active = $6, updated_at = CURRENT_TIMESTAMP WHERE id = $7 AND created_by = $8 RETURNING *',
-      [title, subtitle, JSON.stringify(background_image_data), offer_page_url, display_order || 0, is_active, id, req.user.id]
+      [title, subtitle, background_image_data, offer_page_url, display_order || 0, is_active, id, req.user.id]
     );
 
     res.json({ success: true, banner: result.rows[0] });
