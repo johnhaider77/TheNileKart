@@ -49,34 +49,18 @@ const isValidImageUrl = (url) => {
 
 // Helper function to convert image URLs in product object
 const convertProductImageUrls = (product) => {
-  try {
-    const fs = require('fs');
-    fs.appendFileSync('/tmp/product-debug.log', `\n=== convertProductImageUrls called at ${new Date().toISOString()} === product.id: ${product?.id}\n`);
-  } catch (e) {
-    // Ignore errors
-  }
-  
   if (!product) return product;
   if (product.image_url) {
     product.image_url = getAbsoluteUrl(product.image_url);
   }
   if (product.images && Array.isArray(product.images)) {
-    try {
-      const fs = require('fs');
-      fs.appendFileSync('/tmp/product-debug.log', `Processing ${product.images.length} images for id ${product.id}\n`);
-    } catch (e) {}
-    
-    const filtered = product.images.filter(img => isValidImageUrl(img.url));
-    
-    try {
-      const fs = require('fs');
-      fs.appendFileSync('/tmp/product-debug.log', `After filter: ${filtered.length} images\n`);
-    } catch (e) {}
-    
-    product.images = filtered.map(img => ({
-      ...img,
-      url: getAbsoluteUrl(img.url)
-    }));
+    // Filter and convert images
+    product.images = product.images
+      .filter(img => isValidImageUrl(img.url))
+      .map(img => ({
+        ...img,
+        url: getAbsoluteUrl(img.url)
+      }));
   }
   if (product.videos && Array.isArray(product.videos)) {
     product.videos = product.videos.map(video => ({
