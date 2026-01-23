@@ -174,6 +174,7 @@ module.exports = {
   s3ProductsUpload,
   s3BannersUpload,
   deleteFromS3,
+  deleteS3File: deleteFromS3, // Alias for easier import
   getS3Url,
   s3
 };

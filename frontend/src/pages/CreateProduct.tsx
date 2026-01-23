@@ -9,6 +9,7 @@ interface ProductImage {
   file: File;
   preview: string;
   alt: string;
+  customName: string;
   isPrimary: boolean;
 }
 
@@ -17,6 +18,7 @@ interface ProductVideo {
   file: File;
   preview: string;
   title: string;
+  customName: string;
 }
 
 interface ProductSize {
@@ -75,6 +77,7 @@ const CreateProduct: React.FC = () => {
       file,
       preview: URL.createObjectURL(file),
       alt: file.name,
+      customName: file.name,
       isPrimary: images.length === 0 // First image is primary by default
     }));
 
@@ -93,7 +96,8 @@ const CreateProduct: React.FC = () => {
       id: Date.now() + Math.random().toString(),
       file,
       preview: URL.createObjectURL(file),
-      title: file.name
+      title: file.name,
+      customName: file.name
     }));
 
     setVideos(prev => [...prev, ...newVideos]);
@@ -136,9 +140,21 @@ const CreateProduct: React.FC = () => {
     ));
   };
 
+  const updateImageName = (id: string, customName: string) => {
+    setImages(prev => prev.map(img => 
+      img.id === id ? { ...img, customName } : img
+    ));
+  };
+
   const updateVideoTitle = (id: string, title: string) => {
     setVideos(prev => prev.map(vid => 
       vid.id === id ? { ...vid, title } : vid
+    ));
+  };
+
+  const updateVideoName = (id: string, customName: string) => {
+    setVideos(prev => prev.map(vid => 
+      vid.id === id ? { ...vid, customName } : vid
     ));
   };
 
@@ -258,6 +274,7 @@ const CreateProduct: React.FC = () => {
         formDataToSend.append('images', image.file);
         formDataToSend.append(`imageData_${index}`, JSON.stringify({
           alt: image.alt,
+          customName: image.customName,
           isPrimary: image.isPrimary
         }));
       });
@@ -266,7 +283,8 @@ const CreateProduct: React.FC = () => {
       videos.forEach((video, index) => {
         formDataToSend.append('videos', video.file);
         formDataToSend.append(`videoData_${index}`, JSON.stringify({
-          title: video.title
+          title: video.title,
+          customName: video.customName
         }));
       });
 
@@ -542,6 +560,14 @@ const CreateProduct: React.FC = () => {
                     <div className="media-controls">
                       <input
                         type="text"
+                        value={image.customName}
+                        onChange={(e) => updateImageName(image.id, e.target.value)}
+                        placeholder="File name"
+                        className="alt-input"
+                        style={{ marginBottom: '8px' }}
+                      />
+                      <input
+                        type="text"
                         value={image.alt}
                         onChange={(e) => updateImageAlt(image.id, e.target.value)}
                         placeholder="Alt text"
@@ -599,6 +625,14 @@ const CreateProduct: React.FC = () => {
                   <div key={video.id} className="media-item">
                     <video src={video.preview} controls />
                     <div className="media-controls">
+                      <input
+                        type="text"
+                        value={video.customName}
+                        onChange={(e) => updateVideoName(video.id, e.target.value)}
+                        placeholder="File name"
+                        className="alt-input"
+                        style={{ marginBottom: '8px' }}
+                      />
                       <input
                         type="text"
                         value={video.title}

@@ -1,7 +1,7 @@
 const express = require('express');
 const db = require('../config/database');
 const { authenticateToken } = require('../middleware/auth');
-const { s3BannersUpload } = require('../config/s3Upload');
+const { s3BannersUpload, deleteS3File } = require('../config/s3Upload');
 
 const router = express.Router();
 
@@ -133,17 +133,23 @@ router.get('/banners/seller', authenticateToken, async (req, res) => {
 // Create a new banner
 router.post('/banners', authenticateToken, s3BannersUpload.single('background_image'), async (req, res) => {
   try {
-    const { title, subtitle, offer_page_url, display_order } = req.body;
+    const { title, subtitle, offer_page_url, display_order, imageName } = req.body;
     
     if (!title || !offer_page_url) {
       return res.status(400).json({ success: false, message: 'Title and offer page URL are required' });
     }
 
-    const background_image = req.file ? req.file.location : null; // S3 URL from multer-s3
+    let background_image_data = null;
+    if (req.file) {
+      background_image_data = {
+        url: req.file.location,
+        name: imageName || req.file.originalname
+      };
+    }
 
     const result = await db.query(
       'INSERT INTO banners (title, subtitle, background_image, offer_page_url, display_order, created_by) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
-      [title, subtitle, background_image, offer_page_url, display_order || 0, req.user.id]
+      [title, subtitle, JSON.stringify(background_image_data), offer_page_url, display_order || 0, req.user.id]
     );
 
     res.status(201).json({ success: true, banner: result.rows[0] });
@@ -161,24 +167,53 @@ router.post('/banners', authenticateToken, s3BannersUpload.single('background_im
 router.put('/banners/:id', authenticateToken, s3BannersUpload.single('background_image'), async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, subtitle, offer_page_url, display_order, is_active } = req.body;
+    const { title, subtitle, offer_page_url, display_order, is_active, imageName } = req.body;
 
-    let background_image = req.body.existing_background_image;
+    // Get current banner to get old image URL for deletion
+    const currentBanner = await db.query(
+      'SELECT background_image FROM banners WHERE id = $1 AND created_by = $2',
+      [id, req.user.id]
+    );
+
+    if (currentBanner.rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Banner not found or not authorized' });
+    }
+
+    let background_image_data = currentBanner.rows[0].background_image;
+    
     if (req.file) {
-      background_image = req.file.location; // S3 URL from multer-s3
-      
-      // Note: S3 file deletion would need to be implemented separately using deleteFromS3 function
-      // if you want to clean up old files when replacing them
+      // Delete old image from S3 if it exists and is an S3 URL
+      if (background_image_data && typeof background_image_data === 'string') {
+        try {
+          const oldData = JSON.parse(background_image_data);
+          if (oldData.url && oldData.url.includes('s3')) {
+            const s3Key = oldData.url.split('.amazonaws.com/')[1];
+            if (s3Key) {
+              deleteS3File(s3Key).catch(err => console.warn('Warning: Could not delete old S3 file:', err));
+            }
+          }
+        } catch (e) {
+          // If not JSON, try to parse as URL directly
+          if (background_image_data && background_image_data.includes('s3')) {
+            const s3Key = background_image_data.split('.amazonaws.com/')[1];
+            if (s3Key) {
+              deleteS3File(s3Key).catch(err => console.warn('Warning: Could not delete old S3 file:', err));
+            }
+          }
+        }
+      }
+
+      // Update with new image
+      background_image_data = {
+        url: req.file.location,
+        name: imageName || req.file.originalname
+      };
     }
 
     const result = await db.query(
       'UPDATE banners SET title = $1, subtitle = $2, background_image = $3, offer_page_url = $4, display_order = $5, is_active = $6, updated_at = CURRENT_TIMESTAMP WHERE id = $7 AND created_by = $8 RETURNING *',
-      [title, subtitle, background_image, offer_page_url, display_order || 0, is_active, id, req.user.id]
+      [title, subtitle, JSON.stringify(background_image_data), offer_page_url, display_order || 0, is_active, id, req.user.id]
     );
-
-    if (result.rows.length === 0) {
-      return res.status(404).json({ success: false, message: 'Banner not found or not authorized' });
-    }
 
     res.json({ success: true, banner: result.rows[0] });
   } catch (error) {
@@ -201,11 +236,31 @@ router.delete('/banners/:id', authenticateToken, async (req, res) => {
       return res.status(404).json({ success: false, message: 'Banner not found or not authorized' });
     }
 
-    // Delete associated image file
-    if (result.rows[0].background_image) {
-      const imagePath = path.join(__dirname, '..', result.rows[0].background_image);
-      if (fs.existsSync(imagePath)) {
-        fs.unlinkSync(imagePath);
+    // Delete associated image from S3 if it exists
+    const background_image = result.rows[0].background_image;
+    if (background_image) {
+      try {
+        let imageUrl = background_image;
+        
+        // If stored as JSON with metadata
+        if (typeof background_image === 'string' && background_image.startsWith('{')) {
+          try {
+            const imageData = JSON.parse(background_image);
+            imageUrl = imageData.url;
+          } catch (e) {
+            imageUrl = background_image;
+          }
+        }
+        
+        // Delete from S3 if it's an S3 URL
+        if (imageUrl && imageUrl.includes('s3')) {
+          const s3Key = imageUrl.split('.amazonaws.com/')[1];
+          if (s3Key) {
+            deleteS3File(s3Key).catch(err => console.warn('Warning: Could not delete S3 file:', err));
+          }
+        }
+      } catch (err) {
+        console.warn('Warning: Error deleting banner image from S3:', err);
       }
     }
 

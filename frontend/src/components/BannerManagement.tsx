@@ -27,6 +27,7 @@ interface BannerFormData {
   offer_page_url: string;
   display_order: number;
   background_image?: File;
+  imageName?: string;
 }
 
 interface OfferFormData {
@@ -49,6 +50,7 @@ const BannerManagement: React.FC = () => {
     subtitle: '',
     offer_page_url: '',
     display_order: 0,
+    imageName: '',
   });
   
   const [offerForm, setOfferForm] = useState<OfferFormData>({
@@ -113,6 +115,9 @@ const BannerManagement: React.FC = () => {
       
       if (bannerForm.background_image) {
         formData.append('background_image', bannerForm.background_image);
+        if (bannerForm.imageName) {
+          formData.append('imageName', bannerForm.imageName);
+        }
       }
       
       if (editingBanner) {
@@ -208,7 +213,11 @@ const BannerManagement: React.FC = () => {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      setBannerForm({ ...bannerForm, background_image: file });
+      setBannerForm({ 
+        ...bannerForm, 
+        background_image: file,
+        imageName: file.name
+      });
       const reader = new FileReader();
       reader.onload = (e) => setPreviewImage(e.target?.result as string);
       reader.readAsDataURL(file);
@@ -221,6 +230,7 @@ const BannerManagement: React.FC = () => {
       subtitle: '',
       offer_page_url: '',
       display_order: 0,
+      imageName: '',
     });
     setEditingBanner(null);
     setPreviewImage('');
@@ -242,6 +252,7 @@ const BannerManagement: React.FC = () => {
         subtitle: banner.subtitle || '',
         offer_page_url: banner.offer_page_url,
         display_order: banner.display_order,
+        imageName: '',
       });
       setEditingBanner(banner);
       if (banner.background_image) {
@@ -442,6 +453,18 @@ const BannerManagement: React.FC = () => {
                   accept="image/*"
                   onChange={handleImageChange}
                 />
+                {bannerForm.imageName && (
+                  <div style={{ marginTop: '8px' }}>
+                    <label htmlFor="imageName">Image Name</label>
+                    <input
+                      type="text"
+                      id="imageName"
+                      value={bannerForm.imageName}
+                      onChange={(e) => setBannerForm({ ...bannerForm, imageName: e.target.value })}
+                      placeholder="e.g., summer-sale-banner.jpg"
+                    />
+                  </div>
+                )}
                 {previewImage && (
                   <div className="image-preview">
                     <img src={previewImage} alt="Preview" />

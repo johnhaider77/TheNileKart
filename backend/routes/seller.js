@@ -2,7 +2,7 @@ const express = require('express');
 const { body, query, validationResult } = require('express-validator');
 const db = require('../config/database');
 const { authenticateToken, requireSeller } = require('../middleware/auth');
-const { s3ProductsUpload } = require('../config/s3Upload');
+const { s3ProductsUpload, deleteS3File } = require('../config/s3Upload');
 
 const router = express.Router();
 
@@ -113,11 +113,15 @@ router.post('/products', [
 
         // Handle both S3 and local file storage
         const fileUrl = imageFile.location || `/uploads/products/${imageFile.filename}`;
+        
+        // Use customName if provided, otherwise use original filename
+        const displayName = imageData.customName || imageFile.originalname;
 
         images.push({
           id: Date.now() + '_' + i,
           url: fileUrl,
           alt: imageData.alt || imageFile.originalname,
+          displayName: displayName,
           isPrimary: imageData.isPrimary || false
         });
       }
@@ -139,11 +143,15 @@ router.post('/products', [
 
         // Handle both S3 and local file storage
         const fileUrl = videoFile.location || `/uploads/products/${videoFile.filename}`;
+        
+        // Use customName if provided, otherwise use original filename
+        const displayName = videoData.customName || videoFile.originalname;
 
         videos.push({
           id: Date.now() + '_video_' + i,
           url: fileUrl,
-          title: videoData.title || videoFile.originalname
+          title: videoData.title || videoFile.originalname,
+          displayName: displayName
         });
       }
     }
@@ -534,6 +542,18 @@ router.put('/products/:id', [
           deletedByIndexString,
           deletedImagesArray 
         });
+        
+        // Delete from S3 if URL is S3 URL
+        if (img.url && img.url.includes('s3')) {
+          try {
+            const s3Key = img.url.split('.amazonaws.com/')[1];
+            if (s3Key) {
+              deleteS3File(s3Key).catch(err => console.warn('Warning: Could not delete S3 file:', err));
+            }
+          } catch (err) {
+            console.warn('Warning: Error extracting S3 key for deletion:', err);
+          }
+        }
       }
       
       return shouldKeep;
@@ -541,12 +561,28 @@ router.put('/products/:id', [
 
     // Add new uploaded images
     if (req.files && req.files.images) {
-      const newImages = req.files.images.map((file, index) => ({
-        url: file.location, // S3 URL from multer-s3
-        alt: req.body[`imageAlt_${index}`] || '',
-        order: updatedImages.length + index
-      }));
-      updatedImages = [...updatedImages, ...newImages];
+      for (let index = 0; index < req.files.images.length; index++) {
+        const file = req.files.images[index];
+        const imageDataKey = `imageData_${index}`;
+        let imageData = {};
+        
+        try {
+          imageData = req.body[imageDataKey] ? JSON.parse(req.body[imageDataKey]) : {};
+        } catch (e) {
+          imageData = {};
+        }
+        
+        const fileUrl = file.location || `/uploads/products/${file.filename}`;
+        const displayName = imageData.customName || file.originalname;
+        
+        updatedImages.push({
+          id: Date.now() + '_' + index,
+          url: fileUrl,
+          alt: imageData.alt || file.originalname,
+          displayName: displayName,
+          isPrimary: imageData.isPrimary || false
+        });
+      }
     }
 
     // Build dynamic update query
