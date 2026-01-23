@@ -516,18 +516,24 @@ router.put('/products/:id', [
       priceAsFloat: parseFloat(req.body.price),
       isNaN: isNaN(parseFloat(req.body.price)),
       contentType: req.headers['content-type'],
-      allFields: Object.keys(req.body)
+      allFields: Object.keys(req.body),
+      bodyLength: Object.keys(req.body).length
     });
     
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
       console.log('🚨 Validation errors for product update:', {
         errors: errors.array(),
+        errorDetails: errors.array().map(e => ({ param: e.param, msg: e.msg, value: e.value })),
         requestBody: req.body,
         contentType: req.headers['content-type'],
-        hasFiles: !!req.files
+        hasFiles: !!req.files,
+        filesInfo: req.files ? Object.keys(req.files) : []
       });
-      return res.status(400).json({ errors: errors.array() });
+      return res.status(400).json({ 
+        errors: errors.array(),
+        debug: { allFields: Object.keys(req.body) }
+      });
     }
 
     const product_id = req.params.id;

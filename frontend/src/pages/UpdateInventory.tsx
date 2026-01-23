@@ -685,8 +685,11 @@ const UpdateInventory: React.FC = () => {
       const allowedFields = ['name', 'description', 'category', 'product_id', 'stock_quantity', 'actual_buy_price', 'other_details', 'cod_eligible'];
       
       Object.keys(editFormData).forEach(key => {
-        if (allowedFields.includes(key) && editFormData[key as keyof Product] !== undefined && key !== 'price') {
-          formData.append(key, String(editFormData[key as keyof Product]));
+        if (allowedFields.includes(key) && editFormData[key as keyof Product] !== undefined) {
+          const value = editFormData[key as keyof Product];
+          if (value !== null && value !== undefined) {
+            formData.append(key, String(value));
+          }
         }
       });
       
