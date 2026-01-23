@@ -16,6 +16,24 @@ const getAbsoluteUrl = (url) => {
   return `${serverUrl}${url}`;
 };
 
+// Helper function to validate image URLs - reject old local paths
+const isValidImageUrl = (url) => {
+  if (!url) return false;
+  // Accept S3 URLs
+  if (url.includes('.s3.') && url.includes('.amazonaws.com')) {
+    return true;
+  }
+  // Accept absolute URLs with valid protocols
+  if (url.startsWith('https://')) {
+    // Reject local/relative paths that shouldn't be there
+    if (url.includes('/uploads/') || url.includes('/videos/') || url.includes('/banners/')) {
+      return false;
+    }
+    return true;
+  }
+  return false;
+};
+
 // Helper function to convert image URLs in product object
 const convertProductImageUrls = (product) => {
   if (!product) return product;
@@ -23,10 +41,13 @@ const convertProductImageUrls = (product) => {
     product.image_url = getAbsoluteUrl(product.image_url);
   }
   if (product.images && Array.isArray(product.images)) {
-    product.images = product.images.map(img => ({
-      ...img,
-      url: getAbsoluteUrl(img.url)
-    }));
+    // Filter and convert images
+    product.images = product.images
+      .filter(img => isValidImageUrl(img.url))
+      .map(img => ({
+        ...img,
+        url: getAbsoluteUrl(img.url)
+      }));
   }
   if (product.videos && Array.isArray(product.videos)) {
     product.videos = product.videos.map(video => ({

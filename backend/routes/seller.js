@@ -17,6 +17,36 @@ const getAbsoluteUrl = (url) => {
   return `${serverUrl}${url}`;
 };
 
+// Helper function to validate and filter image URLs
+// Returns only valid S3 URLs or absolute URLs
+const isValidImageUrl = (url) => {
+  if (!url) return false;
+  // Accept S3 URLs
+  if (url.includes('.s3.') && url.includes('.amazonaws.com')) {
+    return true;
+  }
+  // Accept absolute URLs with valid protocols
+  if (url.startsWith('https://')) {
+    // Reject local/relative paths that shouldn't be there
+    if (url.includes('/uploads/') || url.includes('/videos/') || url.includes('/banners/')) {
+      // These are old local paths - invalid now
+      console.warn('⚠️ Filtering out old local path URL:', url);
+      return false;
+    }
+    return true;
+  }
+  return false;
+};
+
+// Helper function to filter and clean images array
+const cleanImageArray = (images) => {
+  if (!Array.isArray(images)) return [];
+  return images.filter(img => {
+    if (!img || !img.url) return false;
+    return isValidImageUrl(img.url);
+  });
+};
+
 // Create new product
 router.post('/products', [
   authenticateToken,
@@ -855,10 +885,20 @@ router.put('/products/:id', [
     `;
 
     const updatedProduct = await db.query(updateQuery, queryParams);
+    
+    // Clean images array before sending response
+    let responseProduct = updatedProduct.rows[0];
+    if (responseProduct && responseProduct.images) {
+      const cleanedImages = cleanImageArray(responseProduct.images);
+      if (cleanedImages.length !== responseProduct.images.length) {
+        console.log(`✅ [PRODUCT-UPDATE] Filtered images: ${responseProduct.images.length} → ${cleanedImages.length} valid images`);
+        responseProduct.images = cleanedImages;
+      }
+    }
 
     res.json({
       message: 'Product updated successfully',
-      product: updatedProduct.rows[0]
+      product: responseProduct
     });
 
   } catch (error) {
