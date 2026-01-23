@@ -9,7 +9,7 @@ const socketIo = require('socket.io');
 
 // Load environment variables - use .env.production in production
 const envFile = process.env.NODE_ENV === 'production' ? '.env.production' : '.env';
-dotenv.config({ path: path.join(__dirname, envFile) });
+dotenv.config({ path: path.join(__dirname, '..', envFile) });
 
 // Import database connection
 const db = require('./config/database');
