@@ -116,9 +116,18 @@ const BannerManagement: React.FC = () => {
       if (bannerForm.background_image) {
         formData.append('background_image', bannerForm.background_image);
         if (bannerForm.imageName) {
+          console.log('📝 Banner imageName being sent:', bannerForm.imageName);
           formData.append('imageName', bannerForm.imageName);
         }
       }
+      
+      console.log('🔍 Banner form state before submit:', {
+        hasImage: !!bannerForm.background_image,
+        imageName: bannerForm.imageName,
+        imageNameLength: bannerForm.imageName?.length,
+        imageNameTrimmed: bannerForm.imageName?.trim(),
+        title: bannerForm.title
+      });
       
       if (editingBanner) {
         formData.append('is_active', 'true');
@@ -215,6 +224,7 @@ const BannerManagement: React.FC = () => {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      console.log('🖼️ Image selected:', { fileName: file.name, size: file.size });
       setBannerForm({ 
         ...bannerForm, 
         background_image: file,
@@ -499,7 +509,14 @@ const BannerManagement: React.FC = () => {
                       type="text"
                       id="imageName"
                       value={bannerForm.imageName}
-                      onChange={(e) => setBannerForm({ ...bannerForm, imageName: e.target.value })}
+                      onChange={(e) => {
+                        console.log('📝 imageName field changed:', {
+                          oldValue: bannerForm.imageName,
+                          newValue: e.target.value,
+                          timestamp: new Date().toISOString()
+                        });
+                        setBannerForm({ ...bannerForm, imageName: e.target.value });
+                      }}
                       placeholder="e.g., summer-sale-banner.jpg"
                     />
                   </div>
