@@ -3,7 +3,7 @@ const multer = require('multer');
 const multerS3 = require('multer-s3');
 const path = require('path');
 const fs = require('fs');
-require('dotenv').config();
+// Note: dotenv is already loaded by server.js or database.js, no need to load again
 
 // Check if we should force local storage
 const useLocalStorage = process.env.USE_LOCAL_STORAGE === 'true' || 
