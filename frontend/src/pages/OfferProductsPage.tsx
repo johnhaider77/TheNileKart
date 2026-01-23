@@ -185,7 +185,7 @@ const OfferProductsPage: React.FC = () => {
       console.log('🔍 Fetching products for offer:', { offerCode });
 
       // Get offer products
-      const response = await api.get(`/api/offers/${offerCode}/products`);
+      const response = await api.get(`/offers/${offerCode}/products`);
       
       console.log('📥 Offer products response:', {
         success: response.data.success,
