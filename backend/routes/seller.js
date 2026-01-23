@@ -1610,11 +1610,14 @@ router.put('/products/:id/offers', [
       console.log('✅ Product offers updated successfully:', {
         productId: product_id,
         offersAssigned: result.rows.length,
-      offerCodes: result.rows.map(o => o.offer_code),
-      timestamp: new Date().toISOString()
-        success: true, 
+        offerCodes: result.rows.map(o => o.offer_code),
+        timestamp: new Date().toISOString()
+      });
+
+      res.status(200).json({
+        success: true,
         message: 'Product offers updated successfully',
-        offers: result.rows 
+        offers: result.rows
       });
     } catch (error) {
       await db.query('ROLLBACK');
