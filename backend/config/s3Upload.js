@@ -5,6 +5,9 @@ const path = require('path');
 const fs = require('fs');
 // Note: dotenv is already loaded by server.js or database.js, no need to load again
 
+// Force S3-only mode - NO LOCAL STORAGE FALLBACK ALLOWED
+const ENFORCE_S3_ONLY = true;
+
 // Check if we have AWS S3 credentials configured
 const hasAwsCredentials = !!(process.env.AWS_ACCESS_KEY_ID && 
                               process.env.AWS_SECRET_ACCESS_KEY && 
@@ -20,24 +23,22 @@ let s3;
 let s3Available = false;
 
 console.log('🔍 S3 Configuration Check:');
-console.log('   - AWS_ACCESS_KEY_ID:', process.env.AWS_ACCESS_KEY_ID ? '✅' : '❌');
-console.log('   - AWS_SECRET_ACCESS_KEY:', process.env.AWS_SECRET_ACCESS_KEY ? '✅' : '❌');
-console.log('   - S3_BUCKET_NAME:', process.env.S3_BUCKET_NAME ? '✅' : '❌');
-console.log('   - AWS_REGION:', process.env.AWS_REGION ? '✅' : '❌');
+console.log('   - AWS_ACCESS_KEY_ID:', process.env.AWS_ACCESS_KEY_ID ? '✅ Present' : '❌ MISSING');
+console.log('   - AWS_SECRET_ACCESS_KEY:', process.env.AWS_SECRET_ACCESS_KEY ? '✅ Present' : '❌ MISSING');
+console.log('   - S3_BUCKET_NAME:', process.env.S3_BUCKET_NAME ? `✅ ${process.env.S3_BUCKET_NAME}` : '❌ MISSING');
+console.log('   - AWS_REGION:', process.env.AWS_REGION ? `✅ ${process.env.AWS_REGION}` : '❌ MISSING');
 console.log('   - USE_LOCAL_STORAGE:', process.env.USE_LOCAL_STORAGE);
 console.log('   - NODE_ENV:', process.env.NODE_ENV);
-console.log('   - Has All Credentials:', hasAwsCredentials);
-console.log('   - Force Local Storage:', forceLocalStorage);
+console.log('   - Has All Credentials:', hasAwsCredentials ? '✅ YES' : '❌ NO');
+console.log('   - Force Local Storage:', forceLocalStorage ? '✅ YES' : '❌ NO');
+console.log('   - ENFORCE_S3_ONLY:', ENFORCE_S3_ONLY ? '✅ ENABLED' : '❌ DISABLED');
 
-// S3 is REQUIRED - no local storage fallback allowed
-if (!hasAwsCredentials && !forceLocalStorage) {
-  console.error('❌ CRITICAL ERROR: AWS S3 credentials are REQUIRED but not all configured!');
+// S3 is REQUIRED in production - no local storage fallback allowed
+if (ENFORCE_S3_ONLY && !hasAwsCredentials) {
+  console.error('❌ CRITICAL ERROR: S3 enforcement is ON but AWS credentials are MISSING!');
   console.error('Required environment variables: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION, S3_BUCKET_NAME');
-  if (!isProduction) {
-    console.warn('⚠️ Proceeding in development mode with local storage');
-  } else {
-    throw new Error('AWS S3 credentials required in production. Images MUST be uploaded to S3 only.');
-  }
+  console.error('Images MUST be uploaded to S3 only - local storage is NOT allowed!');
+  throw new Error('AWS S3 credentials REQUIRED. S3-only mode is enforced. Images cannot be uploaded to local storage.');
 }
 
 // Configure AWS S3 if credentials are available and not forced to use local
@@ -107,36 +108,25 @@ if (!fs.existsSync(uploadsDir)) {
 
 // Storage configuration function
 const getStorageConfig = (folder) => {
-  if (s3Available) {
-    console.log('☁️ Using AWS S3 for', folder);
-    return multerS3({
-      s3: s3,
-      bucket: process.env.S3_BUCKET_NAME,
-      metadata: function (req, file, cb) {
-        cb(null, { fieldName: file.fieldname });
-      },
-      key: function (req, file, cb) {
-        const fileName = `${folder}/${Date.now()}-${file.originalname}`;
-        cb(null, fileName);
-      },
-      contentType: multerS3.AUTO_CONTENT_TYPE
-    });
-  } else {
-    console.log('📁 Using local storage for', folder);
-    return multer.diskStorage({
-      destination: function (req, file, cb) {
-        const destPath = path.join(uploadsDir, folder);
-        if (!fs.existsSync(destPath)) {
-          fs.mkdirSync(destPath, { recursive: true });
-        }
-        cb(null, destPath);
-      },
-      filename: function (req, file, cb) {
-        const fileName = `${Date.now()}-${file.originalname}`;
-        cb(null, fileName);
-      }
-    });
+  // S3 is ENFORCED - always use S3, never fall back to local storage
+  if (!s3Available) {
+    throw new Error(`S3 is not available but S3-only mode is enforced! Cannot upload to folder: ${folder}`);
   }
+  
+  console.log('☁️ Using AWS S3 for', folder);
+  return multerS3({
+    s3: s3,
+    bucket: process.env.S3_BUCKET_NAME,
+    metadata: function (req, file, cb) {
+      cb(null, { fieldName: file.fieldname });
+    },
+    key: function (req, file, cb) {
+      const fileName = `${folder}/${Date.now()}-${file.originalname}`;
+      console.log('📤 Uploading to S3:', fileName);
+      cb(null, fileName);
+    },
+    contentType: multerS3.AUTO_CONTENT_TYPE
+  });
 };
 
 // S3 upload configuration for products
