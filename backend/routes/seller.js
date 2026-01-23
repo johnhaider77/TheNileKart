@@ -117,18 +117,19 @@ router.post('/products', [
         // Use customName if provided, otherwise use original filename
         const displayName = imageData.customName || imageFile.originalname;
         
-        // If customName provided and file is on S3, rename it
-        if (displayName && displayName !== imageFile.originalname && imageFile.location && imageFile.location.includes('s3')) {
+        // Always rename S3 files to use clean custom names (without timestamps)
+        if (imageFile.location && imageFile.location.includes('s3')) {
           try {
             const currentS3Key = imageFile.location.split('.amazonaws.com/')[1];
             const fileExtension = displayName.includes('.') ? '' : imageFile.originalname.split('.').pop();
             const customFileName = fileExtension ? `${displayName}.${fileExtension}` : displayName;
             const newS3Key = `products/${customFileName}`;
             
-            console.log('🔄 [PRODUCT-CREATE] Renaming S3 image for custom name:', {
+            console.log('🔄 [PRODUCT-CREATE] Renaming S3 image to custom name:', {
               oldKey: currentS3Key,
               newKey: newS3Key,
-              customName: displayName
+              customName: displayName,
+              fileExtension: fileExtension
             });
             
             // Rename in S3 (copy + delete)
@@ -176,18 +177,19 @@ router.post('/products', [
         // Use customName if provided, otherwise use original filename
         const displayName = videoData.customName || videoFile.originalname;
         
-        // If customName provided and file is on S3, rename it
-        if (displayName && displayName !== videoFile.originalname && videoFile.location && videoFile.location.includes('s3')) {
+        // Always rename S3 files to use clean custom names (without timestamps)
+        if (videoFile.location && videoFile.location.includes('s3')) {
           try {
             const currentS3Key = videoFile.location.split('.amazonaws.com/')[1];
             const fileExtension = displayName.includes('.') ? '' : videoFile.originalname.split('.').pop();
             const customFileName = fileExtension ? `${displayName}.${fileExtension}` : displayName;
             const newS3Key = `products/${customFileName}`;
             
-            console.log('🔄 [PRODUCT-CREATE] Renaming S3 video for custom name:', {
+            console.log('🔄 [PRODUCT-CREATE] Renaming S3 video to custom name:', {
               oldKey: currentS3Key,
               newKey: newS3Key,
-              customName: displayName
+              customName: displayName,
+              fileExtension: fileExtension
             });
             
             // Rename in S3 (copy + delete)
@@ -639,18 +641,19 @@ router.put('/products/:id', [
         let fileUrl = file.location || `/uploads/products/${file.filename}`;
         const displayName = imageData.customName || file.originalname;
         
-        // If customName provided and file is on S3, rename it
-        if (displayName && displayName !== file.originalname && file.location && file.location.includes('s3')) {
+        // Always rename S3 files to use clean custom names (without timestamps)
+        if (file.location && file.location.includes('s3')) {
           try {
             const currentS3Key = file.location.split('.amazonaws.com/')[1];
             const fileExtension = displayName.includes('.') ? '' : file.originalname.split('.').pop();
             const customFileName = fileExtension ? `${displayName}.${fileExtension}` : displayName;
             const newS3Key = `products/${customFileName}`;
             
-            console.log('🔄 [PRODUCT-UPDATE] Renaming S3 image for custom name:', {
+            console.log('🔄 [PRODUCT-UPDATE] Renaming S3 image to custom name:', {
               oldKey: currentS3Key,
               newKey: newS3Key,
-              customName: displayName
+              customName: displayName,
+              fileExtension: fileExtension
             });
             
             // Rename in S3 (copy + delete)
