@@ -5,8 +5,12 @@ const path = require('path');
 const fs = require('fs');
 // Note: dotenv is already loaded by server.js or database.js, no need to load again
 
-// Check if we should use S3 (must have AWS credentials)
-const hasAwsCredentials = process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY;
+// Check if we have AWS S3 credentials configured
+const hasAwsCredentials = !!(process.env.AWS_ACCESS_KEY_ID && 
+                              process.env.AWS_SECRET_ACCESS_KEY && 
+                              process.env.S3_BUCKET_NAME &&
+                              process.env.AWS_REGION);
+
 const forceLocalStorage = process.env.USE_LOCAL_STORAGE === 'true';
 
 // Determine if this is production environment
@@ -15,22 +19,28 @@ const isProduction = process.env.NODE_ENV === 'production';
 let s3;
 let s3Available = false;
 
+console.log('🔍 S3 Configuration Check:');
+console.log('   - AWS_ACCESS_KEY_ID:', process.env.AWS_ACCESS_KEY_ID ? '✅' : '❌');
+console.log('   - AWS_SECRET_ACCESS_KEY:', process.env.AWS_SECRET_ACCESS_KEY ? '✅' : '❌');
+console.log('   - S3_BUCKET_NAME:', process.env.S3_BUCKET_NAME ? '✅' : '❌');
+console.log('   - AWS_REGION:', process.env.AWS_REGION ? '✅' : '❌');
+console.log('   - USE_LOCAL_STORAGE:', process.env.USE_LOCAL_STORAGE);
+console.log('   - NODE_ENV:', process.env.NODE_ENV);
+console.log('   - Has All Credentials:', hasAwsCredentials);
+console.log('   - Force Local Storage:', forceLocalStorage);
+
 // S3 is REQUIRED - no local storage fallback allowed
-if (!hasAwsCredentials || forceLocalStorage) {
-  if (forceLocalStorage) {
-    console.log('📁 Local storage mode forced via USE_LOCAL_STORAGE env var');
+if (!hasAwsCredentials && !forceLocalStorage) {
+  console.error('❌ CRITICAL ERROR: AWS S3 credentials are REQUIRED but not all configured!');
+  console.error('Required environment variables: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION, S3_BUCKET_NAME');
+  if (!isProduction) {
+    console.warn('⚠️ Proceeding in development mode with local storage');
   } else {
-    console.error('❌ CRITICAL ERROR: AWS S3 credentials are REQUIRED but not configured!');
-    console.error('Required environment variables: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, AWS_REGION, S3_BUCKET_NAME');
-    if (!isProduction) {
-      console.warn('⚠️ Proceeding in development mode with local storage as fallback');
-    } else {
-      throw new Error('AWS S3 credentials required in production. Images MUST be uploaded to S3 only.');
-    }
+    throw new Error('AWS S3 credentials required in production. Images MUST be uploaded to S3 only.');
   }
 }
 
-// Configure AWS S3
+// Configure AWS S3 if credentials are available and not forced to use local
 if (hasAwsCredentials && !forceLocalStorage) {
   try {
     // Configure AWS SDK with SSL workaround for local development
