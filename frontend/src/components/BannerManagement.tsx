@@ -134,12 +134,13 @@ const BannerManagement: React.FC = () => {
         setSuccessMessage('Banner created successfully!');
       }
       
+      // Show success message for 2.5 seconds before closing modal
       setTimeout(() => {
         setIsModalOpen(false);
         resetBannerForm();
         setSuccessMessage('');
         fetchData();
-      }, 1000);
+      }, 2500);
     } catch (error: any) {
       console.error('Error saving banner:', error);
       const errorMessage = error.response?.data?.message || error.message || 'Failed to save banner';
@@ -175,12 +176,13 @@ const BannerManagement: React.FC = () => {
         setSuccessMessage('Offer created successfully!');
       }
       
+      // Show success message for 2.5 seconds before closing modal
       setTimeout(() => {
         setIsOfferModalOpen(false);
         resetOfferForm();
         setSuccessMessage('');
         fetchData();
-      }, 1000);
+      }, 2500);
     } catch (error: any) {
       console.error('Error saving offer:', error);
       const errorMessage = error.response?.data?.message || error.message || 'Failed to save offer';
