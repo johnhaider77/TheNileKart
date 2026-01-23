@@ -1589,27 +1589,53 @@ router.put('/products/:id/offers', [
 
     try {
       // Remove existing offers for this product
-      await db.query('DELETE FROM product_offers WHERE product_id = $1', [product_id]);
+      const deleteResult = await db.query('DELETE FROM product_offers WHERE product_id = $1', [product_id]);
+      console.log('🗑️ Deleted existing offers:', { 
+        productId: product_id, 
+        deletedCount: deleteResult.rowCount 
+      });
 
       // Add new offers
       if (offers && offers.length > 0) {
         const values = offers.map((offer, index) => `($1, $${index + 2})`).join(', ');
         const params = [product_id, ...offers];
         
-        await db.query(
+        console.log('📝 Inserting new offers:', { 
+          productId: product_id, 
+          offerCodes: offers,
+          query: `INSERT INTO product_offers (product_id, offer_code) VALUES ${values}`,
+          params
+        });
+        
+        const insertResult = await db.query(
           `INSERT INTO product_offers (product_id, offer_code) VALUES ${values}`,
           params
         );
+        
+        console.log('✔️ Offers inserted:', { 
+          productId: product_id, 
+          insertedCount: insertResult.rowCount,
+          offersInserted: offers
+        });
       }
 
       // CRITICAL: Ensure product is active when offers are assigned
       // This ensures products are visible to customers when they click banners
-      if (!productIsActive) {
-        console.log('🔧 Activating product for offer visibility:', { productId: product_id });
-        await db.query(
-          'UPDATE products SET is_active = true WHERE id = $1',
+      // Only activate if offers are actually being assigned (>0 offers)
+      if (offers && offers.length > 0) {
+        console.log('🔧 Ensuring product is active for offer visibility:', { 
+          productId: product_id, 
+          offerCount: offers.length,
+          wasActive: productIsActive
+        });
+        const updateResult = await db.query(
+          'UPDATE products SET is_active = true, updated_at = NOW() WHERE id = $1',
           [product_id]
         );
+        console.log('✅ Product activated:', { 
+          productId: product_id, 
+          updatedCount: updateResult.rowCount 
+        });
       }
 
       await db.query('COMMIT');
