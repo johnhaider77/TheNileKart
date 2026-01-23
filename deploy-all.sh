@@ -64,7 +64,14 @@ deploy_backend() {
         return 1
     }
     
-    echo "🔄 Restarting server..."
+    echo "� Building backend on EC2..."
+    ssh -i "$EC2_KEY" "$EC2_USER@$EC2_HOST" \
+        "cd $EC2_PATH/backend && npm install" || {
+        echo "❌ Failed to install dependencies on EC2"
+        return 1
+    }
+    
+    echo "�🔄 Restarting server..."
     ssh -i "$EC2_KEY" "$EC2_USER@$EC2_HOST" \
         "cd $EC2_PATH && pm2 restart server --update-env" || {
         echo "❌ Failed to restart server"
