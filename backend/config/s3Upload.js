@@ -5,7 +5,8 @@ const path = require('path');
 const fs = require('fs');
 // Note: dotenv is already loaded by server.js or database.js, no need to load again
 
-// Check if we should force local storage
+// In production, enforce S3-only uploads (no fallback to local storage)
+const isProduction = process.env.NODE_ENV === 'production';
 const useLocalStorage = process.env.USE_LOCAL_STORAGE === 'true' || 
                        !process.env.AWS_ACCESS_KEY_ID;
 
@@ -54,10 +55,20 @@ if (!useLocalStorage) {
     s3Available = true;
     console.log('☁️ AWS S3 configured for file uploads (with SSL workaround)');
   } catch (error) {
-    console.warn('⚠️ AWS S3 configuration failed, falling back to local storage:', error.message);
-    s3Available = false;
+    if (isProduction) {
+      console.error('❌ CRITICAL: AWS S3 configuration failed in production!');
+      console.error('Error:', error.message);
+      throw new Error('S3 configuration required in production');
+    } else {
+      console.warn('⚠️ AWS S3 configuration failed, falling back to local storage:', error.message);
+      s3Available = false;
+    }
   }
 } else {
+  if (isProduction) {
+    console.error('❌ CRITICAL: AWS credentials not configured in production!');
+    throw new Error('AWS S3 credentials required in production');
+  }
   console.log('📁 Using local file storage (forced or development mode)');
 }
 
@@ -77,7 +88,11 @@ if (!fs.existsSync(uploadsDir)) {
 
 // Storage configuration function
 const getStorageConfig = (folder) => {
-  if (!s3Available || useLocalStorage) {
+  // In production, S3 is mandatory
+  if (!s3Available) {
+    if (isProduction) {
+      throw new Error(`S3 storage is required in production. Failed to configure S3 for ${folder}`);
+    }
     console.log('📁 Using local storage for', folder);
     return multer.diskStorage({
       destination: function (req, file, cb) {
