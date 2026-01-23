@@ -127,7 +127,7 @@ const Navbar: React.FC = () => {
                 onClick={() => navigate('/login')} 
                 className="btn btn-primary btn-sm"
               >
-                Sign In
+                Login
               </button>
             </div>
           )}
@@ -241,41 +241,43 @@ const Navbar: React.FC = () => {
                   </button>
                 </>
               ) : (
-                <div className="mobile-auth-links">
-                  <Link 
-                    to="/login" 
-                    onClick={closeMobileMenu}
-                    style={{ 
-                      display: 'block', 
-                      padding: '12px', 
-                      marginBottom: '10px', 
-                      textAlign: 'center', 
-                      backgroundColor: 'transparent', 
-                      color: '#007bff', 
-                      border: '2px solid #007bff', 
-                      borderRadius: '6px', 
-                      textDecoration: 'none'
-                    }}
-                  >
-                    Customer Login
-                  </Link>
-                  <Link 
-                    to="/seller/login" 
-                    onClick={closeMobileMenu}
-                    style={{ 
-                      display: 'block', 
-                      padding: '12px', 
-                      textAlign: 'center', 
-                      backgroundColor: '#007bff', 
-                      color: 'white', 
-                      border: '2px solid #007bff', 
-                      borderRadius: '6px', 
-                      textDecoration: 'none'
-                    }}
-                  >
-                    Seller Login
-                  </Link>
-                </div>
+                <>
+                  <div className="mobile-auth-links">
+                    <Link 
+                      to="/login" 
+                      onClick={closeMobileMenu}
+                      style={{ 
+                        display: 'block', 
+                        padding: '12px', 
+                        marginBottom: '20px', 
+                        textAlign: 'center', 
+                        backgroundColor: '#007bff', 
+                        color: 'white', 
+                        border: '2px solid #007bff', 
+                        borderRadius: '6px', 
+                        textDecoration: 'none',
+                        fontSize: '16px',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      Login
+                    </Link>
+                  </div>
+                  
+                  <div style={{ marginBottom: '30px', paddingBottom: '20px', borderBottom: '1px solid #eee' }}>
+                    <h3 style={{ marginBottom: '15px', fontSize: '16px', fontWeight: 'bold', color: '#333' }}>Shop by Category</h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <Link to="/products?category=Women's Fashion" onClick={closeMobileMenu} style={{ color: '#007bff', textDecoration: 'none', padding: '8px 0' }}>👗 Women's Fashion</Link>
+                      <Link to="/products?category=Men's Fashion" onClick={closeMobileMenu} style={{ color: '#007bff', textDecoration: 'none', padding: '8px 0' }}>👔 Men's Fashion</Link>
+                      <Link to="/products?category=Health, Beauty & Perfumes" onClick={closeMobileMenu} style={{ color: '#007bff', textDecoration: 'none', padding: '8px 0' }}>💄 Health, Beauty & Perfumes</Link>
+                      <Link to="/products?category=Electronics" onClick={closeMobileMenu} style={{ color: '#007bff', textDecoration: 'none', padding: '8px 0' }}>📱 Electronics</Link>
+                      <Link to="/products?category=Home & Living" onClick={closeMobileMenu} style={{ color: '#007bff', textDecoration: 'none', padding: '8px 0' }}>🏠 Home & Living</Link>
+                      <Link to="/products?category=Sports & Outdoors" onClick={closeMobileMenu} style={{ color: '#007bff', textDecoration: 'none', padding: '8px 0' }}>⚽ Sports & Outdoors</Link>
+                      <Link to="/products?category=Books & Media" onClick={closeMobileMenu} style={{ color: '#007bff', textDecoration: 'none', padding: '8px 0' }}>📚 Books & Media</Link>
+                      <Link to="/products?category=Kids & Toys" onClick={closeMobileMenu} style={{ color: '#007bff', textDecoration: 'none', padding: '8px 0' }}>🧸 Kids & Toys</Link>
+                    </div>
+                  </div>
+                </>
               )}
             </div>
           </div>

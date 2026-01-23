@@ -248,6 +248,23 @@ const Login: React.FC = () => {
                   {isLogin ? 'Create Account' : 'Sign In'}
                 </button>
               </div>
+              
+              {isLogin && (
+                <div style={{ marginTop: '20px', paddingTop: '20px', borderTop: '1px solid #eee', textAlign: 'center' }}>
+                  <p style={{ fontSize: '14px', color: '#666', marginBottom: '8px' }}>Seller?</p>
+                  <Link 
+                    to="/seller/login" 
+                    style={{ 
+                      color: '#007bff', 
+                      textDecoration: 'none',
+                      fontWeight: '500',
+                      fontSize: '14px'
+                    }}
+                  >
+                    Seller Login
+                  </Link>
+                </div>
+              )}
             </div>
           </div>
         </div>

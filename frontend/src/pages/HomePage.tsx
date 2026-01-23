@@ -8,7 +8,7 @@ import BannerCarousel from '../components/BannerCarousel';
 import QuickViewModal from '../components/QuickViewModal';
 import ImageCarousel from '../components/ImageCarousel';
 import { Product } from '../utils/types';
-import { CATEGORIES } from '../utils/categories';
+// Categories moved to Hamburger menu
 import { useMetrics } from '../hooks/useMetrics';
 import '../styles/HomePage.css';
 
@@ -989,23 +989,6 @@ const HomePage: React.FC = () => {
               ))}
               </div>
             </div>
-          </div>
-        </section>
-
-        {/* Categories Section */}
-        <section className="categories-section">
-          <h2 className="section-title">Shop by Category</h2>
-          <div className="categories-grid">
-            {CATEGORIES.map((category) => (
-              <Link
-                key={category.name}
-                to={category.path}
-                className="category-tile"
-              >
-                <div className="category-icon">{category.icon}</div>
-                <h4 className="category-name">{category.name}</h4>
-              </Link>
-            ))}
           </div>
         </section>
 
