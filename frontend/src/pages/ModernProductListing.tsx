@@ -246,6 +246,16 @@ const ModernProductListing: React.FC = () => {
   const { addToCart } = useCart();
   const navigate = useNavigate();
 
+  // Update filters when URL search params change
+  useEffect(() => {
+    setFilters({
+      category: searchParams.get('category') || '',
+      search: searchParams.get('search') || '',
+      minPrice: searchParams.get('minPrice') || '',
+      maxPrice: searchParams.get('maxPrice') || ''
+    });
+  }, [searchParams]);
+
   // Scroll to top on page load
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
