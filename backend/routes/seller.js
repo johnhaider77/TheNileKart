@@ -1597,26 +1597,46 @@ router.put('/products/:id/offers', [
 
       // Add new offers
       if (offers && offers.length > 0) {
-        const values = offers.map((offer, index) => `($1, $${index + 2})`).join(', ');
-        const params = [product_id, ...offers];
-        
-        console.log('📝 Inserting new offers:', { 
-          productId: product_id, 
-          offerCodes: offers,
-          query: `INSERT INTO product_offers (product_id, offer_code) VALUES ${values}`,
-          params
-        });
-        
-        const insertResult = await db.query(
-          `INSERT INTO product_offers (product_id, offer_code) VALUES ${values}`,
-          params
+        // FIRST: Validate that all offer codes exist and are active
+        const offerValidation = await db.query(
+          'SELECT offer_code, is_active FROM offers WHERE offer_code = ANY($1)',
+          [offers]
         );
         
-        console.log('✔️ Offers inserted:', { 
-          productId: product_id, 
-          insertedCount: insertResult.rowCount,
-          offersInserted: offers
+        const validOfferCodes = offerValidation.rows.filter(o => o.is_active).map(o => o.offer_code);
+        console.log('🔍 Offer validation:', { 
+          requestedOffers: offers,
+          foundOffers: offerValidation.rows.map(o => ({ code: o.offer_code, active: o.is_active })),
+          validOffers: validOfferCodes
         });
+        
+        if (validOfferCodes.length === 0) {
+          console.warn('⚠️ WARNING: No valid/active offers found for:', offers);
+        }
+        
+        // Now insert with validated codes only
+        if (validOfferCodes.length > 0) {
+          const values = validOfferCodes.map((offer, index) => `($1, $${index + 2})`).join(', ');
+          const params = [product_id, ...validOfferCodes];
+          
+          console.log('📝 Inserting validated offers:', { 
+            productId: product_id, 
+            offerCodes: validOfferCodes,
+            query: `INSERT INTO product_offers (product_id, offer_code) VALUES ${values}`,
+            params
+          });
+          
+          const insertResult = await db.query(
+            `INSERT INTO product_offers (product_id, offer_code) VALUES ${values}`,
+            params
+          );
+          
+          console.log('✔️ Offers inserted:', { 
+            productId: product_id, 
+            insertedCount: insertResult.rowCount,
+            offersInserted: validOfferCodes
+          });
+        }
       }
 
       // CRITICAL: Ensure product is active when offers are assigned
@@ -1636,6 +1656,8 @@ router.put('/products/:id/offers', [
           productId: product_id, 
           updatedCount: updateResult.rowCount 
         });
+      } else {
+        console.log('ℹ️ No offers to assign - product state unchanged', { productId: product_id });
       }
 
       await db.query('COMMIT');
