@@ -8,7 +8,8 @@ module.exports = {
       exec_mode: 'fork',
       env: {
         NODE_ENV: 'production',
-        PORT: '5000'
+        PORT: '5000',
+        USE_LOCAL_STORAGE: 'false'
       },
       error_file: '/home/ubuntu/.pm2/logs/server-error.log',
       out_file: '/home/ubuntu/.pm2/logs/server-out.log',
