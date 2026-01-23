@@ -83,18 +83,30 @@ const BannerCarousel: React.FC = () => {
           let imageUrl = null;
           
           if (banner.background_image) {
-            if (banner.background_image.startsWith('http')) {
-              // Full URL
-              imageUrl = banner.background_image;
-            } else if (banner.background_image.startsWith('/uploads')) {
+            // Try to parse as JSON (new format: {"url": "...", "name": "..."})
+            let backgroundImageUrl = banner.background_image;
+            try {
+              if (typeof banner.background_image === 'string' && banner.background_image.startsWith('{')) {
+                const imageData = JSON.parse(banner.background_image);
+                backgroundImageUrl = imageData.url || banner.background_image;
+              }
+            } catch (e) {
+              // If JSON parse fails, use as-is
+              backgroundImageUrl = banner.background_image;
+            }
+            
+            if (backgroundImageUrl.startsWith('http')) {
+              // Full URL (S3 or external)
+              imageUrl = backgroundImageUrl;
+            } else if (backgroundImageUrl.startsWith('/uploads')) {
               // Path already includes /uploads
-              imageUrl = `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}${banner.background_image}`;
-            } else if (banner.background_image.startsWith('uploads')) {
+              imageUrl = `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}${backgroundImageUrl}`;
+            } else if (backgroundImageUrl.startsWith('uploads')) {
               // Path without leading slash
-              imageUrl = `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/${banner.background_image}`;
+              imageUrl = `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/${backgroundImageUrl}`;
             } else {
               // Just filename
-              imageUrl = `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/uploads/banners/${banner.background_image}`;
+              imageUrl = `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/uploads/banners/${backgroundImageUrl}`;
             }
           }
 
