@@ -332,7 +332,7 @@ router.post('/products', [
         JSON.stringify(images),
         JSON.stringify(videos),
         finalProductId,
-        totalStock > 0, // Auto-set active status based on total stock
+        true, // Always set active when created (sellers can toggle status if needed)
         cod_eligible,
         productMarketPrice
       ]
@@ -1607,13 +1607,18 @@ router.put('/products/:id/offers', [
         ORDER BY o.name
       `, [product_id]);
 
-      res.json({ 
+      console.log('✅ Product offers updated successfully:', {
+        productId: product_id,
+        offersAssigned: result.rows.length,
+      offerCodes: result.rows.map(o => o.offer_code),
+      timestamp: new Date().toISOString()
         success: true, 
         message: 'Product offers updated successfully',
         offers: result.rows 
       });
     } catch (error) {
       await db.query('ROLLBACK');
+      console.error('❌ Error in transaction:', error);
       throw error;
     }
   } catch (error) {

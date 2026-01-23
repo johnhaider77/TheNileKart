@@ -61,7 +61,15 @@ const ProductOfferManager: React.FC<ProductOfferManagerProps> = ({
   const handleSave = async () => {
     try {
       setSaving(true);
+      console.log('💾 Saving product offers:', {
+        productId,
+        selectedOffers: productOffers,
+        offerCount: productOffers.length
+      });
+      
       await sellerAPI.updateProductOffers(productId, productOffers);
+      
+      console.log('✅ Product offers saved successfully');
       
       if (onUpdate) {
         onUpdate();
@@ -70,7 +78,7 @@ const ProductOfferManager: React.FC<ProductOfferManagerProps> = ({
       // Show success message (you might want to use a toast/notification system)
       alert('Product offers updated successfully!');
     } catch (error) {
-      console.error('Error updating product offers:', error);
+      console.error('❌ Error updating product offers:', error);
       alert('Failed to update product offers. Please try again.');
     } finally {
       setSaving(false);

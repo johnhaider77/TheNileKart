@@ -182,8 +182,16 @@ const OfferProductsPage: React.FC = () => {
       setLoading(true);
       setError('');
 
+      console.log('🔍 Fetching products for offer:', { offerCode });
+
       // Get offer products
       const response = await api.get(`/api/offers/${offerCode}/products`);
+      
+      console.log('📥 Offer products response:', {
+        success: response.data.success,
+        productCount: response.data.products?.length || 0,
+        products: response.data.products
+      });
       
       if (response.data.success) {
         setProducts(response.data.products);
@@ -195,14 +203,17 @@ const OfferProductsPage: React.FC = () => {
             name: `${offerCode?.toUpperCase()} Offer`,
             description: `Special products available under ${offerCode} offer`
           });
+          console.log('✅ Found', response.data.products.length, 'products for offer', offerCode);
         } else {
           setOfferInfo({
             name: `${offerCode?.toUpperCase()} Offer`,
             description: 'No products currently available for this offer'
           });
+          console.warn('⚠️ No products found for offer:', offerCode);
         }
       } else {
         setError('Failed to load offer products');
+        console.error('❌ API returned success: false');
       }
     } catch (err: any) {
       console.error('Error fetching offer products:', err);

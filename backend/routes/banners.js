@@ -371,6 +371,19 @@ router.get('/offers/:offerCode/products', async (req, res) => {
   try {
     const { offerCode } = req.params;
     
+    console.log('🔍 Fetching products for offer:', {
+      offerCode,
+      timestamp: new Date().toISOString()
+    });
+
+    // First, get all products linked to this offer (regardless of active status)
+    const allLinkedResult = await db.query(`
+      SELECT COUNT(*) as total_linked
+      FROM product_offers po
+      WHERE po.offer_code = $1
+    `, [offerCode]);
+
+    // Then get only active products
     const result = await db.query(`
       SELECT p.*, u.full_name as seller_name
       FROM products p
@@ -379,6 +392,31 @@ router.get('/offers/:offerCode/products', async (req, res) => {
       WHERE po.offer_code = $1 AND p.is_active = true
       ORDER BY p.created_at DESC
     `, [offerCode]);
+
+    console.log('📦 Products found for offer:', {
+      offerCode,
+      totalLinked: allLinkedResult.rows[0]?.total_linked || 0,
+      activeCount: result.rows.length,
+      activeProductIds: result.rows.map(p => p.id),
+      inactiveCount: (allLinkedResult.rows[0]?.total_linked || 0) - result.rows.length
+    });
+      productIds: result.rows.map(p => p.id)
+    });
+
+    if (result.rows.length === 0) {
+      console.log('⚠️ No active products found for this offer. Checking product_offers table:');
+      
+      // Debug query to see what's in product_offers
+      const debugResult = await db.query(`
+        SELECT po.product_id, po.offer_code, p.name, p.is_active, o.is_active as offer_is_active
+        FROM product_offers po
+        LEFT JOIN products p ON po.product_id = p.id
+        LEFT JOIN offers o ON po.offer_code = o.offer_code
+        WHERE po.offer_code = $1
+      `, [offerCode]);
+      
+      console.log('🐛 Debug - product_offers entries:', debugResult.rows);
+    }
 
     res.json({ success: true, products: result.rows });
   } catch (error) {
