@@ -1,7 +1,7 @@
 const express = require('express');
 const db = require('../config/database');
 const { authenticateToken } = require('../middleware/auth');
-const { s3BannersUpload, deleteS3File } = require('../config/s3Upload');
+const { s3BannersUpload, deleteS3File, renameS3File } = require('../config/s3Upload');
 
 const router = express.Router();
 
@@ -169,7 +169,16 @@ router.put('/banners/:id', authenticateToken, s3BannersUpload.single('background
     const { id } = req.params;
     const { title, subtitle, offer_page_url, display_order, is_active, imageName } = req.body;
 
-    // Get current banner to get old image URL for deletion
+    console.log('🔵 Banner PUT request received:', {
+      id,
+      title,
+      hasFile: !!req.file,
+      fileName: req.file?.originalname,
+      fileLocation: req.file?.location?.substring(0, 80),
+      imageName,
+      imageNameLength: imageName?.length,
+      imageNameTrimmed: imageName?.trim()
+    });
     const currentBanner = await db.query(
       'SELECT background_image FROM banners WHERE id = $1 AND created_by = $2',
       [id, req.user.id]
@@ -203,10 +212,48 @@ router.put('/banners/:id', authenticateToken, s3BannersUpload.single('background
         }
       }
 
+      let finalFileLocation = req.file.location;
+      
+      // If imageName provided, rename the S3 file to use custom name instead of timestamp-based name
+      if (imageName && imageName.trim()) {
+        try {
+          const currentS3Key = req.file.location.split('.amazonaws.com/')[1]; // e.g., "banners/1769138947068-original.jpg"
+          const fileExtension = imageName.includes('.') ? '' : req.file.originalname.split('.').pop();
+          const customFileName = fileExtension ? `${imageName}.${fileExtension}` : imageName;
+          const newS3Key = `banners/${customFileName}`;
+          
+          console.log('🔄 Renaming S3 file for custom imageName:', {
+            oldKey: currentS3Key,
+            newKey: newS3Key,
+            customImageName: imageName
+          });
+          
+          // Rename in S3 (copy + delete)
+          await renameS3File(currentS3Key, newS3Key);
+          
+          // Update final location to new S3 URL
+          finalFileLocation = `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION || 'me-central-1'}.amazonaws.com/${newS3Key}`;
+          
+          console.log('✅ S3 file renamed successfully:', {
+            newUrl: finalFileLocation.substring(0, 80)
+          });
+        } catch (renameError) {
+          console.error('⚠️ Could not rename S3 file, proceeding with auto-generated name:', renameError.message);
+          // Continue with original file location if rename fails
+        }
+      }
+
       // Update with new image (as JSON object)
       background_image_data = JSON.stringify({
-        url: req.file.location,
+        url: finalFileLocation,
         name: imageName || req.file.originalname
+      });
+      
+      console.log('📸 New S3 file uploaded:', {
+        location: finalFileLocation.substring(0, 80),
+        usedImageName: imageName ? 'YES (custom)' : 'NO (using originalname)',
+        finalName: imageName || req.file.originalname,
+        stored: background_image_data
       });
     }
     // If no new file, keep existing background_image_data as-is (already in DB format)
@@ -215,6 +262,11 @@ router.put('/banners/:id', authenticateToken, s3BannersUpload.single('background
       'UPDATE banners SET title = $1, subtitle = $2, background_image = $3, offer_page_url = $4, display_order = $5, is_active = $6, updated_at = CURRENT_TIMESTAMP WHERE id = $7 AND created_by = $8 RETURNING *',
       [title, subtitle, background_image_data, offer_page_url, display_order || 0, is_active, id, req.user.id]
     );
+
+    console.log('✅ Banner updated successfully:', {
+      bannerId: result.rows[0]?.id,
+      backgroundImageStored: result.rows[0]?.background_image?.substring(0, 100)
+    });
 
     res.json({ success: true, banner: result.rows[0] });
   } catch (error) {

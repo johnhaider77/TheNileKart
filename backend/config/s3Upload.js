@@ -165,6 +165,38 @@ const deleteFromS3 = async (key) => {
   }
 };
 
+// Helper function to rename/move S3 files (copy to new key, delete old key)
+const renameS3File = async (oldKey, newKey) => {
+  try {
+    if (oldKey === newKey) {
+      console.log('ℹ️ Source and destination are the same, skipping rename');
+      return { oldKey, newKey, renamed: false };
+    }
+    
+    // Copy file to new location
+    await s3.copyObject({
+      Bucket: process.env.S3_BUCKET_NAME,
+      CopySource: `${process.env.S3_BUCKET_NAME}/${oldKey}`,
+      Key: newKey
+    }).promise();
+    
+    console.log(`✅ Copied ${oldKey} to ${newKey}`);
+    
+    // Delete old file
+    await s3.deleteObject({
+      Bucket: process.env.S3_BUCKET_NAME,
+      Key: oldKey
+    }).promise();
+    
+    console.log(`✅ Deleted old file ${oldKey}`);
+    
+    return { oldKey, newKey, renamed: true };
+  } catch (error) {
+    console.error(`Error renaming S3 file from ${oldKey} to ${newKey}:`, error);
+    throw error;
+  }
+};
+
 // Helper function to get S3 URL
 const getS3Url = (key) => {
   return `https://${process.env.S3_BUCKET_NAME}.s3.${process.env.AWS_REGION || 'us-east-1'}.amazonaws.com/${key}`;
@@ -175,6 +207,7 @@ module.exports = {
   s3BannersUpload,
   deleteFromS3,
   deleteS3File: deleteFromS3, // Alias for easier import
+  renameS3File,
   getS3Url,
   s3
 };
