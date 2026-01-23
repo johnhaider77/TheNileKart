@@ -400,8 +400,6 @@ router.get('/offers/:offerCode/products', async (req, res) => {
       activeProductIds: result.rows.map(p => p.id),
       inactiveCount: (allLinkedResult.rows[0]?.total_linked || 0) - result.rows.length
     });
-      productIds: result.rows.map(p => p.id)
-    });
 
     if (result.rows.length === 0) {
       console.log('⚠️ No active products found for this offer. Checking product_offers table:');
