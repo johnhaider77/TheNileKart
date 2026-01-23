@@ -636,6 +636,14 @@ router.put('/products/:id', [
     let existingImagesArray = [];
     try {
       existingImagesArray = existingImages ? JSON.parse(existingImages) : [];
+      // Filter out old local image URLs - only keep S3 URLs
+      existingImagesArray = existingImagesArray.filter(img => {
+        if (isValidImageUrl(img.url)) {
+          return true;
+        }
+        console.log('⚠️ [PRODUCT-UPDATE] Filtering out old local image URL:', img.url);
+        return false;
+      });
     } catch (e) {
       console.log('Error parsing existing images:', e);
     }
