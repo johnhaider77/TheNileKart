@@ -176,6 +176,11 @@ router.post('/', [
 ], async (req, res) => {
   const client = await db.getClient();
   
+  console.log('📥 [POST /orders] Received order creation request');
+  console.log('   User ID:', req.user?.id);
+  console.log('   Payment method:', req.body?.payment_method);
+  console.log('   Items count:', req.body?.items?.length);
+  
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -411,14 +416,20 @@ router.post('/', [
     });
 
   } catch (error) {
-    await client.query('ROLLBACK');
-    console.error('Order creation error:', error);
+    try {
+      await client.query('ROLLBACK');
+    } catch (rollbackError) {
+      console.error('⚠️ Rollback error:', rollbackError.message);
+    }
+    console.error('❌ Order creation error:', error.message);
+    console.error('Stack:', error.stack);
     console.error('Error details:', {
       message: error.message,
       code: error.code,
       detail: error.detail,
       context: error.context,
-      hint: error.hint
+      hint: error.hint,
+      name: error.name
     });
     res.status(500).json({ 
       message: 'Server error creating order',
