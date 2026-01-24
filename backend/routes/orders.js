@@ -383,10 +383,20 @@ router.post('/', [
       );
 
       // Update product size-specific stock using the database function
-      await client.query(
+      console.log(`📦 [ORDER-CREATED] Updating stock for product ${item.product_id}, size: ${item.selectedSize}, quantity change: -${item.quantity}`);
+      const stockUpdateResult = await client.query(
         'SELECT update_product_size_quantity($1, $2, $3)',
         [item.product_id, item.selectedSize, -item.quantity]
       );
+      console.log(`✅ [ORDER-CREATED] Stock updated for product ${item.product_id}, size: ${item.selectedSize}`);
+      
+      // Verify the update to ensure cod_eligible wasn't affected
+      const verifyProduct = await client.query(
+        'SELECT sizes FROM products WHERE id = $1',
+        [item.product_id]
+      );
+      const verifySize = verifyProduct.rows[0]?.sizes?.find(s => s.size === item.selectedSize);
+      console.log(`🔍 [ORDER-CREATED] Verification - Product ${item.product_id}, size ${item.selectedSize}: cod_eligible=${verifySize?.cod_eligible}, quantity=${verifySize?.quantity}`);
     }
 
     // Save shipping address to user's saved addresses (if not already saved)

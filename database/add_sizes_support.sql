@@ -75,21 +75,30 @@ BEGIN
     FOR size_item IN SELECT * FROM jsonb_array_elements(current_sizes)
     LOOP
         IF size_item->>'size' = p_size THEN
-            -- Update the quantity for this size, preserving all other fields
+            -- Update the quantity for this size, preserving all other fields and normalizing cod_eligible to boolean
             updated_sizes := updated_sizes || jsonb_build_array(
                 jsonb_build_object(
                     'size', size_item->>'size',
                     'quantity', GREATEST(0, (size_item->>'quantity')::INTEGER + p_quantity_change),
-                    'price', COALESCE(size_item->>'price', '0'),
-                    'market_price', COALESCE(size_item->>'market_price', '0'),
-                    'actual_buy_price', COALESCE(size_item->>'actual_buy_price', '0'),
-                    'cod_eligible', COALESCE(size_item->>'cod_eligible', 'true')
+                    'price', size_item->>'price',
+                    'market_price', size_item->>'market_price',
+                    'actual_buy_price', size_item->>'actual_buy_price',
+                    'cod_eligible', COALESCE((size_item->>'cod_eligible')::BOOLEAN, true)
                 )
             );
             size_found := TRUE;
         ELSE
-            -- Keep other sizes unchanged
-            updated_sizes := updated_sizes || jsonb_build_array(size_item);
+            -- Keep other sizes unchanged, but also normalize cod_eligible to boolean for consistency
+            updated_sizes := updated_sizes || jsonb_build_array(
+                jsonb_build_object(
+                    'size', size_item->>'size',
+                    'quantity', (size_item->>'quantity')::INTEGER,
+                    'price', size_item->>'price',
+                    'market_price', size_item->>'market_price',
+                    'actual_buy_price', size_item->>'actual_buy_price',
+                    'cod_eligible', COALESCE((size_item->>'cod_eligible')::BOOLEAN, true)
+                )
+            );
         END IF;
     END LOOP;
     
