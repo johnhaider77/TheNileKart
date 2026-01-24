@@ -164,13 +164,7 @@ router.post('/', [
   body('items.*.product_id').isInt(),
   body('items.*.quantity').isInt({ min: 1 }),
   body('items.*.size').optional().trim(),
-  body('shipping_address.full_name').trim().isLength({ min: 2 }),
-  body('shipping_address.address_line1').trim().isLength({ min: 5 }),
-  body('shipping_address.address_line2').optional().trim(),
-  body('shipping_address.city').trim().isLength({ min: 2 }),
-  body('shipping_address.state').trim().isLength({ min: 1 }),
-  body('shipping_address.postal_code').trim().isLength({ min: 4 }),
-  body('shipping_address.phone').trim().notEmpty().isLength({ min: 8 }),
+  body('shipping_address').isObject(),
   body('payment_method').optional().isIn(['cod', 'paypal', 'card', 'ziina']),
   body('status').optional().isIn(['pending', 'pending_payment', 'payment_failed', 'confirmed', 'cancelled']),
 ], async (req, res) => {
@@ -193,6 +187,41 @@ router.post('/', [
       });
     }
 
+    // Manual validation for shipping address fields
+    const addr = req.body.shipping_address;
+    const addressErrors = [];
+    
+    if (!addr || typeof addr !== 'object') {
+      addressErrors.push('Shipping address is required');
+    } else {
+      if (!addr.full_name || String(addr.full_name).trim().length < 2) {
+        addressErrors.push('Full name must be at least 2 characters');
+      }
+      if (!addr.address_line1 || String(addr.address_line1).trim().length < 5) {
+        addressErrors.push('Address line 1 must be at least 5 characters');
+      }
+      if (!addr.city || String(addr.city).trim().length < 2) {
+        addressErrors.push('City must be at least 2 characters');
+      }
+      if (!addr.state || String(addr.state).trim().length < 1) {
+        addressErrors.push('State is required');
+      }
+      if (!addr.postal_code || String(addr.postal_code).trim().length < 4) {
+        addressErrors.push('Postal code must be at least 4 characters');
+      }
+      if (!addr.phone || String(addr.phone).trim().length < 8) {
+        addressErrors.push('Phone number must be at least 8 digits');
+      }
+    }
+
+    if (addressErrors.length > 0) {
+      console.error('🔴 Address validation failed:', addressErrors);
+      return res.status(400).json({ 
+        message: 'Address validation failed',
+        errors: addressErrors 
+      });
+    }
+
     const { items, shipping_address, payment_method = 'cod', status = 'pending' } = req.body;
     const customer_id = req.user.id;
 
@@ -205,12 +234,14 @@ router.post('/', [
     });
 
     await client.query('BEGIN');
+    console.log('✅ Transaction started');
 
     // Validate products and calculate total
     let total_amount = 0;
     const orderItems = [];
 
     for (const item of items) {
+      console.log(`📦 Processing item: product_id=${item.product_id}, quantity=${item.quantity}, size=${item.size}`);
       const product = await client.query(
         'SELECT id, name, price, stock_quantity, sizes, cod_eligible FROM products WHERE id = $1 AND is_active = true',
         [item.product_id]
@@ -333,6 +364,7 @@ router.post('/', [
     );
 
     const order_id = newOrder.rows[0].id;
+    console.log(`✅ Order created: id=${order_id}, total=${final_total} AED, payment_method=${payment_method}`);
 
     // Create order items and update stock
     for (const item of orderItems) {
