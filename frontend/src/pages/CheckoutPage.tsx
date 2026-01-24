@@ -734,14 +734,24 @@ const CheckoutPage: React.FC = () => {
       }
       console.log('✅ Address validation passed');
 
-      // Get checkout data from sessionStorage
+      // Ensure checkoutData exists in sessionStorage
       console.log('📦 Retrieving checkoutData from sessionStorage...');
-      const checkoutDataStr = sessionStorage.getItem('checkoutData');
+      let checkoutDataStr = sessionStorage.getItem('checkoutData');
+      
+      // If checkoutData doesn't exist, create it now from current cart state
       if (!checkoutDataStr) {
-        setError('Order data not found. Please try again.');
-        setLoading(false);
-        console.error('❌ checkoutData not found in sessionStorage');
-        return;
+        console.warn('⚠️ checkoutData not in sessionStorage, creating it now...');
+        const orderData = {
+          items: items.map(item => ({
+            product_id: item.product.id,
+            quantity: item.quantity,
+            size: item.selectedSize || 'One Size'
+          })),
+          shipping_address: shippingAddress
+        };
+        sessionStorage.setItem('checkoutData', JSON.stringify(orderData));
+        checkoutDataStr = JSON.stringify(orderData);
+        console.log('✅ checkoutData created and stored:', orderData);
       }
 
       const checkoutData = JSON.parse(checkoutDataStr);
