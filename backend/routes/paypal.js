@@ -263,6 +263,59 @@ router.post('/capture/:orderId', [authenticateToken, requireCustomer], async (re
       );
     }
 
+    // Save shipping address to user's saved addresses (if not already saved)
+    // Check if this exact address already exists for the user
+    const addressCheckResult = await client.query(
+      `SELECT id FROM user_addresses 
+       WHERE user_id = $1 
+       AND address_line1 = $2 
+       AND city = $3 
+       AND state = $4 
+       AND postal_code = $5`,
+      [customer_id, shipping_address.address_line1, shipping_address.city, shipping_address.state, shipping_address.postal_code]
+    );
+
+    // Only save if address doesn't already exist
+    if (addressCheckResult.rows.length === 0) {
+      // Count existing addresses for this user
+      const addressCountResult = await client.query(
+        `SELECT COUNT(*) as count FROM user_addresses WHERE user_id = $1`,
+        [customer_id]
+      );
+      
+      const addressCount = parseInt(addressCountResult.rows[0].count);
+      
+      // Only save if user has fewer than 6 addresses
+      if (addressCount < 6) {
+        try {
+          await client.query(
+            `INSERT INTO user_addresses 
+             (user_id, type, full_name, address_line1, address_line2, city, state, postal_code, country, phone, is_default)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
+            [
+              customer_id,
+              'shipping',
+              shipping_address.full_name || 'Unnamed Address',
+              shipping_address.address_line1,
+              shipping_address.address_line2 || null,
+              shipping_address.city,
+              shipping_address.state,
+              shipping_address.postal_code,
+              shipping_address.country || 'UAE',
+              shipping_address.phone || null,
+              false // Don't set as default automatically
+            ]
+          );
+          console.log(`✅ Saved shipping address for customer ${customer_id} (PayPal order)`);
+        } catch (addrError) {
+          // Log but don't fail the order if address save fails
+          console.warn('⚠️ Failed to save shipping address (PayPal):', addrError.message);
+        }
+      } else {
+        console.log(`ℹ️ Customer ${customer_id} has reached max addresses limit (6)`);
+      }
+    }
+
     await client.query('COMMIT');
 
     res.status(201).json({
