@@ -19,6 +19,7 @@ import OrdersQueue from './pages/OrdersQueue';
 import BannerManagementPage from './pages/BannerManagementPage';
 import OfferProductsPage from './pages/OfferProductsPage';
 import SearchPage from './pages/SearchPage';
+import SellerPromoCode from './components/SellerPromoCode';
 
 // Import components
 import Navbar from './components/Navbar';
@@ -195,6 +196,19 @@ function AppRoutes() {
               ) : (
                 <ProtectedRoute requireSeller>
                   <BannerManagementPage />
+                </ProtectedRoute>
+              )
+            }
+          />
+          
+          <Route
+            path="/seller/promo-codes"
+            element={
+              isCustomer ? (
+                <Navigate to="/" replace />
+              ) : (
+                <ProtectedRoute requireSeller>
+                  <SellerPromoCode />
                 </ProtectedRoute>
               )
             }

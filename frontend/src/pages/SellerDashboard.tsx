@@ -916,7 +916,7 @@ const SellerDashboard: React.FC = () => {
         {/* Quick Actions */}
         <div className="quick-actions">
           <h2 className="mb-4">Quick Actions</h2>
-          <div className="actions-grid grid grid-cols-1 grid-cols-md-4">
+          <div className="actions-grid grid grid-cols-1 grid-cols-md-5">
             <Link to="/seller/create-product" className="action-card card">
               <div className="card-body text-center">
                 <div className="action-icon">+</div>
@@ -938,6 +938,14 @@ const SellerDashboard: React.FC = () => {
                 <div className="action-icon">🎯</div>
                 <h3>Manage Banners</h3>
                 <p>Create offers and banners</p>
+              </div>
+            </Link>
+            
+            <Link to="/seller/promo-codes" className="action-card card">
+              <div className="card-body text-center">
+                <div className="action-icon">🎁</div>
+                <h3>Manage Promo Codes</h3>
+                <p>Create discount promo codes</p>
               </div>
             </Link>
             
