@@ -40,13 +40,20 @@ router.post('/calculate-cod', [
       let itemPrice = productData.price;
       let codEligible = productData.cod_eligible; // Fallback to product-level
       
+      console.log(`📦 [CALCULATE-COD] Processing item - Product: ${productData.id} (${productData.name}), Selected Size: ${item.selectedSize}, Product COD Eligible: ${productData.cod_eligible}`);
+      
       // Check if product has sizes and find size-specific pricing and COD eligibility
       if (productData.sizes && Array.isArray(productData.sizes) && item.selectedSize) {
         const sizeData = productData.sizes.find(size => size.size === item.selectedSize);
         if (sizeData) {
           itemPrice = sizeData.price || productData.price || 0;
           codEligible = sizeData.cod_eligible !== undefined ? sizeData.cod_eligible : productData.cod_eligible;
+          console.log(`  ✓ Size ${item.selectedSize} found - Price: ${sizeData.price}, Size COD Eligible: ${sizeData.cod_eligible}, Using: ${codEligible}`);
+        } else {
+          console.log(`  ⚠️ Size ${item.selectedSize} NOT found in sizes array. Available sizes: ${productData.sizes.map(s => s.size).join(', ')}`);
         }
+      } else {
+        console.log(`  ℹ️ No sizes or selectedSize provided. Sizes array: ${productData.sizes ? 'present' : 'missing'}, Selected Size: ${item.selectedSize}`);
       }
 
       cartItems.push({

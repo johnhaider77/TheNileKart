@@ -1789,38 +1789,65 @@ router.put('/products/:productId/sizes/:size/cod-eligibility', [
     const { cod_eligible } = req.body;
     const seller_id = req.user.id;
 
+    console.log(`🔄 [COD-ELIGIBILITY-UPDATE] Product ${productId}, Size: ${size}, New COD Eligible: ${cod_eligible}, Seller: ${seller_id}`);
+
     // Verify product belongs to seller
     const product = await db.query(
-      'SELECT sizes FROM products WHERE id = $1 AND seller_id = $2',
+      'SELECT id, sizes, name FROM products WHERE id = $1 AND seller_id = $2',
       [productId, seller_id]
     );
 
     if (product.rows.length === 0) {
+      console.log(`❌ [COD-ELIGIBILITY-UPDATE] Product not found or access denied`);
       return res.status(404).json({ success: false, message: 'Product not found or access denied' });
     }
 
     const sizes = product.rows[0].sizes || [];
+    console.log(`📋 [COD-ELIGIBILITY-UPDATE] Current sizes before update:`, JSON.stringify(sizes));
+
     const updatedSizes = sizes.map(sizeData => {
       if (sizeData.size === size) {
+        console.log(`  ✏️ Updating size ${size}: cod_eligible ${sizeData.cod_eligible} → ${cod_eligible}`);
         return { ...sizeData, cod_eligible };
       }
       return sizeData;
     });
 
+    // Check if any size was actually updated
+    const wasUpdated = sizes.some((s, idx) => s.size === size && s.cod_eligible !== updatedSizes[idx].cod_eligible);
+    console.log(`  Update found: ${wasUpdated}, sizes modified: ${JSON.stringify(updatedSizes).substring(0, 100)}...`);
+
     // Update the product with new sizes array
-    await db.query(
-      'UPDATE products SET sizes = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 AND seller_id = $3',
+    const updateResult = await db.query(
+      'UPDATE products SET sizes = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 AND seller_id = $3 RETURNING sizes',
       [JSON.stringify(updatedSizes), productId, seller_id]
     );
+
+    if (updateResult.rows.length === 0) {
+      console.log(`❌ [COD-ELIGIBILITY-UPDATE] Update failed - no rows returned`);
+      return res.status(500).json({ success: false, message: 'Failed to update product' });
+    }
+
+    const returnedSizes = updateResult.rows[0].sizes;
+    console.log(`✅ [COD-ELIGIBILITY-UPDATE] Update successful. Returned sizes:`, JSON.stringify(returnedSizes).substring(0, 150));
+    
+    // Verify the update actually took effect
+    const verifyProduct = await db.query(
+      'SELECT sizes FROM products WHERE id = $1',
+      [productId]
+    );
+    const verifiedSize = verifyProduct.rows[0].sizes.find(s => s.size === size);
+    console.log(`🔍 [COD-ELIGIBILITY-UPDATE] Verification - Size ${size} cod_eligible in DB: ${verifiedSize?.cod_eligible}`);
 
     res.json({ 
       success: true, 
       message: `COD eligibility for size ${size} updated successfully`,
-      cod_eligible 
+      cod_eligible,
+      verified_in_db: verifiedSize?.cod_eligible === cod_eligible
     });
 
   } catch (error) {
-    console.error('Error updating size COD eligibility:', error);
+    console.error('❌ [COD-ELIGIBILITY-UPDATE] Error updating size COD eligibility:', error);
     res.status(500).json({ success: false, message: 'Server error updating COD eligibility' });
   }
 });
