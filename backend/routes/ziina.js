@@ -22,8 +22,9 @@ const {
 router.post('/payment-intent', authenticateToken, async (req, res) => {
   try {
     const { amount, orderId, items, shippingAddress } = req.body;
-    const userId = req.userId;
+    const userId = req.user.id;
 
+    console.log('📥 [POST /ziina/payment-intent] Request received');
     console.log('Creating payment intent:', {
       amount,
       orderId,
@@ -72,7 +73,7 @@ router.post('/payment-intent', authenticateToken, async (req, res) => {
       successUrl: successUrl.substring(0, 50) + '...',
       cancelUrl: cancelUrl.substring(0, 50) + '...',
       failureUrl: failureUrl.substring(0, 50) + '...',
-      test: true
+      test: false
     });
 
     // Create payment intent (using PRODUCTION mode for real payments)

@@ -8,9 +8,18 @@ const ziinaClient = axios.create({
   baseURL: 'https://api-v2.ziina.com/api',
   headers: {
     'Content-Type': 'application/json',
-    'Authorization': `Bearer ${process.env.ZIINA_API_KEY || 'giLzTUAwi5EvZkD5hP8997MfhwMacxRHVWYl6F9e3KlpYcLav8czV/8+HPH0ibzj'}`
+    'Authorization': `Bearer ${process.env.ZIINA_API_KEY}`
   }
 });
+
+// Log Ziina configuration on startup
+console.log('🔐 Ziina Configuration:');
+console.log(`   - API Key Present: ${!!process.env.ZIINA_API_KEY ? '✅ YES' : '❌ NO'}`);
+console.log(`   - API Key Length: ${process.env.ZIINA_API_KEY ? process.env.ZIINA_API_KEY.length : 0}`);
+console.log(`   - First 10 chars: ${process.env.ZIINA_API_KEY ? process.env.ZIINA_API_KEY.substring(0, 10) : 'NOT SET'}`);
+if (!process.env.ZIINA_API_KEY) {
+  console.error('❌ CRITICAL: ZIINA_API_KEY is not set in environment variables!');
+}
 
 /**
  * Create a Payment Intent
