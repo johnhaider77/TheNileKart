@@ -133,6 +133,22 @@ export const authAPI = {
   
   updateProfile: (userData: { full_name?: string; phone?: string }) =>
     api.put('/auth/profile', userData),
+
+  // Address management
+  getAddresses: () => api.get('/auth/addresses'),
+  
+  saveAddress: (addressData: {
+    type: 'shipping' | 'billing';
+    full_name: string;
+    address_line1: string;
+    address_line2?: string;
+    city: string;
+    state: string;
+    postal_code: string;
+    country?: string;
+    phone?: string;
+    is_default?: boolean;
+  }) => api.post('/auth/addresses', addressData),
 };
 
 // Products API calls

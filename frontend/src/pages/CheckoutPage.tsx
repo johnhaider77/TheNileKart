@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
-import { ordersAPI } from '../services/api';
+import { ordersAPI, authAPI } from '../services/api';
 import { ShippingAddress } from '../utils/types';
 import api from '../services/api';
 import PaymentOptions from '../components/PaymentOptions';
@@ -51,6 +51,8 @@ const CheckoutPage: React.FC = () => {
   const [selectedAddressId, setSelectedAddressId] = useState<number | null>(null);
   const [showSavedAddresses, setShowSavedAddresses] = useState(false);
   const [editingAddress, setEditingAddress] = useState<SavedAddress | null>(null);
+  const [saveAddressToProfile, setSaveAddressToProfile] = useState(false);
+  const [addressSaveStatus, setAddressSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [step, setStep] = useState<'cart' | 'address' | 'payment'>('cart');
@@ -480,6 +482,44 @@ const CheckoutPage: React.FC = () => {
         console.error('Error deleting address:', error);
         alert('Failed to delete address');
       }
+    }
+  };
+
+  const handleSaveAddressToProfile = async (address: ShippingAddress) => {
+    try {
+      setAddressSaveStatus('saving');
+      const response = await authAPI.saveAddress({
+        type: 'shipping',
+        full_name: address.full_name,
+        address_line1: address.address_line1,
+        address_line2: address.address_line2 || undefined,
+        city: address.city,
+        state: address.state,
+        postal_code: address.postal_code,
+        country: 'UAE',
+        phone: address.phone,
+        is_default: false
+      });
+      
+      if (response.data.success) {
+        setAddressSaveStatus('saved');
+        console.log('✅ Address saved to profile:', response.data.address);
+        addToast('Address saved successfully to your Saved Addresses!', 'success');
+        
+        // Refresh saved addresses to update the count
+        await fetchSavedAddresses();
+        
+        // Reset checkbox after saving
+        setSaveAddressToProfile(false);
+        setTimeout(() => setAddressSaveStatus('idle'), 2000);
+        return true;
+      }
+    } catch (error: any) {
+      setAddressSaveStatus('error');
+      console.error('Error saving address:', error);
+      addToast('Failed to save address. Please try again.', 'error');
+      setTimeout(() => setAddressSaveStatus('idle'), 3000);
+      return false;
     }
   };
 
@@ -1065,6 +1105,33 @@ const CheckoutPage: React.FC = () => {
                     />
                   </div>
                 </div>
+
+                {/* Save Address to Profile Checkbox */}
+                <div className="form-group mt-4 pt-3 border-top">
+                  <div className="form-check">
+                    <input
+                      type="checkbox"
+                      id="saveAddressToProfile"
+                      className="form-check-input"
+                      checked={saveAddressToProfile}
+                      onChange={(e) => setSaveAddressToProfile(e.target.checked)}
+                      disabled={savedAddresses.length >= 6}
+                    />
+                    <label className="form-check-label" htmlFor="saveAddressToProfile">
+                      Save this address to my Saved Addresses
+                      {savedAddresses.length > 0 && (
+                        <span className="ms-2 text-muted" style={{ fontSize: '0.9em' }}>
+                          ({savedAddresses.length}/6)
+                        </span>
+                      )}
+                    </label>
+                  </div>
+                  {savedAddresses.length >= 6 && (
+                    <div className="alert alert-warning mt-2" style={{ fontSize: '0.9em', padding: '0.5rem 0.75rem' }}>
+                      <strong>Address limit reached:</strong> You have saved the maximum of 6 addresses. Delete an address to save a new one.
+                    </div>
+                  )}
+                </div>
               </form>
               </div>
               
@@ -1088,6 +1155,11 @@ const CheckoutPage: React.FC = () => {
                     // Save address to sessionStorage for recovery if payment is cancelled
                     sessionStorage.setItem('checkoutShippingAddress', JSON.stringify(shippingAddress));
                     console.log('💾 Address saved to sessionStorage:', shippingAddress);
+                    
+                    // Save address to profile if checkbox is checked
+                    if (saveAddressToProfile && savedAddresses.length < 6) {
+                      await handleSaveAddressToProfile(shippingAddress);
+                    }
                     
                     setStep('payment');
                     
