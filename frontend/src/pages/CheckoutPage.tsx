@@ -1108,7 +1108,7 @@ const CheckoutPage: React.FC = () => {
 
                 {/* Save Address to Profile Checkbox */}
                 <div className="form-group mt-4 pt-3 border-top">
-                  <div className="form-check">
+                  <div className="form-check" style={{ display: 'flex', alignItems: 'center' }}>
                     <input
                       type="checkbox"
                       id="saveAddressToProfile"
@@ -1116,8 +1116,9 @@ const CheckoutPage: React.FC = () => {
                       checked={saveAddressToProfile}
                       onChange={(e) => setSaveAddressToProfile(e.target.checked)}
                       disabled={savedAddresses.length >= 6}
+                      style={{ width: '20px', height: '20px', marginRight: '10px', cursor: 'pointer' }}
                     />
-                    <label className="form-check-label" htmlFor="saveAddressToProfile">
+                    <label className="form-check-label" htmlFor="saveAddressToProfile" style={{ marginBottom: '0', cursor: 'pointer', flexGrow: 1 }}>
                       Save this address to my Saved Addresses
                       {savedAddresses.length > 0 && (
                         <span className="ms-2 text-muted" style={{ fontSize: '0.9em' }}>
