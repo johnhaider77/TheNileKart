@@ -111,7 +111,11 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Serve static frontend files from build directory
-const frontendBuildPath = path.join(__dirname, '..', 'frontend', 'build');
+let frontendBuildPath = path.join(__dirname, '..', 'frontend', 'build');
+// In production, also check /var/www/thenilekart/frontend
+if (process.env.NODE_ENV === 'production' && !require('fs').existsSync(frontendBuildPath)) {
+  frontendBuildPath = '/var/www/thenilekart/frontend';
+}
 try {
   if (require('fs').existsSync(frontendBuildPath)) {
     app.use(express.static(frontendBuildPath));
@@ -159,7 +163,11 @@ app.use((err, req, res, next) => {
 });
 
 // Serve index.html for React Router (must be after API routes)
-const frontendIndexPath = path.join(__dirname, '..', 'frontend', 'build', 'index.html');
+let frontendIndexPath = path.join(__dirname, '..', 'frontend', 'build', 'index.html');
+// In production, also check /var/www/thenilekart/frontend
+if (process.env.NODE_ENV === 'production' && !require('fs').existsSync(frontendIndexPath)) {
+  frontendIndexPath = '/var/www/thenilekart/frontend/index.html';
+}
 app.get('*', (req, res) => {
   // If it's not an API route and frontend exists, serve index.html
   if (!req.path.startsWith('/api') && require('fs').existsSync(frontendIndexPath)) {
