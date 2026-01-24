@@ -273,8 +273,8 @@ router.post('/payment-status/:orderId', authenticateToken, async (req, res) => {
       });
     }
 
-    // Map payment status to order status
-    const orderStatus = paymentStatus === 'cancelled' ? 'payment_cancelled' : 'payment_failed';
+    // Map both cancelled and failed to unified PAYMENT_FAILED status
+    const orderStatus = 'payment_failed';
 
     // Update order status
     const orderUpdate = await db.query(

@@ -265,7 +265,7 @@ const CheckoutPage: React.FC = () => {
         }
       }
       
-      // Update order status to payment_cancelled
+      // Update order status to payment_failed
       if (orderId) {
         const token = localStorage.getItem('token');
         if (token) {
@@ -275,7 +275,7 @@ const CheckoutPage: React.FC = () => {
               'Content-Type': 'application/json',
               'Authorization': `Bearer ${token}`
             },
-            body: JSON.stringify({ paymentStatus: 'cancelled' })
+            body: JSON.stringify({ paymentStatus: 'failed' })
           })
           .then(res => {
             if (!res.ok) {
@@ -292,7 +292,7 @@ const CheckoutPage: React.FC = () => {
         }
       }
       
-      addToast('Payment cancelled. Your order was not processed. You can retry payment or modify your order.', 'warning');
+      addToast('Payment cancelled. Your order status has been marked as Payment Failed.', 'warning');
       // Clear stored payment data on cancel, but keep cart items
       sessionStorage.removeItem('ziinaPaymentIntentId');
       setLoading(false); // Reset loading state to enable retry
