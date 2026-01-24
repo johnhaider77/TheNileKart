@@ -60,12 +60,23 @@ const PaymentOptions: React.FC<PaymentOptionsProps> = ({
   };
 
   const handleCODOrder = async () => {
+    console.log('🔘 COD button clicked, isProcessing:', isProcessing);
+    if (isProcessing) {
+      console.warn('⚠️ Already processing, ignoring click');
+      return;
+    }
+    
     setIsProcessing(true);
+    console.log('📝 Starting COD order...');
     try {
+      console.log('🚀 Calling onCODOrder callback');
       await onCODOrder();
-    } catch (error) {
+      console.log('✅ onCODOrder completed');
+    } catch (error: any) {
+      console.error('❌ onCODOrder error:', error);
       onPaymentError(error);
     } finally {
+      console.log('🔄 Setting isProcessing to false');
       setIsProcessing(false);
     }
   };

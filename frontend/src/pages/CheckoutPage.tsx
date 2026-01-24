@@ -719,26 +719,33 @@ const CheckoutPage: React.FC = () => {
   };
 
   const handleCODOrder = async () => {
+    console.log('📋 handleCODOrder called in CheckoutPage');
     setLoading(true);
     setError('');
 
     try {
       // Validate address
+      console.log('🔍 Validating address...');
       if (!validateAddress()) {
         setError('Please complete all required address fields');
         setLoading(false);
+        console.warn('⚠️ Address validation failed');
         return;
       }
+      console.log('✅ Address validation passed');
 
       // Get checkout data from sessionStorage
+      console.log('📦 Retrieving checkoutData from sessionStorage...');
       const checkoutDataStr = sessionStorage.getItem('checkoutData');
       if (!checkoutDataStr) {
         setError('Order data not found. Please try again.');
         setLoading(false);
+        console.error('❌ checkoutData not found in sessionStorage');
         return;
       }
 
       const checkoutData = JSON.parse(checkoutDataStr);
+      console.log('📋 checkoutData retrieved:', checkoutData);
 
       // Create the order with COD payment method
       console.log('📝 Creating COD order with data:', checkoutData);
@@ -748,6 +755,8 @@ const CheckoutPage: React.FC = () => {
         shipping_address: shippingAddress,
         payment_method: 'cod'
       });
+
+      console.log('📲 API Response:', response.data);
 
       if (response.data.success || response.data.order) {
         const orderId = response.data.order.id;
@@ -773,10 +782,16 @@ const CheckoutPage: React.FC = () => {
           });
         }, 500);
       } else {
+        console.warn('⚠️ Unexpected response structure:', response.data);
         setError('Failed to create order. Please try again.');
       }
     } catch (error: any) {
-      console.error('Error creating COD order:', error);
+      console.error('❌ Error creating COD order:', error);
+      console.error('Error details:', {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
       
       if (error.response?.data?.nonCodItems) {
         setError('Some items in your cart are not eligible for COD. Please select online payment.');
