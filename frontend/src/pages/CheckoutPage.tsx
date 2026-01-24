@@ -1106,33 +1106,24 @@ const CheckoutPage: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Save Address to Profile Checkbox */}
-                <div className="form-group mt-4 pt-3 border-top">
-                  <div className="form-check" style={{ display: 'flex', alignItems: 'center' }}>
+                <div style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid #e5e7eb' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', margin: '0' }}>
                     <input
                       type="checkbox"
                       id="saveAddressToProfile"
-                      className="form-check-input"
                       checked={saveAddressToProfile}
-                      onChange={(e) => {
-                        console.log('✅ Save address checkbox toggled:', e.target.checked);
-                        setSaveAddressToProfile(e.target.checked);
-                      }}
+                      onChange={(e) => setSaveAddressToProfile(e.target.checked)}
                       disabled={savedAddresses.length >= 6}
-                      style={{ width: '20px', height: '20px', marginRight: '10px', cursor: 'pointer' }}
+                      style={{ width: '18px', height: '18px', marginRight: '10px', cursor: 'pointer', flexShrink: 0 }}
                     />
-                    <label className="form-check-label" htmlFor="saveAddressToProfile" style={{ marginBottom: '0', cursor: 'pointer', flexGrow: 1 }}>
-                      Save this address to my Saved Addresses ({savedAddresses.length}/6 saved)
-                      {savedAddresses.length > 0 && (
-                        <span className="ms-2 text-muted" style={{ fontSize: '0.9em' }}>
-                          ({savedAddresses.length}/6)
-                        </span>
-                      )}
-                    </label>
-                  </div>
+                    <span style={{ fontSize: '1rem', color: '#1f2937' }}>
+                      Save this address to my Saved Addresses
+                      {savedAddresses.length > 0 && ` (${savedAddresses.length}/6)`}
+                    </span>
+                  </label>
                   {savedAddresses.length >= 6 && (
-                    <div className="alert alert-warning mt-2" style={{ fontSize: '0.9em', padding: '0.5rem 0.75rem' }}>
-                      <strong>Address limit reached:</strong> You have saved the maximum of 6 addresses. Delete an address to save a new one.
+                    <div style={{ marginTop: '0.75rem', padding: '0.75rem', backgroundColor: '#fef3c7', border: '1px solid #fcd34d', borderRadius: '0.5rem', fontSize: '0.875rem', color: '#92400e' }}>
+                      <strong>Address limit:</strong> You have saved 6 addresses (maximum). Delete one to save a new address.
                     </div>
                   )}
                 </div>
