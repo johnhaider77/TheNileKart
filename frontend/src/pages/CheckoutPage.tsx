@@ -718,8 +718,89 @@ const CheckoutPage: React.FC = () => {
     });
   };
 
-  const handleCODOrder = () => {
-    return handlePlaceOrder();
+  const handleCODOrder = async () => {
+    setLoading(true);
+    setError('');
+
+    try {
+      // Validate address
+      if (!validateAddress()) {
+        setError('Please complete all required address fields');
+        setLoading(false);
+        return;
+      }
+
+      // Get checkout data from sessionStorage
+      const checkoutDataStr = sessionStorage.getItem('checkoutData');
+      if (!checkoutDataStr) {
+        setError('Order data not found. Please try again.');
+        setLoading(false);
+        return;
+      }
+
+      const checkoutData = JSON.parse(checkoutDataStr);
+
+      // Create the order with COD payment method
+      console.log('📝 Creating COD order with data:', checkoutData);
+      
+      const response = await ordersAPI.createOrder({
+        items: checkoutData.items,
+        shipping_address: shippingAddress,
+        payment_method: 'cod'
+      });
+
+      if (response.data.success || response.data.order) {
+        const orderId = response.data.order.id;
+        console.log('✅ COD order created successfully:', orderId);
+        
+        // Clear cart and session data
+        clearCart();
+        sessionStorage.removeItem('checkoutData');
+        sessionStorage.removeItem('checkoutShippingAddress');
+        sessionStorage.removeItem('checkoutCodDetails');
+
+        // Add success toast
+        addToast('Order placed successfully!', 'success');
+
+        // Navigate to thank you page
+        setTimeout(() => {
+          navigate('/thank-you', {
+            state: {
+              orderId: orderId,
+              totalAmount: response.data.order.total_amount,
+              paymentMethod: 'cod'
+            }
+          });
+        }, 500);
+      } else {
+        setError('Failed to create order. Please try again.');
+      }
+    } catch (error: any) {
+      console.error('Error creating COD order:', error);
+      
+      if (error.response?.data?.nonCodItems) {
+        setError('Some items in your cart are not eligible for COD. Please select online payment.');
+      } else if (error.response?.data?.message) {
+        setError(error.response.data.message);
+      } else {
+        setError('Failed to place order. Please try again.');
+      }
+      
+      // Track payment error
+      trackPaymentError({
+        errorCode: 'COD_ORDER_FAILED',
+        errorMessage: error.response?.data?.message || error.message,
+        errorDetails: {
+          error: error.message,
+          step: 'payment',
+          paymentMethod: 'cod',
+          totalAmount: getTotalAmount(),
+          itemCount: items.length
+        }
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Customers cannot delete non-COD items - they must pay online or edit cart manually
