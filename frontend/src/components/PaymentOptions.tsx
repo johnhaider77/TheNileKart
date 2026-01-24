@@ -39,6 +39,19 @@ const PaymentOptions: React.FC<PaymentOptionsProps> = ({
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'cod' | 'ziina'>('cod');
   const [isProcessing, setIsProcessing] = useState(false);
   
+  // Log button state
+  useEffect(() => {
+    console.log('🔘 COD Button State Updated:', {
+      selectedPaymentMethod,
+      disabled,
+      isProcessing,
+      codDetails_eligible: codDetails?.eligible,
+      codDetails_fee: codDetails?.fee,
+      buttonDisabled: disabled || isProcessing || (codDetails && !codDetails.eligible),
+      visible: selectedPaymentMethod === 'cod'
+    });
+  }, [disabled, isProcessing, codDetails, selectedPaymentMethod]);
+  
   // Auto-select ziina if COD is not available
   useEffect(() => {
     if (codDetails && !codDetails.eligible) {
@@ -61,6 +74,13 @@ const PaymentOptions: React.FC<PaymentOptionsProps> = ({
 
   const handleCODOrder = async () => {
     console.log('🔘 COD button clicked, isProcessing:', isProcessing);
+    console.log('Button disabled state:', {
+      isProcessing,
+      disabled,
+      codDetails_eligible: codDetails?.eligible,
+      codDetails_exists: !!codDetails
+    });
+    
     if (isProcessing) {
       console.warn('⚠️ Already processing, ignoring click');
       return;
@@ -136,6 +156,12 @@ const PaymentOptions: React.FC<PaymentOptionsProps> = ({
                 className="payment-submit-btn cod-btn"
                 onClick={handleCODOrder}
                 disabled={disabled || isProcessing || (codDetails && !codDetails.eligible)}
+                title={(() => {
+                  if (disabled) return 'Form is processing';
+                  if (isProcessing) return 'Order is being placed...';
+                  if (codDetails && !codDetails.eligible) return 'COD not available for these items';
+                  return 'Click to place order';
+                })()}
               >
                 {isProcessing ? 'Placing Order...' : `Place Order (COD${codDetails && codDetails.fee > 0 ? ` +${codDetails.fee} AED` : ''})`}
               </button>
