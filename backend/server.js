@@ -22,6 +22,8 @@ const sellerRoutes = require('./routes/seller');
 const bannerRoutes = require('./routes/banners');
 const ziinaRoutes = require('./routes/ziina');
 const metricsRoutes = require('./routes/metrics');
+const promoCodesSellerRoutes = require('./routes/promo-codes-seller');
+const promoCodesCustomerRoutes = require('./routes/promo-codes-customer');
 
 const app = express();
 const server = http.createServer(app);
@@ -138,6 +140,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/seller', sellerRoutes);
+app.use('/api/seller/promo-codes', promoCodesSellerRoutes);
+app.use('/api/promo-codes', promoCodesCustomerRoutes);
 app.use('/api/ziina', ziinaRoutes);
 app.use('/api/metrics', metricsRoutes);
 

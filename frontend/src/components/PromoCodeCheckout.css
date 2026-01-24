@@ -1,0 +1,211 @@
+/* Promo Code Checkout Styles */
+
+.promo-code-checkout {
+  background: #f9f9f9;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin: 1rem 0;
+}
+
+.promo-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.promo-input-group {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.promo-input {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-family: inherit;
+  transition: border-color 0.2s;
+}
+
+.promo-input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.promo-btn {
+  padding: 0.75rem 1.5rem;
+  background-color: #667eea;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+  min-width: 100px;
+}
+
+.promo-btn:hover:not(:disabled) {
+  background-color: #5568d3;
+}
+
+.promo-btn:disabled {
+  background-color: #ddd;
+  cursor: not-allowed;
+  color: #999;
+}
+
+.promo-error {
+  background-color: #f8d7da;
+  color: #721c24;
+  padding: 0.75rem 1rem;
+  border-radius: 4px;
+  border: 1px solid #f5c6cb;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+.promo-success {
+  background-color: #d4edda;
+  color: #155724;
+  padding: 0.75rem 1rem;
+  border-radius: 4px;
+  border: 1px solid #c3e6cb;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+/* Applied Promo */
+.promo-applied {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.promo-applied-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.promo-badge {
+  display: inline-block;
+  background-color: #d4edda;
+  color: #155724;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.remove-btn {
+  padding: 0.5rem 1rem;
+  background-color: transparent;
+  color: #dc3545;
+  border: 1px solid #dc3545;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+}
+
+.remove-btn:hover {
+  background-color: #dc3545;
+  color: white;
+}
+
+.promo-discount-summary {
+  background: white;
+  border: 1px solid #eee;
+  border-radius: 4px;
+  padding: 1rem;
+}
+
+.discount-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 0.95rem;
+}
+
+.discount-row:last-child {
+  border-bottom: none;
+}
+
+.discount-label {
+  color: #666;
+  font-weight: 500;
+}
+
+.discount-value {
+  color: #333;
+  font-weight: 600;
+}
+
+.discount-row.discount-amount .discount-value {
+  color: #28a745;
+  font-weight: 700;
+}
+
+.discount-row.final-total {
+  padding: 1rem 0 0;
+  padding-top: 1rem;
+  border-top: 2px solid #667eea;
+  font-size: 1.1rem;
+}
+
+.discount-row.final-total .discount-value {
+  color: #667eea;
+  font-size: 1.2rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .promo-input-group {
+    flex-direction: column;
+  }
+
+  .promo-btn {
+    width: 100%;
+  }
+
+  .promo-applied-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .remove-btn {
+    width: 100%;
+    text-align: center;
+  }
+
+  .discount-row {
+    padding: 0.75rem 0;
+  }
+
+  .promo-badge {
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .promo-code-checkout {
+    padding: 1rem;
+  }
+
+  .discount-row.final-total {
+    font-size: 1rem;
+  }
+
+  .discount-row.final-total .discount-value {
+    font-size: 1.1rem;
+  }
+}
