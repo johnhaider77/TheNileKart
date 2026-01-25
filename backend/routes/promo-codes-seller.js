@@ -120,7 +120,10 @@ router.get('/', [authenticateToken, requireSeller], async (req, res) => {
 router.patch('/:id', [
   authenticateToken,
   requireSeller,
+  body('code').optional(),
   body('description').trim().isLength({ min: 5 }).optional(),
+  body('start_date_time').optional(),
+  body('expiry_date_time').optional(),
   body('percent_off').isFloat({ min: 0, max: 100 }).optional(),
   body('flat_off').isFloat({ min: 0 }).optional(),
   body('max_off').isFloat({ min: 0 }).optional(),
