@@ -88,11 +88,11 @@ router.post('/validate', [
       // Check usage limit
       if (promoCode.max_uses_per_user) {
         const usageResult = await db.query(
-          `SELECT COUNT(*) as usage_count FROM promo_code_usage 
-           WHERE promo_code_id = $1 AND user_id = $2`,
+          `SELECT COUNT(*) as usage_count FROM promo_code_usage pcu
+           JOIN orders o ON pcu.order_id = o.id
+           WHERE pcu.promo_code_id = $1 AND pcu.user_id = $2 AND o.status = 'confirmed'`,
           [promoCode.id, user_id]
         );
-
         const usageCount = parseInt(usageResult.rows[0].usage_count);
         if (usageCount >= promoCode.max_uses_per_user) {
           console.log('❌ User exceeded max uses:', { usageCount, maxAllowed: promoCode.max_uses_per_user });

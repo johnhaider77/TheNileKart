@@ -164,7 +164,7 @@ router.patch('/:id', [
     let paramCount = 1;
 
     Object.entries(updates).forEach(([key, value]) => {
-      if (['description', 'start_date_time', 'expiry_date_time', 'percent_off', 'flat_off', 'max_off', 'min_purchase_value', 'max_uses_per_user'].includes(key)) {
+      if (['description', 'start_date_time', 'expiry_date_time', 'percent_off', 'flat_off', 'max_off', 'min_purchase_value', 'max_uses_per_user', 'eligible_users', 'eligible_categories'].includes(key)) {
         if (key === 'start_date_time' || key === 'expiry_date_time') {
           updateFields.push(`${key} = $${paramCount}`);
           updateValues.push(new Date(value));

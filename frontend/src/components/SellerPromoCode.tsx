@@ -70,8 +70,10 @@ const SellerPromoCode: React.FC = () => {
     setSuccess('');
 
     try {
-      const submitData = {
-        ...formData,
+      let submitData: any = {
+        description: formData.description,
+        start_date_time: formData.start_date_time,
+        expiry_date_time: formData.expiry_date_time,
         eligible_users: formData.eligible_users ? formData.eligible_users.split(',').map(e => e.trim()) : null,
         eligible_categories: formData.eligible_categories ? formData.eligible_categories.split(',').map(c => c.trim()) : null,
         percent_off: parseFloat(formData.percent_off.toString()) || 0,
@@ -80,6 +82,10 @@ const SellerPromoCode: React.FC = () => {
         min_purchase_value: parseFloat(formData.min_purchase_value.toString()) || 0,
         max_uses_per_user: formData.max_uses_per_user ? parseInt(formData.max_uses_per_user.toString()) : null
       };
+
+      if (!editingId) {
+        submitData.code = formData.code;
+      }
 
       if (editingId) {
         await promoCodeService.updatePromoCode(editingId, submitData);
