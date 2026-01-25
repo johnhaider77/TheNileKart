@@ -128,16 +128,26 @@ router.patch('/:id', [
   body('max_off').isFloat({ min: 0 }).optional(),
   body('min_purchase_value').isFloat({ min: 0 }).optional(),
   body('max_uses_per_user').isInt({ min: 1 }).optional(),
+  body('eligible_users').isArray().optional(),
+  body('eligible_categories').isArray().optional(),
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      console.error('❌ Validation errors in PATCH promo code:', errors.array());
       return res.status(400).json({ errors: errors.array() });
     }
 
     const promo_code_id = req.params.id;
     const seller_id = req.user.id;
     const updates = req.body;
+
+    console.log('📝 PATCH request received for promo code:', {
+      promo_code_id,
+      seller_id,
+      updates_keys: Object.keys(updates),
+      updates
+    });
 
     // Verify ownership
     const check = await db.query(
