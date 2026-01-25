@@ -325,6 +325,7 @@ router.post('/products', [
         
         return {
           size: size.size.trim(),
+          colour: size.colour || 'Default',
           quantity: parseInt(size.quantity) || 0,
           price: sizePrice,
           market_price: calculatedMarketPrice,
@@ -354,6 +355,7 @@ router.post('/products', [
         
       finalSizes = [{
         size: 'One Size',
+        colour: 'Default',
         quantity: parseInt(stock_quantity) || 0,
         price: parseFloat(price) || 0,
         market_price: defaultMarketPrice,
@@ -1563,6 +1565,123 @@ router.patch('/products/:id/sizes/:size', [
   }
 });
 
+// PATCH route for size+colour updates (NEW)
+router.patch('/products/:id/sizes/:size/:colour', [
+  authenticateToken,
+  requireSeller
+], async (req, res) => {
+  try {
+    console.log('=== PATCH /products/:id/sizes/:size/:colour ===');
+    console.log('Product ID:', req.params.id);
+    console.log('Size:', req.params.size);
+    console.log('Colour:', req.params.colour);
+    console.log('Request body:', req.body);
+    console.log('User:', req.user);
+
+    // Manual validation
+    const { quantity, price, market_price, actual_buy_price } = req.body;
+    
+    if (quantity !== undefined && (isNaN(quantity) || quantity < 0)) {
+      return res.status(400).json({ 
+        errors: [{ 
+          field: 'quantity', 
+          message: 'Quantity must be a non-negative number' 
+        }] 
+      });
+    }
+    
+    if (price !== undefined && (isNaN(price) || price < 0)) {
+      return res.status(400).json({ 
+        errors: [{ 
+          field: 'price', 
+          message: 'Price must be a non-negative number' 
+        }] 
+      });
+    }
+    
+    if (market_price !== undefined && (isNaN(market_price) || market_price < 0)) {
+      return res.status(400).json({ 
+        errors: [{ 
+          field: 'market_price', 
+          message: 'Market price must be a non-negative number' 
+        }] 
+      });
+    }
+    
+    if (actual_buy_price !== undefined && (isNaN(actual_buy_price) || actual_buy_price < 0)) {
+      return res.status(400).json({ 
+        errors: [{ 
+          field: 'actual_buy_price', 
+          message: 'Actual buy price must be a non-negative number' 
+        }] 
+      });
+    }
+
+    const productId = req.params.id;
+    const sizeName = decodeURIComponent(req.params.size);
+    const colourName = decodeURIComponent(req.params.colour);
+    const seller_id = req.user.id;
+
+    // Verify product belongs to seller
+    const productCheck = await db.query(
+      'SELECT id, sizes FROM products WHERE id = $1 AND seller_id = $2',
+      [productId, seller_id]
+    );
+
+    if (productCheck.rows.length === 0) {
+      return res.status(404).json({ message: 'Product not found or access denied' });
+    }
+
+    const currentSizes = productCheck.rows[0].sizes || [];
+    
+    // Update the sizes array with new quantity, price, market_price, and/or actual_buy_price
+    let updated = false;
+    const updatedSizes = currentSizes.map(sizeData => {
+      if (sizeData.size === sizeName && (sizeData.colour || 'Default') === colourName) {
+        updated = true;
+        const updatedSize = { ...sizeData };
+        if (quantity !== undefined) {
+          updatedSize.quantity = quantity;
+        }
+        if (price !== undefined) {
+          updatedSize.price = price;
+        }
+        if (market_price !== undefined) {
+          updatedSize.market_price = market_price;
+        }
+        if (actual_buy_price !== undefined) {
+          updatedSize.actual_buy_price = actual_buy_price;
+        }
+        return updatedSize;
+      }
+      return sizeData;
+    });
+
+    if (!updated) {
+      return res.status(404).json({ message: `Size+Colour combination (${sizeName}/${colourName}) not found for this product` });
+    }
+
+    // Calculate new total stock
+    const totalStock = updatedSizes.reduce((sum, size) => sum + (size.quantity || 0), 0);
+
+    // Update the product in database
+    await db.query(
+      'UPDATE products SET sizes = $1, stock_quantity = $2, updated_at = CURRENT_TIMESTAMP WHERE id = $3',
+      [JSON.stringify(updatedSizes), totalStock, productId]
+    );
+
+    res.json({
+      message: 'Size+Colour combination updated successfully',
+      sizes: updatedSizes,
+      total_stock: totalStock
+    });
+
+  } catch (error) {
+    console.error('Size+Colour update error:', error);
+    res.status(500).json({ message: 'Server error updating size+colour combination' });
+  }
+});
+
 // Get product sizes for seller
 router.get('/products/:id/sizes', [
   authenticateToken,
@@ -1848,6 +1967,82 @@ router.put('/products/:productId/sizes/:size/cod-eligibility', [
 
   } catch (error) {
     console.error('❌ [COD-ELIGIBILITY-UPDATE] Error updating size COD eligibility:', error);
+    res.status(500).json({ success: false, message: 'Server error updating COD eligibility' });
+  }
+});
+
+// Update COD eligibility for a specific size+colour combination (NEW)
+router.put('/products/:productId/sizes/:size/:colour/cod-eligibility', [
+  authenticateToken,
+  requireSeller,
+  body('cod_eligible').isBoolean(),
+], async (req, res) => {
+  try {
+    const { productId, size, colour } = req.params;
+    const { cod_eligible } = req.body;
+    const seller_id = req.user.id;
+    const decodedSize = decodeURIComponent(size);
+    const decodedColour = decodeURIComponent(colour);
+
+    console.log(`🔄 [COD-ELIGIBILITY-UPDATE] Product ${productId}, Size+Colour: ${decodedSize}/${decodedColour}, New COD Eligible: ${cod_eligible}, Seller: ${seller_id}`);
+
+    // Verify product belongs to seller
+    const product = await db.query(
+      'SELECT id, sizes, name FROM products WHERE id = $1 AND seller_id = $2',
+      [productId, seller_id]
+    );
+
+    if (product.rows.length === 0) {
+      console.log(`❌ [COD-ELIGIBILITY-UPDATE] Product not found or access denied`);
+      return res.status(404).json({ success: false, message: 'Product not found or access denied' });
+    }
+
+    const sizes = product.rows[0].sizes || [];
+    console.log(`📋 [COD-ELIGIBILITY-UPDATE] Current sizes before update:`, JSON.stringify(sizes));
+
+    const updatedSizes = sizes.map(sizeData => {
+      if (sizeData.size === decodedSize && (sizeData.colour || 'Default') === decodedColour) {
+        console.log(`  ✏️ Updating ${decodedSize}/${decodedColour}: cod_eligible ${sizeData.cod_eligible} → ${cod_eligible}`);
+        return { ...sizeData, cod_eligible };
+      }
+      return sizeData;
+    });
+
+    // Check if any size was actually updated
+    const wasUpdated = sizes.some((s, idx) => s.size === decodedSize && (s.colour || 'Default') === decodedColour && s.cod_eligible !== updatedSizes[idx].cod_eligible);
+    console.log(`  Update found: ${wasUpdated}, sizes modified: ${JSON.stringify(updatedSizes).substring(0, 100)}...`);
+
+    // Update the product with new sizes array
+    const updateResult = await db.query(
+      'UPDATE products SET sizes = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 AND seller_id = $3 RETURNING sizes',
+      [JSON.stringify(updatedSizes), productId, seller_id]
+    );
+
+    if (updateResult.rows.length === 0) {
+      console.log(`❌ [COD-ELIGIBILITY-UPDATE] Update failed - no rows returned`);
+      return res.status(500).json({ success: false, message: 'Failed to update product' });
+    }
+
+    const returnedSizes = updateResult.rows[0].sizes;
+    console.log(`✅ [COD-ELIGIBILITY-UPDATE] Update successful. Returned sizes:`, JSON.stringify(returnedSizes).substring(0, 150));
+    
+    // Verify the update actually took effect
+    const verifyProduct = await db.query(
+      'SELECT sizes FROM products WHERE id = $1',
+      [productId]
+    );
+    const verifiedSize = verifyProduct.rows[0].sizes.find(s => s.size === decodedSize && (s.colour || 'Default') === decodedColour);
+    console.log(`🔍 [COD-ELIGIBILITY-UPDATE] Verification - Size+Colour ${decodedSize}/${decodedColour} cod_eligible in DB: ${verifiedSize?.cod_eligible}`);
+
+    res.json({ 
+      success: true, 
+      message: `COD eligibility for ${decodedSize} (${decodedColour}) updated successfully`,
+      cod_eligible,
+      verified_in_db: verifiedSize?.cod_eligible === cod_eligible
+    });
+
+  } catch (error) {
+    console.error('❌ [COD-ELIGIBILITY-UPDATE] Error updating size+colour COD eligibility:', error);
     res.status(500).json({ success: false, message: 'Server error updating COD eligibility' });
   }
 });

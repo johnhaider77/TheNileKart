@@ -13,7 +13,7 @@ interface Product {
   category: string;
   stock_quantity: number;
   other_details?: string;
-  sizes?: { size: string; quantity: number; price?: number; market_price?: number; actual_buy_price?: number; cod_eligible?: boolean; }[];
+  sizes?: { size: string; colour?: string; quantity: number; price?: number; market_price?: number; actual_buy_price?: number; cod_eligible?: boolean; }[];
   is_active: boolean;
   created_at: string;
   cod_eligible?: boolean;
@@ -22,6 +22,7 @@ interface Product {
 interface ProductSizeRow {
   product: Product;
   size: string;
+  colour: string;
   sizeQuantity: number;
   sizePrice: number;
   isFirstSizeRow: boolean;
@@ -142,6 +143,7 @@ const UpdateInventory: React.FC = () => {
           expandedRows.push({
             product,
             size: sizeData.size,
+            colour: sizeData.colour || 'Default',
             sizeQuantity: sizeData.quantity,
             sizePrice: sizeData.price || 0, // Use size-specific price
             isFirstSizeRow: index === 0,
@@ -153,6 +155,7 @@ const UpdateInventory: React.FC = () => {
         expandedRows.push({
           product,
           size: 'One Size',
+          colour: 'Default',
           sizeQuantity: product.stock_quantity,
           sizePrice: 0, // No global price, will need to be set per size
           isFirstSizeRow: true,
@@ -273,15 +276,15 @@ const UpdateInventory: React.FC = () => {
     }
   };
 
-  const handleSizeStockChange = async (productId: number, size: string, newQuantity: number) => {
+  const handleSizeStockChange = async (productId: number, size: string, colour: string, newQuantity: number) => {
     try {
-      await sellerAPI.updateProductSizeQuantity(productId.toString(), size, newQuantity);
+      await sellerAPI.updateProductSizeQuantity(productId.toString(), size, colour, newQuantity);
       
       // Update the product sizes in state
       setProducts(prev => prev.map(product => {
         if (product.id === productId && product.sizes) {
           const updatedSizes = product.sizes.map(sizeData => 
-            sizeData.size === size 
+            (sizeData.size === size && (sizeData.colour || 'Default') === colour)
               ? { ...sizeData, quantity: newQuantity }
               : sizeData
           );
@@ -298,16 +301,16 @@ const UpdateInventory: React.FC = () => {
         return product;
       }));
       
-      showSuccess(`Stock for size ${size} updated successfully`);
+      showSuccess(`Stock for ${size} (${colour}) updated successfully`);
     } catch (err) {
-      setError(`Failed to update stock for size ${size}`);
+      setError(`Failed to update stock for ${size} (${colour})`);
       console.error('Error updating size stock:', err);
     }
   };
 
-  const handleSizePriceChange = async (productId: number, size: string, newPrice: number) => {
+  const handleSizePriceChange = async (productId: number, size: string, colour: string, newPrice: number) => {
     try {
-      console.log(`🔄 Updating price for product ${productId}, size ${size}, new price: ${newPrice}`);
+      console.log(`🔄 Updating price for product ${productId}, size ${size} (${colour}), new price: ${newPrice}`);
       
       // Check if user is authenticated
       const token = localStorage.getItem('token');
@@ -318,13 +321,13 @@ const UpdateInventory: React.FC = () => {
       
       // Update size-specific price
       console.log('📝 Updating size-specific price...');
-      await sellerAPI.updateProductSizePrice(productId.toString(), size, newPrice);
+      await sellerAPI.updateProductSizePrice(productId.toString(), size, colour, newPrice);
       
       // Update the product sizes in state
       setProducts(prev => prev.map(product => {
         if (product.id === productId && product.sizes) {
           const updatedSizes = product.sizes.map(sizeData => 
-            sizeData.size === size 
+            (sizeData.size === size && (sizeData.colour || 'Default') === colour)
               ? { ...sizeData, price: newPrice }
               : sizeData
           );
@@ -340,12 +343,12 @@ const UpdateInventory: React.FC = () => {
       }));
       
       console.log('✅ Size-specific price updated successfully');
-      showSuccess(`Price for size ${size} updated successfully`);
+      showSuccess(`Price for ${size} (${colour}) updated successfully`);
     } catch (err: any) {
       console.error('❌ Error updating size price:', err);
       
       // Provide more detailed error information
-      let errorMessage = `Failed to update price for size ${size}`;
+      let errorMessage = `Failed to update price for ${size} (${colour})`;
       if (err?.response?.data?.message) {
         errorMessage += `: ${err.response.data.message}`;
       } else if (err?.response?.status === 401) {
@@ -363,10 +366,10 @@ const UpdateInventory: React.FC = () => {
   };
 
   // Handle price input commit with validation
-  const handlePriceInputBlur = async (productId: number, size: string, inputValue: string, currentPrice: number) => {
+  const handlePriceInputBlur = async (productId: number, size: string, colour: string, inputValue: string, currentPrice: number) => {
     const newPrice = parseFloat(inputValue);
     if (!isNaN(newPrice) && newPrice >= 0 && newPrice !== currentPrice) {
-      console.log(`💰 Price change detected: ${currentPrice} → ${newPrice} for product ${productId}, size ${size}`);
+      console.log(`💰 Price change detected: ${currentPrice} → ${newPrice} for product ${productId}, size ${size} (${colour})`);
       
       // Add validation
       if (newPrice < 0) {
@@ -378,7 +381,7 @@ const UpdateInventory: React.FC = () => {
         return;
       }
       
-      await handleSizePriceChange(productId, size, newPrice);
+      await handleSizePriceChange(productId, size, colour, newPrice);
     } else {
       console.log(`💰 No price change needed: ${currentPrice} (input: ${inputValue}, parsed: ${newPrice})`);
     }
@@ -777,26 +780,30 @@ const UpdateInventory: React.FC = () => {
         
         for (const [size, changes] of Object.entries(productPendingChanges)) {
           try {
+            // Find the colour for this size from the editingProduct
+            const sizeData = editingProduct.sizes?.find(s => s.size === size);
+            const colour = sizeData?.colour || 'Default';
+            
             // Save market price if it was changed
             if (changes.market_price !== undefined) {
-              console.log(`💰 Saving market price for size ${size}: ${changes.market_price}`);
-              await sellerAPI.updateProductSizeMarketPrice(editingProduct.id.toString(), size, changes.market_price);
+              console.log(`💰 Saving market price for ${size} (${colour}): ${changes.market_price}`);
+              await sellerAPI.updateProductSizeMarketPrice(editingProduct.id.toString(), size, colour, changes.market_price);
             }
             
             // Save actual buy price if it was changed
             if (changes.actual_buy_price !== undefined) {
-              console.log(`💰 Saving actual buy price for size ${size}: ${changes.actual_buy_price}`);
-              await sellerAPI.updateProductSizeActualBuyPrice(editingProduct.id.toString(), size, changes.actual_buy_price);
+              console.log(`💰 Saving actual buy price for ${size} (${colour}): ${changes.actual_buy_price}`);
+              await sellerAPI.updateProductSizeActualBuyPrice(editingProduct.id.toString(), size, colour, changes.actual_buy_price);
             }
 
             // Save COD eligibility if it was changed
             if (changes.cod_eligible !== undefined) {
-              console.log(`📦 Saving COD eligibility for size ${size}: ${changes.cod_eligible}`);
-              await sellerAPI.updateProductSizeCODEligibility(editingProduct.id.toString(), size, changes.cod_eligible);
+              console.log(`📦 Saving COD eligibility for ${size} (${colour}): ${changes.cod_eligible}`);
+              await sellerAPI.updateProductSizeCODEligibility(editingProduct.id.toString(), size, colour, changes.cod_eligible);
             }
           } catch (sizeErr: any) {
-            console.error(`❌ Error saving price for size ${size}:`, sizeErr);
-            throw new Error(`Failed to save prices for size ${size}: ${sizeErr?.response?.data?.message || sizeErr.message}`);
+            console.error(`❌ Error saving price for ${size}:`, sizeErr);
+            throw new Error(`Failed to save prices for ${size}: ${sizeErr?.response?.data?.message || sizeErr.message}`);
           }
         }
         
@@ -1084,9 +1091,9 @@ const UpdateInventory: React.FC = () => {
           </thead>
           <tbody>
             {expandProductsBySizes(products).map((row, index) => {
-              const { product, size, sizeQuantity, sizePrice, isFirstSizeRow, sizeRowCount } = row;
+              const { product, size, colour, sizeQuantity, sizePrice, isFirstSizeRow, sizeRowCount } = row;
               return (
-                <tr key={`${product.id}-${size}`}>
+                <tr key={`${product.id}-${size}-${colour}`}>
                   {/* Checkbox - only show on first size row */}
                   {isFirstSizeRow && (
                     <td className="checkbox-cell" rowSpan={sizeRowCount}>
@@ -1139,6 +1146,7 @@ const UpdateInventory: React.FC = () => {
                   <td>
                     <div className="size-info">
                       <span className="size-name">{size}</span>
+                      {colour !== 'Default' && <span className="colour-badge" style={{ marginLeft: '0.5rem' }}>{colour}</span>}
                     </div>
                   </td>
                   
@@ -1148,9 +1156,9 @@ const UpdateInventory: React.FC = () => {
                       <input
                         type="number"
                         className="price-input"
-                        key={`price-${product.id}-${size}-${sizePrice}`} // Force re-render when price changes
+                        key={`price-${product.id}-${size}-${colour}-${sizePrice}`} // Force re-render when price changes
                         defaultValue={sizePrice}
-                        onBlur={(e) => handlePriceInputBlur(product.id, size, e.target.value, sizePrice)}
+                        onBlur={(e) => handlePriceInputBlur(product.id, size, colour, e.target.value, sizePrice)}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') {
                             e.currentTarget.blur();
@@ -1169,7 +1177,7 @@ const UpdateInventory: React.FC = () => {
                         type="number"
                         className="stock-input"
                         value={sizeQuantity}
-                        onChange={(e) => handleSizeStockChange(product.id, size, parseInt(e.target.value) || 0)}
+                        onChange={(e) => handleSizeStockChange(product.id, size, colour, parseInt(e.target.value) || 0)}
                         min="0"
                       />
                       <span className={`stock-badge ${getStockBadge(sizeQuantity)}`}>
@@ -1479,7 +1487,7 @@ const UpdateInventory: React.FC = () => {
                               min="0"
                               className="size-input"
                               defaultValue={sizeData.price || ''}
-                              onBlur={(e) => handleSizePriceChange(editingProduct.id, sizeData.size, parseFloat(e.target.value) || 0)}
+                              onBlur={(e) => handleSizePriceChange(editingProduct.id, sizeData.size, sizeData.colour || 'Default', parseFloat(e.target.value) || 0)}
                               onKeyDown={(e) => {
                                 if (e.key === 'Enter') {
                                   e.currentTarget.blur();
@@ -1535,7 +1543,7 @@ const UpdateInventory: React.FC = () => {
                               min="0"
                               className="size-input"
                               value={sizeData.quantity}
-                              onChange={(e) => handleSizeStockChange(editingProduct.id, sizeData.size, parseInt(e.target.value) || 0)}
+                              onChange={(e) => handleSizeStockChange(editingProduct.id, sizeData.size, sizeData.colour || 'Default', parseInt(e.target.value) || 0)}
                             />
                           </div>
                           <div className="pricing-field">

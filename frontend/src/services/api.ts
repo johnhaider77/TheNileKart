@@ -244,33 +244,34 @@ export const sellerAPI = {
   }) => api.patch('/seller/products/bulk', { productIds, updates }),
   
   // Size Management
-  updateProductSizeQuantity: (productId: string, size: string, quantity: number) => 
-    api.patch(`/seller/products/${productId}/sizes/${encodeURIComponent(size)}`, { quantity }),
+  updateProductSizeQuantity: (productId: string, size: string, colour: string, quantity: number) => 
+    api.patch(`/seller/products/${productId}/sizes/${encodeURIComponent(size)}/${encodeURIComponent(colour)}`, { quantity }),
   
-  updateProductSizePrice: (productId: string, size: string, price: number) => {
-    console.log(`🔄 API Call: updateProductSizePrice(${productId}, ${size}, ${price})`);
-    const url = `/seller/products/${productId}/sizes/${encodeURIComponent(size)}`;
+  updateProductSizePrice: (productId: string, size: string, colour: string, price: number) => {
+    console.log(`🔄 API Call: updateProductSizePrice(${productId}, ${size}, ${colour}, ${price})`);
+    const url = `/seller/products/${productId}/sizes/${encodeURIComponent(size)}/${encodeURIComponent(colour)}`;
     console.log(`📡 Calling: PATCH ${url}`);
     return api.patch(url, { price });
   },
   
-  updateProductSizeMarketPrice: (productId: string, size: string, market_price: number) => {
-    console.log(`🔄 API Call: updateProductSizeMarketPrice(${productId}, ${size}, ${market_price})`);
-    const url = `/seller/products/${productId}/sizes/${encodeURIComponent(size)}`;
+  
+  updateProductSizeMarketPrice: (productId: string, size: string, colour: string, market_price: number) => {
+    console.log(`🔄 API Call: updateProductSizeMarketPrice(${productId}, ${size}, ${colour}, ${market_price})`);
+    const url = `/seller/products/${productId}/sizes/${encodeURIComponent(size)}/${encodeURIComponent(colour)}`;
     console.log(`📡 Calling: PATCH ${url}`);
     return api.patch(url, { market_price });
   },
   
-  updateProductSizeActualBuyPrice: (productId: string, size: string, actual_buy_price: number) => {
-    console.log(`🔄 API Call: updateProductSizeActualBuyPrice(${productId}, ${size}, ${actual_buy_price})`);
-    const url = `/seller/products/${productId}/sizes/${encodeURIComponent(size)}`;
+  updateProductSizeActualBuyPrice: (productId: string, size: string, colour: string, actual_buy_price: number) => {
+    console.log(`🔄 API Call: updateProductSizeActualBuyPrice(${productId}, ${size}, ${colour}, ${actual_buy_price})`);
+    const url = `/seller/products/${productId}/sizes/${encodeURIComponent(size)}/${encodeURIComponent(colour)}`;
     console.log(`📡 Calling: PATCH ${url}`);
     return api.patch(url, { actual_buy_price });
   },
 
-  updateProductSizeCODEligibility: (productId: string, size: string, cod_eligible: boolean) => {
-    console.log(`🔄 API Call: updateProductSizeCODEligibility(${productId}, ${size}, ${cod_eligible})`);
-    const url = `/seller/products/${productId}/sizes/${encodeURIComponent(size)}/cod-eligibility`;
+  updateProductSizeCODEligibility: (productId: string, size: string, colour: string, cod_eligible: boolean) => {
+    console.log(`🔄 API Call: updateProductSizeCODEligibility(${productId}, ${size}, ${colour}, ${cod_eligible})`);
+    const url = `/seller/products/${productId}/sizes/${encodeURIComponent(size)}/${encodeURIComponent(colour)}/cod-eligibility`;
     console.log(`📡 Calling: PUT ${url}`);
     return api.put(url, { cod_eligible });
   },

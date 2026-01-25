@@ -24,6 +24,7 @@ interface ProductVideo {
 interface ProductSize {
   id: string;
   size: string;
+  colour: string;
   quantity: number;
   price?: number;
   market_price?: number;
@@ -52,7 +53,7 @@ const CreateProduct: React.FC = () => {
 
   const [images, setImages] = useState<ProductImage[]>([]);
   const [videos, setVideos] = useState<ProductVideo[]>([]);
-  const [sizes, setSizes] = useState<ProductSize[]>([{ id: '1', size: 'One Size', quantity: 0, price: 0, market_price: 0, actual_buy_price: 0, cod_eligible: true }]);
+  const [sizes, setSizes] = useState<ProductSize[]>([{ id: '1', size: 'One Size', colour: 'Default', quantity: 0, price: 0, market_price: 0, actual_buy_price: 0, cod_eligible: true }]);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<any>({});
 
@@ -163,6 +164,7 @@ const CreateProduct: React.FC = () => {
     const newSize: ProductSize = {
       id: Date.now().toString(),
       size: '',
+      colour: 'Default',
       quantity: 0,
       price: 0,
       market_price: 0,
@@ -178,7 +180,7 @@ const CreateProduct: React.FC = () => {
     }
   };
 
-  const updateSize = (id: string, field: 'size' | 'quantity' | 'price' | 'market_price' | 'actual_buy_price' | 'cod_eligible', value: string | number | boolean) => {
+  const updateSize = (id: string, field: 'size' | 'colour' | 'quantity' | 'price' | 'market_price' | 'actual_buy_price' | 'cod_eligible', value: string | number | boolean) => {
     setSizes(prev => prev.map(size => 
       size.id === id ? { ...size, [field]: value } : size
     ));
@@ -422,6 +424,16 @@ const CreateProduct: React.FC = () => {
                           onChange={(e) => updateSize(size.id, 'size', e.target.value)}
                           className="form-control size-name"
                           placeholder="Size name (e.g., M, L, XL, 38, 40)"
+                        />
+                      </div>
+                      <div className="size-input-group">
+                        <label>Colour</label>
+                        <input
+                          type="text"
+                          value={size.colour || 'Default'}
+                          onChange={(e) => updateSize(size.id, 'colour', e.target.value)}
+                          className="form-control size-colour"
+                          placeholder="Colour (e.g., Red, Blue, Black)"
                         />
                       </div>
                       <div className="size-input-group">
