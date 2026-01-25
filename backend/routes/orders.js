@@ -173,7 +173,7 @@ router.post('/', [
   body('items.*.size').optional().trim(),
   body('shipping_address').isObject(),
   body('payment_method').optional().isIn(['cod', 'paypal', 'card', 'ziina']),
-  body('status').optional().isIn(['pending', 'pending_payment', 'payment_failed', 'processing', 'shipped', 'delivered', 'cancelled']),
+  body('status').optional().isIn(['pending', 'pending_payment', 'payment_failed', 'payment_cancelled', 'processing', 'shipped', 'delivered', 'cancelled']),
   body('promo_code_id').optional().isInt(),
   body('promo_discount_amount').optional().isFloat({ min: 0 }),
 ], async (req, res) => {
@@ -237,14 +237,14 @@ router.post('/', [
     const customer_id = req.user.id;
     
     // Determine initial order status based on payment method
-    // For online payments (ziina, paypal, card): start in payment_pending
+    // For online payments (ziina, paypal, card): start in pending_payment
     // For COD: start in pending
     let status = 'pending';
     if (['ziina', 'paypal', 'card'].includes(payment_method)) {
-      status = 'payment_pending';
+      status = 'pending_payment';
     }
     // Allow explicit status override if provided
-    if (requestStatus && ['pending', 'pending_payment', 'payment_failed', 'processing', 'shipped', 'delivered', 'cancelled'].includes(requestStatus)) {
+    if (requestStatus && ['pending', 'pending_payment', 'payment_failed', 'payment_cancelled', 'processing', 'shipped', 'delivered', 'cancelled'].includes(requestStatus)) {
       status = requestStatus;
     }
 
@@ -624,7 +624,7 @@ router.patch('/:id/status', [authenticateToken, requireCustomer], async (req, re
     const orderId = req.params.id;
     const customer_id = req.user.id;
 
-    if (!status || !['pending', 'payment_failed', 'pending_payment', 'processing', 'shipped', 'delivered', 'cancelled'].includes(status)) {
+    if (!status || !['pending', 'pending_payment', 'payment_failed', 'payment_cancelled', 'processing', 'shipped', 'delivered', 'cancelled'].includes(status)) {
       return res.status(400).json({ message: 'Invalid status value' });
     }
 
