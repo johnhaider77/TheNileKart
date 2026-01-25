@@ -644,7 +644,7 @@ const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
                   <div key={product.id} className="product-item">
                     <div className="product-info">
                       <h4>{product.name}</h4>
-                      <p>ID: {product.id} | Price: AED {product.price} | Stock: {product.stock_quantity}</p>
+                      <p>ID: {product.product_id} | Price: AED {product.price} | Stock: {product.stock_quantity}</p>
                       <p>Status: {product.is_active ? 'Active' : 'Inactive'}</p>
                       <p>Created: {new Date(product.created_at).toLocaleDateString()}</p>
                     </div>
