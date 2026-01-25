@@ -5,6 +5,7 @@ import { ordersAPI, authAPI } from '../services/api';
 import { ShippingAddress } from '../utils/types';
 import api from '../services/api';
 import PaymentOptions from '../components/PaymentOptions';
+import PromoCodeCheckout from '../components/PromoCodeCheckout';
 import Toast from '../components/Toast';
 import { useMetrics } from '../hooks/useMetrics';
 import '../styles/CheckoutPage.css';
@@ -67,6 +68,8 @@ const CheckoutPage: React.FC = () => {
     fee: number;
     total: number;
   } | undefined>(undefined);
+  const [appliedPromoCode, setAppliedPromoCode] = useState<any>(null);
+  const [promoCodeDiscount, setPromoCodeDiscount] = useState(0);
 
   // Helper function to add toast messages
   const addToast = (message: string, type: 'success' | 'error' | 'warning' | 'info' = 'info') => {
@@ -1404,8 +1407,22 @@ const CheckoutPage: React.FC = () => {
                 </div>
               )}
               
+              <PromoCodeCheckout
+                cartItems={items}
+                cartTotal={shippingFeeDetails?.subtotal || getTotalAmount()}
+                onPromoApplied={(discount) => {
+                  setAppliedPromoCode(discount);
+                  setPromoCodeDiscount(discount.discountAmount);
+                  addToast(`Promo code "${discount.code}" applied! You save AED ${discount.discountAmount.toFixed(2)}`, 'success');
+                }}
+                onPromoRemoved={() => {
+                  setAppliedPromoCode(null);
+                  setPromoCodeDiscount(0);
+                }}
+              />
+              
               <PaymentOptions
-                amount={shippingFeeDetails?.total || getTotalAmount()}
+                amount={(shippingFeeDetails?.total || getTotalAmount()) - promoCodeDiscount}
                 items={items}
                 shippingAddress={shippingAddress}
                 onPaymentSuccess={handlePaymentSuccess}
