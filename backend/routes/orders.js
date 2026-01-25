@@ -403,11 +403,11 @@ router.post('/', [
     // Track promo code usage if a promo code was applied
     if (promo_code_id) {
       await client.query(
-        `INSERT INTO promo_code_usage (promo_code_id, user_id, order_id)
-         VALUES ($1, $2, $3)`,
-        [promo_code_id, customer_id, order_id]
+        `INSERT INTO promo_code_usage (promo_code_id, user_id, order_id, discount_amount)
+         VALUES ($1, $2, $3, $4)`,
+        [promo_code_id, customer_id, order_id, promo_discount]
       );
-      console.log(`✅ Promo code usage tracked: promo_code_id=${promo_code_id}, user_id=${customer_id}, order_id=${order_id}`);
+      console.log(`✅ Promo code usage tracked: promo_code_id=${promo_code_id}, user_id=${customer_id}, order_id=${order_id}, discount_amount=${promo_discount}`);
     }
 
     // Create order items and update stock
