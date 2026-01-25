@@ -102,9 +102,13 @@ const SellerPromoCode: React.FC = () => {
         status: err.response?.status,
         message: err.response?.data?.message,
         errors: err.response?.data?.errors,
-        fullError: err.message
+        fullError: err.message,
+        fullErrorData: err.response?.data
       });
-      setError(err.response?.data?.message || 'Failed to save promo code');
+      const errorMessage = err.response?.data?.message || 
+                          (err.response?.data?.errors?.[0]?.msg) ||
+                          'Failed to save promo code';
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

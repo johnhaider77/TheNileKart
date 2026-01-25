@@ -121,8 +121,18 @@ router.patch('/:id', [
   authenticateToken,
   requireSeller,
   body('description').trim().isLength({ min: 5 }).optional(),
-  body('start_date_time').isISO8601().toDate().optional(),
-  body('expiry_date_time').isISO8601().toDate().optional(),
+  body('start_date_time').custom(value => {
+    if (value && !new Date(value).getTime()) {
+      throw new Error('Invalid date format');
+    }
+    return true;
+  }).optional(),
+  body('expiry_date_time').custom(value => {
+    if (value && !new Date(value).getTime()) {
+      throw new Error('Invalid date format');
+    }
+    return true;
+  }).optional(),
   body('percent_off').isFloat({ min: 0, max: 100 }).optional(),
   body('flat_off').isFloat({ min: 0 }).optional(),
   body('max_off').isFloat({ min: 0 }).optional(),
@@ -134,8 +144,12 @@ router.patch('/:id', [
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      console.error('❌ Validation errors in PATCH promo code:', errors.array());
-      return res.status(400).json({ errors: errors.array() });
+      const errorMessages = errors.array().map(e => `${e.param}: ${e.msg}`).join(', ');
+      console.error('❌ Validation errors in PATCH promo code:', errorMessages);
+      return res.status(400).json({ 
+        message: 'Validation failed',
+        errors: errors.array() 
+      });
     }
 
     const promo_code_id = req.params.id;
