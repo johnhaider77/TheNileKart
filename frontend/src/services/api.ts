@@ -182,6 +182,7 @@ export const ordersAPI = {
     };
     payment_method?: string;
     promo_code_id?: number;
+    promo_discount_amount?: number;
   }) => api.post('/orders', orderData),
   
   calculateCOD: (items: any[]) => api.post('/orders/calculate-cod', { items }),

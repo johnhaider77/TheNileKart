@@ -175,6 +175,7 @@ router.post('/', [
   body('payment_method').optional().isIn(['cod', 'paypal', 'card', 'ziina']),
   body('status').optional().isIn(['pending', 'pending_payment', 'payment_failed', 'confirmed', 'cancelled']),
   body('promo_code_id').optional().isInt(),
+  body('promo_discount_amount').optional().isFloat({ min: 0 }),
 ], async (req, res) => {
   const client = await db.getClient();
   
@@ -183,6 +184,7 @@ router.post('/', [
   console.log('   Payment method:', req.body?.payment_method);
   console.log('   Items count:', req.body?.items?.length);
   console.log('   Promo Code ID:', req.body?.promo_code_id);
+  console.log('   Promo Discount Amount:', req.body?.promo_discount_amount);
   
   try {
     const errors = validationResult(req);
@@ -231,7 +233,7 @@ router.post('/', [
       });
     }
 
-    const { items, shipping_address, payment_method = 'cod', status: requestStatus, promo_code_id } = req.body;
+    const { items, shipping_address, payment_method = 'cod', status: requestStatus, promo_code_id, promo_discount_amount } = req.body;
     const customer_id = req.user.id;
     
     // Determine initial order status based on payment method
@@ -354,6 +356,7 @@ router.post('/', [
     let shippingFee = 0;
     let final_total = total_amount;
     let cod_fee = 0;
+    let promo_discount = parseFloat(promo_discount_amount) || 0;
 
     if (payment_method === 'cod') {
       // COD: use calculated total with COD fee
@@ -378,15 +381,24 @@ router.post('/', [
       });
     }
 
+    // Apply promo discount to final total
+    if (promo_discount > 0) {
+      final_total = Math.max(0, final_total - promo_discount);
+      console.log('✅ Promo discount applied:', {
+        discount_amount: promo_discount,
+        final_total_after_discount: final_total
+      });
+    }
+
     // Create order
     const newOrder = await client.query(
-      `INSERT INTO orders (customer_id, total_amount, cod_fee, shipping_fee, status, shipping_address, payment_method, promo_code_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, created_at`,
-      [customer_id, final_total, cod_fee, shippingFee, status, JSON.stringify(shipping_address), payment_method, promo_code_id || null]
+      `INSERT INTO orders (customer_id, total_amount, cod_fee, shipping_fee, status, shipping_address, payment_method, promo_code_id, promo_discount_amount)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9) RETURNING id, created_at`,
+      [customer_id, final_total, cod_fee, shippingFee, status, JSON.stringify(shipping_address), payment_method, promo_code_id || null, promo_discount]
     );
 
     const order_id = newOrder.rows[0].id;
-    console.log(`✅ Order created: id=${order_id}, total=${final_total} AED, payment_method=${payment_method}, promo_code_id=${promo_code_id || 'none'}`);
+    console.log(`✅ Order created: id=${order_id}, total=${final_total} AED, payment_method=${payment_method}, promo_code_id=${promo_code_id || 'none'}, promo_discount=${promo_discount}`);
 
     // Create order items and update stock
     for (const item of orderItems) {

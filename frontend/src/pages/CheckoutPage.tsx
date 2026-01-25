@@ -767,12 +767,14 @@ const CheckoutPage: React.FC = () => {
 
       console.log('📝 Creating COD order with fresh cart data');
       console.log('📋 Validated items:', validatedItems);
+      console.log('💰 Promo discount to apply:', appliedPromoCode?.discountAmount);
       
       const response = await ordersAPI.createOrder({
         items: validatedItems,
         shipping_address: shippingAddress,
         payment_method: 'cod',
-        promo_code_id: appliedPromoCode?.id
+        promo_code_id: appliedPromoCode?.id,
+        promo_discount_amount: appliedPromoCode?.discountAmount
       });
 
       console.log('📲 API Response:', response.data);

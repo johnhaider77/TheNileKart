@@ -110,7 +110,8 @@ const ZiinaPayment: React.FC<ZiinaPaymentProps> = ({
         shipping_address: shippingAddressWithPhone,
         payment_method: 'ziina',
         status: 'pending_payment',  // Set to pending_payment until payment is verified
-        promo_code_id: appliedPromoCode?.id
+        promo_code_id: appliedPromoCode?.id,
+        promo_discount_amount: appliedPromoCode?.discountAmount
       };
 
       console.log('📤 Sending order data to backend:', JSON.stringify(orderData, null, 2));
