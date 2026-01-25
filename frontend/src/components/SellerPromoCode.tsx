@@ -98,6 +98,12 @@ const SellerPromoCode: React.FC = () => {
       await fetchPromoCodes();
       resetForm();
     } catch (err: any) {
+      console.error('❌ Error saving promo code:', {
+        status: err.response?.status,
+        message: err.response?.data?.message,
+        errors: err.response?.data?.errors,
+        fullError: err.message
+      });
       setError(err.response?.data?.message || 'Failed to save promo code');
     } finally {
       setLoading(false);

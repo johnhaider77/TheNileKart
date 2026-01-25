@@ -400,6 +400,16 @@ router.post('/', [
     const order_id = newOrder.rows[0].id;
     console.log(`✅ Order created: id=${order_id}, total=${final_total} AED, payment_method=${payment_method}, promo_code_id=${promo_code_id || 'none'}, promo_discount=${promo_discount}`);
 
+    // Track promo code usage if a promo code was applied
+    if (promo_code_id) {
+      await client.query(
+        `INSERT INTO promo_code_usage (promo_code_id, user_id, order_id)
+         VALUES ($1, $2, $3)`,
+        [promo_code_id, customer_id, order_id]
+      );
+      console.log(`✅ Promo code usage tracked: promo_code_id=${promo_code_id}, user_id=${customer_id}, order_id=${order_id}`);
+    }
+
     // Create order items and update stock
     for (const item of orderItems) {
       // Insert order item with size
