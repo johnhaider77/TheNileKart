@@ -757,29 +757,16 @@ const CheckoutPage: React.FC = () => {
         console.log('✅ checkoutData created and stored:', orderData);
       }
 
-      const checkoutData = JSON.parse(checkoutDataStr);
-      console.log('📋 checkoutData retrieved:', checkoutData);
+      // Always use fresh items from current cart state, not stale sessionStorage
+      // This ensures we have the correct product IDs and avoid issues with corrupted cached data
+      const validatedItems = items.map(item => ({
+        product_id: item.product.id,
+        quantity: item.quantity,
+        size: item.selectedSize || 'One Size'
+      }));
 
-      // Ensure items have the correct structure for API
-      const validatedItems = checkoutData.items.map((item: any) => {
-        // If item is in the old format from previous attempts, restructure it
-        if (item.product && typeof item.product === 'object') {
-          return {
-            product_id: item.product.id,
-            quantity: item.quantity,
-            size: item.selectedSize || item.size || 'One Size'
-          };
-        }
-        // Item already in correct format
-        return {
-          product_id: item.product_id,
-          quantity: item.quantity,
-          size: item.size || 'One Size'
-        };
-      });
-
-      // Create the order with COD payment method - use fresh order data, not stale checkoutData
-      console.log('📝 Creating COD order with validated data');
+      console.log('📝 Creating COD order with fresh cart data');
+      console.log('📋 Validated items:', validatedItems);
       
       const response = await ordersAPI.createOrder({
         items: validatedItems,
