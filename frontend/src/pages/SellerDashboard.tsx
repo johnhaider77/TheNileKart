@@ -18,6 +18,7 @@ const getActualStock = (product: any): number => {
 
 interface Product {
   id: number;
+  product_id: string;
   name: string;
   description: string;
   price: number;
@@ -40,7 +41,7 @@ interface Order {
   customer_name: string;
   customer_email: string;
   items: Array<{
-    product_id: number;
+    product_id: string;
     product_name: string;
     quantity: number;
     price: number;
@@ -128,8 +129,8 @@ const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
       order.items.map(item => {
         console.log(`Processing order ${order.order_id}, item:`, item);
         
-        // Find the product to get actual_buy_price
-        const product = products.find(p => p.id === item.product_id);
+        // Find the product to get actual_buy_price - match by product_id string
+        const product = products.find(p => p.product_id === item.product_id);
         console.log('Found product:', product);
         
         // Get actual buy price from product sizes or use a fallback
