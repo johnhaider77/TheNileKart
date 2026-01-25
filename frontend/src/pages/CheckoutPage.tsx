@@ -760,11 +760,29 @@ const CheckoutPage: React.FC = () => {
       const checkoutData = JSON.parse(checkoutDataStr);
       console.log('📋 checkoutData retrieved:', checkoutData);
 
-      // Create the order with COD payment method
-      console.log('📝 Creating COD order with data:', checkoutData);
+      // Ensure items have the correct structure for API
+      const validatedItems = checkoutData.items.map((item: any) => {
+        // If item is in the old format from previous attempts, restructure it
+        if (item.product && typeof item.product === 'object') {
+          return {
+            product_id: item.product.id,
+            quantity: item.quantity,
+            size: item.selectedSize || item.size || 'One Size'
+          };
+        }
+        // Item already in correct format
+        return {
+          product_id: item.product_id,
+          quantity: item.quantity,
+          size: item.size || 'One Size'
+        };
+      });
+
+      // Create the order with COD payment method - use fresh order data, not stale checkoutData
+      console.log('📝 Creating COD order with validated data');
       
       const response = await ordersAPI.createOrder({
-        items: checkoutData.items,
+        items: validatedItems,
         shipping_address: shippingAddress,
         payment_method: 'cod',
         promo_code_id: appliedPromoCode?.id
