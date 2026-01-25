@@ -181,6 +181,7 @@ export const ordersAPI = {
       phone: string;
     };
     payment_method?: string;
+    promo_code_id?: number;
   }) => api.post('/orders', orderData),
   
   calculateCOD: (items: any[]) => api.post('/orders/calculate-cod', { items }),

@@ -12,6 +12,7 @@ interface ZiinaPaymentProps {
   onError: (error: any) => void;
   onCancel?: () => void;
   disabled?: boolean;
+  appliedPromoCode?: any;
 }
 
 const ZiinaPayment: React.FC<ZiinaPaymentProps> = ({
@@ -22,7 +23,8 @@ const ZiinaPayment: React.FC<ZiinaPaymentProps> = ({
   onSuccess,
   onError,
   onCancel,
-  disabled = false
+  disabled = false,
+  appliedPromoCode
 }) => {
   const navigate = useNavigate();
   const [isProcessing, setIsProcessing] = useState(false);
@@ -107,7 +109,8 @@ const ZiinaPayment: React.FC<ZiinaPaymentProps> = ({
         })),
         shipping_address: shippingAddressWithPhone,
         payment_method: 'ziina',
-        status: 'pending_payment'  // Set to pending_payment until payment is verified
+        status: 'pending_payment',  // Set to pending_payment until payment is verified
+        promo_code_id: appliedPromoCode?.id
       };
 
       console.log('📤 Sending order data to backend:', JSON.stringify(orderData, null, 2));

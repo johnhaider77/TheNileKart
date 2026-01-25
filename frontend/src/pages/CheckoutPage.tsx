@@ -766,7 +766,8 @@ const CheckoutPage: React.FC = () => {
       const response = await ordersAPI.createOrder({
         items: checkoutData.items,
         shipping_address: shippingAddress,
-        payment_method: 'cod'
+        payment_method: 'cod',
+        promo_code_id: appliedPromoCode?.id
       });
 
       console.log('📲 API Response:', response.data);
@@ -1432,6 +1433,7 @@ const CheckoutPage: React.FC = () => {
                 codDetails={codDetails}
                 shippingFeeDetails={shippingFeeDetails}
                 onBackToCart={handleBackToCart}
+                appliedPromoCode={appliedPromoCode}
               />
               </div>
               

@@ -22,6 +22,7 @@ interface PaymentOptionsProps {
     total: number;
   };
   onBackToCart?: () => void;
+  appliedPromoCode?: any;
 }
 
 const PaymentOptions: React.FC<PaymentOptionsProps> = ({
@@ -34,7 +35,8 @@ const PaymentOptions: React.FC<PaymentOptionsProps> = ({
   disabled = false,
   codDetails,
   shippingFeeDetails,
-  onBackToCart
+  onBackToCart,
+  appliedPromoCode
 }) => {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'cod' | 'ziina'>('cod');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -236,6 +238,7 @@ const PaymentOptions: React.FC<PaymentOptionsProps> = ({
                     onSuccess={handleZiinaSuccess}
                     onError={handleZiinaError}
                     disabled={disabled || isProcessing}
+                    appliedPromoCode={appliedPromoCode}
                   />
                 </PaymentErrorBoundary>
               </div>

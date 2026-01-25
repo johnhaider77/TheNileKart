@@ -174,6 +174,7 @@ router.post('/', [
   body('shipping_address').isObject(),
   body('payment_method').optional().isIn(['cod', 'paypal', 'card', 'ziina']),
   body('status').optional().isIn(['pending', 'pending_payment', 'payment_failed', 'confirmed', 'cancelled']),
+  body('promo_code_id').optional().isInt(),
 ], async (req, res) => {
   const client = await db.getClient();
   
@@ -181,6 +182,7 @@ router.post('/', [
   console.log('   User ID:', req.user?.id);
   console.log('   Payment method:', req.body?.payment_method);
   console.log('   Items count:', req.body?.items?.length);
+  console.log('   Promo Code ID:', req.body?.promo_code_id);
   
   try {
     const errors = validationResult(req);
@@ -229,7 +231,7 @@ router.post('/', [
       });
     }
 
-    const { items, shipping_address, payment_method = 'cod', status: requestStatus } = req.body;
+    const { items, shipping_address, payment_method = 'cod', status: requestStatus, promo_code_id } = req.body;
     const customer_id = req.user.id;
     
     // Determine initial order status based on payment method
@@ -248,6 +250,7 @@ router.post('/', [
       payment_method,
       status,
       items_count: items?.length,
+      promo_code_id,
       shipping_address_keys: Object.keys(shipping_address || {}),
       customer_id
     });
@@ -377,13 +380,13 @@ router.post('/', [
 
     // Create order
     const newOrder = await client.query(
-      `INSERT INTO orders (customer_id, total_amount, cod_fee, shipping_fee, status, shipping_address, payment_method)
-       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id, created_at`,
-      [customer_id, final_total, cod_fee, shippingFee, status, JSON.stringify(shipping_address), payment_method]
+      `INSERT INTO orders (customer_id, total_amount, cod_fee, shipping_fee, status, shipping_address, payment_method, promo_code_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8) RETURNING id, created_at`,
+      [customer_id, final_total, cod_fee, shippingFee, status, JSON.stringify(shipping_address), payment_method, promo_code_id || null]
     );
 
     const order_id = newOrder.rows[0].id;
-    console.log(`✅ Order created: id=${order_id}, total=${final_total} AED, payment_method=${payment_method}`);
+    console.log(`✅ Order created: id=${order_id}, total=${final_total} AED, payment_method=${payment_method}, promo_code_id=${promo_code_id || 'none'}`);
 
     // Create order items and update stock
     for (const item of orderItems) {
