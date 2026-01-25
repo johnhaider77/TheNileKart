@@ -121,25 +121,13 @@ router.patch('/:id', [
   authenticateToken,
   requireSeller,
   body('description').trim().isLength({ min: 5 }).optional(),
-  body('start_date_time').custom(value => {
-    if (value && !new Date(value).getTime()) {
-      throw new Error('Invalid date format');
-    }
-    return true;
-  }).optional(),
-  body('expiry_date_time').custom(value => {
-    if (value && !new Date(value).getTime()) {
-      throw new Error('Invalid date format');
-    }
-    return true;
-  }).optional(),
   body('percent_off').isFloat({ min: 0, max: 100 }).optional(),
   body('flat_off').isFloat({ min: 0 }).optional(),
   body('max_off').isFloat({ min: 0 }).optional(),
   body('min_purchase_value').isFloat({ min: 0 }).optional(),
   body('max_uses_per_user').isInt({ min: 1 }).optional(),
-  body('eligible_users').isArray().optional(),
-  body('eligible_categories').isArray().optional(),
+  body('eligible_users').optional(),
+  body('eligible_categories').optional(),
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -191,10 +179,13 @@ router.patch('/:id', [
       if (['description', 'start_date_time', 'expiry_date_time', 'percent_off', 'flat_off', 'max_off', 'min_purchase_value', 'max_uses_per_user', 'eligible_users', 'eligible_categories'].includes(key)) {
         if (key === 'start_date_time' || key === 'expiry_date_time') {
           updateFields.push(`${key} = $${paramCount}`);
-          updateValues.push(new Date(value));
+          // Handle both ISO format and datetime-local format
+          const dateValue = typeof value === 'string' ? new Date(value) : value;
+          updateValues.push(dateValue);
         } else if (key === 'eligible_users' || key === 'eligible_categories') {
+          // Handle null values and arrays
           updateFields.push(`${key} = $${paramCount}`);
-          updateValues.push(JSON.stringify(value));
+          updateValues.push(value === null || value === undefined ? null : JSON.stringify(value));
         } else {
           updateFields.push(`${key} = $${paramCount}`);
           updateValues.push(value);
