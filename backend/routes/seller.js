@@ -984,7 +984,7 @@ router.get('/orders', [
         u.full_name as customer_name, u.email as customer_email,
         json_agg(
           json_build_object(
-            'product_id', oi.product_id,
+            'product_id', p.id,
             'product_name', p.name,
             'quantity', oi.quantity,
             'price', oi.price,
