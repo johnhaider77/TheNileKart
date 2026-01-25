@@ -229,8 +229,20 @@ router.post('/', [
       });
     }
 
-    const { items, shipping_address, payment_method = 'cod', status = 'pending' } = req.body;
+    const { items, shipping_address, payment_method = 'cod', status: requestStatus } = req.body;
     const customer_id = req.user.id;
+    
+    // Determine initial order status based on payment method
+    // For online payments (ziina, paypal, card): start in payment_pending
+    // For COD: start in pending
+    let status = 'pending';
+    if (['ziina', 'paypal', 'card'].includes(payment_method)) {
+      status = 'payment_pending';
+    }
+    // Allow explicit status override if provided
+    if (requestStatus && ['pending', 'pending_payment', 'payment_failed', 'confirmed', 'cancelled'].includes(requestStatus)) {
+      status = requestStatus;
+    }
 
     console.log('📋 Order creation details:', {
       payment_method,

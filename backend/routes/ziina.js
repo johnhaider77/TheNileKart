@@ -51,7 +51,14 @@ router.post('/payment-intent', authenticateToken, async (req, res) => {
     console.log('Amount conversion:', { aed: amount, fils: amountInFils });
 
     // Prepare URLs with proper encoding
-    const baseUrl = process.env.FRONTEND_URL || 'http://localhost:3000';
+    // In production, use FRONTEND_URL or fallback to derived URL from request
+    let baseUrl = process.env.FRONTEND_URL;
+    if (!baseUrl) {
+      // Fallback: derive from request origin or use https as safe default
+      const protocol = req.protocol || 'https';
+      const host = process.env.DOMAIN || 'www.thenilekart.com';
+      baseUrl = `${protocol}://${host}`;
+    }
     const successUrl = encodeURI(`${baseUrl}/checkout?payment_status=success&orderId=${orderId}`);
     const cancelUrl = encodeURI(`${baseUrl}/checkout?payment_status=cancelled&orderId=${orderId}`);
     const failureUrl = encodeURI(`${baseUrl}/checkout?payment_status=failure&orderId=${orderId}`);
