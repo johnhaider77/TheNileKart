@@ -18,121 +18,148 @@ router.post('/validate', [
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
+      console.error('❌ Validation errors:', errors.array());
       return res.status(400).json({ errors: errors.array() });
     }
 
     const user_id = req.user.id;
     const { code, cartItems, cartTotal } = req.body;
 
-    console.log('🔍 Validating promo code:', { code, cartTotal, itemsCount: cartItems.length });
+    console.log('🔍 Validating promo code:', { code, cartTotal, itemsCount: cartItems.length, user_id });
 
-    // Get promo code details
-    const promoResult = await db.query(
-      `SELECT * FROM promo_codes 
-       WHERE code = $1 AND is_active = true 
-       AND start_date_time <= NOW() 
-       AND expiry_date_time > NOW()`,
-      [code]
-    );
-
-    if (promoResult.rows.length === 0) {
-      console.log('❌ Promo code not found or expired:', code);
-      return res.status(404).json({ message: 'Promo code not found or expired' });
-    }
-
-    const promoCode = promoResult.rows[0];
-    const userEmail = req.user.email;
-
-    // Check user eligibility
-    if (promoCode.eligible_users && Array.isArray(promoCode.eligible_users)) {
-      if (!promoCode.eligible_users.includes(userEmail)) {
-        console.log('❌ User not eligible for this promo code:', userEmail);
-        return res.status(403).json({ message: 'This promo code is not available for your account' });
-      }
-    }
-
-    // Check minimum purchase value
-    if (cartTotal < promoCode.min_purchase_value) {
-      console.log('❌ Cart total below minimum:', { cartTotal, minRequired: promoCode.min_purchase_value });
-      return res.status(400).json({ 
-        message: `Minimum purchase value of ${promoCode.min_purchase_value} AED required`,
-        minRequired: promoCode.min_purchase_value
-      });
-    }
-
-    // Check category eligibility
-    if (promoCode.eligible_categories && Array.isArray(promoCode.eligible_categories)) {
-      const cartCategories = cartItems.map(item => item.category).filter(Boolean);
-      const hasEligibleCategory = cartCategories.some(cat => 
-        promoCode.eligible_categories.includes(cat)
-      );
-      
-      if (!hasEligibleCategory) {
-        console.log('❌ Cart contains no eligible categories');
-        return res.status(400).json({ message: 'This promo code cannot be applied to items in your cart' });
-      }
-    }
-
-    // Check usage limit
-    if (promoCode.max_uses_per_user) {
-      const usageResult = await db.query(
-        `SELECT COUNT(*) as usage_count FROM promo_code_usage 
-         WHERE promo_code_id = $1 AND user_id = $2`,
-        [promoCode.id, user_id]
+    // Ensure tables exist and have correct schema
+    try {
+      // Get promo code details - using CAST to ensure proper type handling
+      const promoResult = await db.query(
+        `SELECT id, code, description, start_date_time, expiry_date_time, 
+                eligible_users, eligible_categories, 
+                COALESCE(percent_off, 0) as percent_off,
+                COALESCE(flat_off, 0) as flat_off,
+                max_off,
+                COALESCE(min_purchase_value, 0) as min_purchase_value,
+                max_uses_per_user,
+                is_active
+         FROM promo_codes 
+         WHERE code = $1 AND is_active = true 
+         AND start_date_time <= NOW() 
+         AND expiry_date_time > NOW()`,
+        [code]
       );
 
-      const usageCount = parseInt(usageResult.rows[0].usage_count);
-      if (usageCount >= promoCode.max_uses_per_user) {
-        console.log('❌ User exceeded max uses:', { usageCount, maxAllowed: promoCode.max_uses_per_user });
+      if (promoResult.rows.length === 0) {
+        console.log('❌ Promo code not found or expired:', code);
+        return res.status(404).json({ message: 'Promo code not found or expired' });
+      }
+
+      const promoCode = promoResult.rows[0];
+      const userEmail = req.user.email;
+
+      // Check user eligibility
+      if (promoCode.eligible_users && Array.isArray(promoCode.eligible_users)) {
+        if (!promoCode.eligible_users.includes(userEmail)) {
+          console.log('❌ User not eligible for this promo code:', userEmail);
+          return res.status(403).json({ message: 'This promo code is not available for your account' });
+        }
+      }
+
+      // Check minimum purchase value
+      const minPurchaseValue = parseFloat(promoCode.min_purchase_value) || 0;
+      if (cartTotal < minPurchaseValue) {
+        console.log('❌ Cart total below minimum:', { cartTotal, minRequired: minPurchaseValue });
         return res.status(400).json({ 
-          message: `You have already used this promo code ${promoCode.max_uses_per_user} times`,
-          maxUsesExceeded: true
+          message: `Minimum purchase value of ${minPurchaseValue} AED required`,
+          minRequired: minPurchaseValue
         });
       }
-    }
 
-    // Calculate discount
-    let discountAmount = 0;
-    let discountType = '';
-
-    if (promoCode.percent_off > 0) {
-      discountAmount = (cartTotal * promoCode.percent_off) / 100;
-      discountType = 'percent';
-
-      // Apply max off limit
-      if (promoCode.max_off && discountAmount > promoCode.max_off) {
-        discountAmount = promoCode.max_off;
+      // Check category eligibility
+      if (promoCode.eligible_categories && Array.isArray(promoCode.eligible_categories)) {
+        const cartCategories = cartItems.map(item => item.category).filter(Boolean);
+        const hasEligibleCategory = cartCategories.some(cat => 
+          promoCode.eligible_categories.includes(cat)
+        );
+        
+        if (!hasEligibleCategory) {
+          console.log('❌ Cart contains no eligible categories');
+          return res.status(400).json({ message: 'This promo code cannot be applied to items in your cart' });
+        }
       }
-    } else if (promoCode.flat_off > 0) {
-      discountAmount = promoCode.flat_off;
-      discountType = 'flat';
-    }
 
-    const finalTotal = Math.max(0, cartTotal - discountAmount);
+      // Check usage limit
+      if (promoCode.max_uses_per_user) {
+        const usageResult = await db.query(
+          `SELECT COUNT(*) as usage_count FROM promo_code_usage 
+           WHERE promo_code_id = $1 AND user_id = $2`,
+          [promoCode.id, user_id]
+        );
 
-    console.log('✅ Promo code validated:', {
-      code,
-      discountType,
-      discountAmount,
-      originalTotal: cartTotal,
-      finalTotal
-    });
+        const usageCount = parseInt(usageResult.rows[0].usage_count);
+        if (usageCount >= promoCode.max_uses_per_user) {
+          console.log('❌ User exceeded max uses:', { usageCount, maxAllowed: promoCode.max_uses_per_user });
+          return res.status(400).json({ 
+            message: `You have already used this promo code ${promoCode.max_uses_per_user} times`,
+            maxUsesExceeded: true
+          });
+        }
+      }
 
-    res.json({
-      success: true,
-      promoCode: {
-        id: promoCode.id,
-        code: promoCode.code,
-        description: promoCode.description,
+      // Calculate discount
+      let discountAmount = 0;
+      let discountType = '';
+
+      const percentOff = parseFloat(promoCode.percent_off) || 0;
+      const flatOff = parseFloat(promoCode.flat_off) || 0;
+
+      if (percentOff > 0) {
+        discountAmount = (cartTotal * percentOff) / 100;
+        discountType = 'percent';
+
+        // Apply max off limit
+        if (promoCode.max_off) {
+          const maxOff = parseFloat(promoCode.max_off);
+          if (discountAmount > maxOff) {
+            discountAmount = maxOff;
+          }
+        }
+      } else if (flatOff > 0) {
+        discountAmount = flatOff;
+        discountType = 'flat';
+      }
+
+      const finalTotal = Math.max(0, cartTotal - discountAmount);
+
+      console.log('✅ Promo code validated:', {
+        code,
         discountType,
-        discountAmount: parseFloat(discountAmount.toFixed(2)),
+        discountAmount,
         originalTotal: cartTotal,
-        finalTotal: parseFloat(finalTotal.toFixed(2))
-      }
-    });
+        finalTotal
+      });
+
+      res.json({
+        success: true,
+        promoCode: {
+          id: promoCode.id,
+          code: promoCode.code,
+          description: promoCode.description,
+          discountType,
+          discountAmount: parseFloat(discountAmount.toFixed(2)),
+          originalTotal: cartTotal,
+          finalTotal: parseFloat(finalTotal.toFixed(2))
+        }
+      });
+    } catch (dbError) {
+      console.error('❌ Database error in promo validation:', dbError);
+      throw dbError;
+    }
   } catch (error) {
-    console.error('❌ Error validating promo code:', error);
-    res.status(500).json({ message: 'Failed to validate promo code', error: error.message });
+    console.error('❌ Error validating promo code:', error.message);
+    console.error('Stack:', error.stack);
+    res.status(500).json({ 
+      message: 'Failed to validate promo code', 
+      error: error.message,
+      details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 });
 
