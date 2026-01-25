@@ -72,8 +72,8 @@ const SellerPromoCode: React.FC = () => {
     try {
       let submitData: any = {
         description: formData.description,
-        start_date_time: formData.start_date_time,
-        expiry_date_time: formData.expiry_date_time,
+        start_date_time: new Date(formData.start_date_time).toISOString(),
+        expiry_date_time: new Date(formData.expiry_date_time).toISOString(),
         eligible_users: formData.eligible_users ? formData.eligible_users.split(',').map(e => e.trim()) : null,
         eligible_categories: formData.eligible_categories ? formData.eligible_categories.split(',').map(c => c.trim()) : null,
         percent_off: parseFloat(formData.percent_off.toString()) || 0,
