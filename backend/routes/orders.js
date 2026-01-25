@@ -173,7 +173,7 @@ router.post('/', [
   body('items.*.size').optional().trim(),
   body('shipping_address').isObject(),
   body('payment_method').optional().isIn(['cod', 'paypal', 'card', 'ziina']),
-  body('status').optional().isIn(['pending', 'pending_payment', 'payment_failed', 'confirmed', 'cancelled']),
+  body('status').optional().isIn(['pending', 'pending_payment', 'payment_failed', 'processing', 'shipped', 'delivered', 'cancelled']),
   body('promo_code_id').optional().isInt(),
   body('promo_discount_amount').optional().isFloat({ min: 0 }),
 ], async (req, res) => {
@@ -244,7 +244,7 @@ router.post('/', [
       status = 'payment_pending';
     }
     // Allow explicit status override if provided
-    if (requestStatus && ['pending', 'pending_payment', 'payment_failed', 'confirmed', 'cancelled'].includes(requestStatus)) {
+    if (requestStatus && ['pending', 'pending_payment', 'payment_failed', 'processing', 'shipped', 'delivered', 'cancelled'].includes(requestStatus)) {
       status = requestStatus;
     }
 
@@ -624,7 +624,7 @@ router.patch('/:id/status', [authenticateToken, requireCustomer], async (req, re
     const orderId = req.params.id;
     const customer_id = req.user.id;
 
-    if (!status || !['pending', 'payment_failed', 'pending_payment', 'confirmed', 'cancelled'].includes(status)) {
+    if (!status || !['pending', 'payment_failed', 'pending_payment', 'processing', 'shipped', 'delivered', 'cancelled'].includes(status)) {
       return res.status(400).json({ message: 'Invalid status value' });
     }
 

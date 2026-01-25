@@ -110,7 +110,7 @@ router.post('/validate', [
         const usageResult = await db.query(
           `SELECT COUNT(*) as usage_count FROM promo_code_usage pcu
            JOIN orders o ON pcu.order_id = o.id
-           WHERE pcu.promo_code_id = $1 AND pcu.user_id = $2 AND o.status = 'confirmed'`,
+           WHERE pcu.promo_code_id = $1 AND pcu.user_id = $2 AND o.status IN ('processing', 'shipped', 'delivered')`,
           [promoCode.id, user_id]
         );
         const usageCount = parseInt(usageResult.rows[0].usage_count);

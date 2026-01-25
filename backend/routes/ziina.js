@@ -212,10 +212,10 @@ router.get('/payment-intent/:paymentIntentId', authenticateToken, async (req, re
     console.log('🔍 Payment status verification - Is successful?', isPaymentSuccessful, '- Actual status:', paymentIntent.status);
     
     if (isPaymentSuccessful) {
-      // Update order status to paid and confirmed
+      // Update order status to paid and processing
       const orderUpdateResult = await db.query(
         `UPDATE orders 
-         SET payment_status = 'paid', status = 'confirmed', updated_at = NOW()
+         SET payment_status = 'paid', status = 'processing', updated_at = NOW()
          WHERE id = $1 AND user_id = $2
          RETURNING *`,
         [orderId, userId]
@@ -224,7 +224,7 @@ router.get('/payment-intent/:paymentIntentId', authenticateToken, async (req, re
       console.log('✅ Order marked as paid:', {
         orderId,
         paymentStatus: 'paid',
-        status: 'confirmed',
+        status: 'processing',
         rowsAffected: orderUpdateResult.rowCount
       });
 
