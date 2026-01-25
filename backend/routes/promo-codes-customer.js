@@ -54,9 +54,19 @@ router.post('/validate', [
       const promoCode = promoResult.rows[0];
       const userEmail = req.user.email;
 
+      // Parse eligible_users if it's a string (comma-separated)
+      let eligibleUsers = [];
+      if (promoCode.eligible_users) {
+        if (Array.isArray(promoCode.eligible_users)) {
+          eligibleUsers = promoCode.eligible_users;
+        } else if (typeof promoCode.eligible_users === 'string') {
+          eligibleUsers = promoCode.eligible_users.split(',').map(e => e.trim()).filter(Boolean);
+        }
+      }
+
       // Check user eligibility
-      if (promoCode.eligible_users && Array.isArray(promoCode.eligible_users)) {
-        if (!promoCode.eligible_users.includes(userEmail)) {
+      if (eligibleUsers.length > 0) {
+        if (!eligibleUsers.includes(userEmail)) {
           console.log('❌ User not eligible for this promo code:', userEmail);
           return res.status(403).json({ message: 'This promo code is not available for your account' });
         }
@@ -72,11 +82,21 @@ router.post('/validate', [
         });
       }
 
+      // Parse eligible_categories if it's a string (comma-separated)
+      let eligibleCategories = [];
+      if (promoCode.eligible_categories) {
+        if (Array.isArray(promoCode.eligible_categories)) {
+          eligibleCategories = promoCode.eligible_categories;
+        } else if (typeof promoCode.eligible_categories === 'string') {
+          eligibleCategories = promoCode.eligible_categories.split(',').map(e => e.trim()).filter(Boolean);
+        }
+      }
+
       // Check category eligibility
-      if (promoCode.eligible_categories && Array.isArray(promoCode.eligible_categories)) {
+      if (eligibleCategories.length > 0) {
         const cartCategories = cartItems.map(item => item.category).filter(Boolean);
         const hasEligibleCategory = cartCategories.some(cat => 
-          promoCode.eligible_categories.includes(cat)
+          eligibleCategories.includes(cat)
         );
         
         if (!hasEligibleCategory) {
@@ -186,8 +206,17 @@ router.get('/available', [authenticateToken], async (req, res) => {
     // Filter based on user eligibility
     const availableCodes = result.rows.filter(promo => {
       // Check user eligibility
-      if (promo.eligible_users && Array.isArray(promo.eligible_users)) {
-        return promo.eligible_users.includes(userEmail);
+      let eligibleUsers = [];
+      if (promo.eligible_users) {
+        if (Array.isArray(promo.eligible_users)) {
+          eligibleUsers = promo.eligible_users;
+        } else if (typeof promo.eligible_users === 'string') {
+          eligibleUsers = promo.eligible_users.split(',').map(e => e.trim()).filter(Boolean);
+        }
+      }
+      
+      if (eligibleUsers.length > 0) {
+        return eligibleUsers.includes(userEmail);
       }
       return true; // Available for all users if no restriction
     });
