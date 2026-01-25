@@ -139,9 +139,10 @@ app.use('/uploads', (req, res, next) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/products', productRoutes);
 app.use('/api/orders', orderRoutes);
-app.use('/api/seller', sellerRoutes);
+// Promo code routes must come BEFORE /api/seller to prevent conflicts
 app.use('/api/seller/promo-codes', promoCodesSellerRoutes);
 app.use('/api/promo-codes', promoCodesCustomerRoutes);
+app.use('/api/seller', sellerRoutes);
 app.use('/api/ziina', ziinaRoutes);
 app.use('/api/metrics', metricsRoutes);
 
