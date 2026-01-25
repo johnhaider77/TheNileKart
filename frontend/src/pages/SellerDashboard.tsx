@@ -356,7 +356,7 @@ const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
       // Handle product filtering (Total Products, Sold Out Products)
       filteredData = sourceData.filter((product: any) => {
         const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesProductId = filterProductId === '' || product.id.toString().includes(filterProductId);
+        const matchesProductId = filterProductId === '' || product.product_id.toString().includes(filterProductId);
         
         // Date range filtering for products using created_at timestamp
         const matchesDate = (() => {
