@@ -629,6 +629,8 @@
   display: block !important;
   position: relative !important;
   z-index: 10 !important;
+  overflow: visible !important;
+  overflow-clip-margin: unset !important;
 }
 
 .pricing-field input:focus {
@@ -704,6 +706,8 @@
   display: block !important;
   position: relative !important;
   z-index: 10 !important;
+  overflow: visible !important;
+  overflow-clip-margin: unset !important;
 }
 
 .size-input:focus {
