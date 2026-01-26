@@ -15,6 +15,7 @@ router.post('/register', [
   body('password').isLength({ min: 6 }),
   body('full_name').trim().isLength({ min: 2 }),
   body('user_type').isIn(['customer', 'seller']),
+  body('phone').optional({ checkFalsy: true }).trim(),
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -30,14 +31,26 @@ router.post('/register', [
       return res.status(403).json({ message: "You can't register as a seller" });
     }
 
-    // Check if user already exists
-    const existingUser = await db.query(
-      'SELECT id FROM users WHERE email = $1',
+    // Check if email already exists
+    const existingEmail = await db.query(
+      'SELECT id FROM users WHERE LOWER(email) = LOWER($1)',
       [email]
     );
 
-    if (existingUser.rows.length > 0) {
-      return res.status(400).json({ message: 'User already exists' });
+    if (existingEmail.rows.length > 0) {
+      return res.status(400).json({ message: 'This email is already registered. Please login or use a different email.' });
+    }
+
+    // Check if phone already exists (if provided)
+    if (phone && phone.trim()) {
+      const existingPhone = await db.query(
+        'SELECT id FROM users WHERE phone = $1',
+        [phone.trim()]
+      );
+
+      if (existingPhone.rows.length > 0) {
+        return res.status(400).json({ message: 'This mobile number is already registered. Please login or use a different number.' });
+      }
     }
 
     // Hash password
@@ -903,6 +916,7 @@ router.post('/reset-password', async (req, res) => {
 // Generate and send OTP for customer signup
 router.post('/send-signup-otp', [
   body('email').isEmail().trim(),
+  body('phone').optional({ checkFalsy: true }).trim(),
 ], async (req, res) => {
   try {
     const errors = validationResult(req);
@@ -910,16 +924,28 @@ router.post('/send-signup-otp', [
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { email } = req.body;
+    const { email, phone } = req.body;
 
-    // Check if user already exists
-    const existingUser = await db.query(
-      'SELECT id FROM users WHERE email = $1',
+    // Check if email already exists
+    const existingEmail = await db.query(
+      'SELECT id FROM users WHERE LOWER(email) = LOWER($1)',
       [email]
     );
 
-    if (existingUser.rows.length > 0) {
-      return res.status(400).json({ message: 'Email already registered' });
+    if (existingEmail.rows.length > 0) {
+      return res.status(400).json({ message: 'This email is already registered. Please login or use a different email.' });
+    }
+
+    // Check if phone already exists (if provided)
+    if (phone && phone.trim()) {
+      const existingPhone = await db.query(
+        'SELECT id FROM users WHERE phone = $1',
+        [phone.trim()]
+      );
+
+      if (existingPhone.rows.length > 0) {
+        return res.status(400).json({ message: 'This mobile number is already registered. Please login or use a different number.' });
+      }
     }
 
     // Generate 6-digit OTP
@@ -1057,14 +1083,26 @@ router.post('/register-with-otp', [
       return res.status(403).json({ message: "You can't register as a seller" });
     }
 
-    // Check if user already exists
-    const existingUser = await db.query(
-      'SELECT id FROM users WHERE email = $1',
+    // Check if email already exists
+    const existingEmail = await db.query(
+      'SELECT id FROM users WHERE LOWER(email) = LOWER($1)',
       [email]
     );
 
-    if (existingUser.rows.length > 0) {
-      return res.status(400).json({ message: 'User already exists' });
+    if (existingEmail.rows.length > 0) {
+      return res.status(400).json({ message: 'This email is already registered. Please login or use a different email.' });
+    }
+
+    // Check if phone already exists (if provided)
+    if (phone && phone.trim()) {
+      const existingPhone = await db.query(
+        'SELECT id FROM users WHERE phone = $1',
+        [phone.trim()]
+      );
+
+      if (existingPhone.rows.length > 0) {
+        return res.status(400).json({ message: 'This mobile number is already registered. Please login or use a different number.' });
+      }
     }
 
     // Hash password

@@ -109,7 +109,7 @@ const ModernLogin: React.FC = () => {
         return;
       }
 
-      const response = await authAPI.sendSignupOTP(formData.email);
+      const response = await authAPI.sendSignupOTP(formData.email, formData.phone);
       
       if (response.data.success) {
         setOtpSent(true);

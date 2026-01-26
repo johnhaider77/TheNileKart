@@ -129,8 +129,8 @@ export const authAPI = {
     phone?: string;
   }) => api.post('/auth/register', userData),
 
-  sendSignupOTP: (email: string) =>
-    api.post('/auth/send-signup-otp', { email }),
+  sendSignupOTP: (email: string, phone?: string) =>
+    api.post('/auth/send-signup-otp', { email, phone }),
 
   verifySignupOTP: (email: string, otp: string) =>
     api.post('/auth/verify-signup-otp', { email, otp }),
