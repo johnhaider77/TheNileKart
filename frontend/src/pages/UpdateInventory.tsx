@@ -836,8 +836,17 @@ const UpdateInventory: React.FC = () => {
       formData.append('deletedImages', JSON.stringify(deletedImages));
 
       // Add size chart if it was modified
-      if (editSizeChart) {
-        formData.append('sizeChart', JSON.stringify(editSizeChart));
+      // Check if size chart was in original product but now is null (deletion)
+      const originalSizeChart = editingProduct.size_chart;
+      const sizeChartWasModified = JSON.stringify(originalSizeChart) !== JSON.stringify(editSizeChart);
+      
+      if (sizeChartWasModified) {
+        if (editSizeChart) {
+          formData.append('sizeChart', JSON.stringify(editSizeChart));
+        } else {
+          // Signal to backend that size chart should be deleted
+          formData.append('deleteSizeChart', 'true');
+        }
       }
 
       console.log('Saving product with image changes:', {

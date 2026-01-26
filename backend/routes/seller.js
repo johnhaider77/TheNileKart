@@ -649,7 +649,8 @@ router.put('/products/:id', [
       existingImages,
       deletedImages,
       cod_eligible,
-      sizeChart
+      sizeChart,
+      deleteSizeChart
     } = req.body;
 
     // Check if product belongs to seller
@@ -920,18 +921,29 @@ router.put('/products/:id', [
       queryParams.push(imageUrlField);
     }
 
-    // Handle size chart if provided
-    if (sizeChart !== undefined) {
+    // Handle size chart if provided or marked for deletion
+    if (sizeChart !== undefined || deleteSizeChart === 'true') {
       paramCount++;
-      let parsedSizeChart = sizeChart;
-      if (typeof sizeChart === 'string') {
-        try {
-          parsedSizeChart = JSON.parse(sizeChart);
-        } catch (error) {
-          console.error('Error parsing size chart:', error);
-          parsedSizeChart = null;
+      let parsedSizeChart = null;
+      
+      if (sizeChart !== undefined && deleteSizeChart !== 'true') {
+        // Parse and save the size chart
+        parsedSizeChart = sizeChart;
+        if (typeof sizeChart === 'string') {
+          try {
+            parsedSizeChart = JSON.parse(sizeChart);
+          } catch (error) {
+            console.error('Error parsing size chart:', error);
+            parsedSizeChart = null;
+          }
         }
+        console.log('[SIZE-CHART-UPDATE] Saving size chart:', { rows: parsedSizeChart?.rows, columns: parsedSizeChart?.columns });
+      } else if (deleteSizeChart === 'true') {
+        // Delete the size chart
+        parsedSizeChart = null;
+        console.log('[SIZE-CHART-UPDATE] Deleting size chart for product:', product_id);
       }
+      
       updateFields.push(`size_chart = $${paramCount}`);
       queryParams.push(parsedSizeChart ? JSON.stringify(parsedSizeChart) : null);
     }
