@@ -566,6 +566,9 @@
   padding: 1.5rem;
   margin-bottom: 1rem;
   background-color: #fafafa;
+  pointer-events: auto;
+  position: relative;
+  z-index: 10;
 }
 
 .size-input-group h5 {
@@ -581,11 +584,17 @@
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 1.5rem;
   margin-bottom: 1rem;
+  pointer-events: auto;
+  position: relative;
+  z-index: 10;
 }
 
 .pricing-field {
   display: flex;
   flex-direction: column;
+  pointer-events: auto;
+  position: relative;
+  z-index: 10;
 }
 
 .pricing-field label {
@@ -613,6 +622,13 @@
   color: #2d3748;
   font-family: inherit;
   line-height: 1.5;
+  user-select: text;
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  min-height: 2.5rem;
+  display: block;
+  position: relative;
+  z-index: 10;
 }
 
 .pricing-field input:focus {
@@ -681,6 +697,13 @@
   color: #2d3748;
   font-family: inherit;
   line-height: 1.5;
+  user-select: text;
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  min-height: 2.5rem;
+  display: block;
+  position: relative;
+  z-index: 10;
 }
 
 .size-input:focus {
