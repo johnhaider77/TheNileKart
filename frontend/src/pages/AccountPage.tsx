@@ -12,8 +12,8 @@ interface Order {
     id: number;
     quantity: number;
     price: string;
-    size?: string;
-    colour?: string;
+    selected_size?: string;
+    selected_colour?: string;
     product: {
       id: number;
       name: string;
@@ -690,16 +690,16 @@ const AccountPage: React.FC = () => {
                             </div>
                             <div className="flex-1">
                               <h4 className="font-medium">{item.product.name}</h4>
-                              {item.size && (
-                                item.size === 'One Size' ? (
-                                  item.colour && item.colour !== 'Default' && (
-                                    <p className="text-sm text-accent font-medium" style={{ margin: '2px 0', color: 'var(--text-accent)' }}>Colour: {item.colour}</p>
+                              {item.selected_size && (
+                                item.selected_size === 'One Size' ? (
+                                  item.selected_colour && item.selected_colour !== 'Default' && (
+                                    <p className="text-sm text-accent font-medium" style={{ margin: '2px 0', color: 'var(--text-accent)' }}>Colour: {item.selected_colour}</p>
                                   )
                                 ) : (
                                   <>
-                                    <p className="text-sm text-accent font-medium" style={{ margin: '2px 0', color: 'var(--text-accent)' }}>Size: {item.size}</p>
-                                    {item.colour && item.colour !== 'Default' && (
-                                      <p className="text-sm text-accent font-medium" style={{ margin: '2px 0', color: 'var(--text-accent)' }}>Colour: {item.colour}</p>
+                                    <p className="text-sm text-accent font-medium" style={{ margin: '2px 0', color: 'var(--text-accent)' }}>Size: {item.selected_size}</p>
+                                    {item.selected_colour && item.selected_colour !== 'Default' && (
+                                      <p className="text-sm text-accent font-medium" style={{ margin: '2px 0', color: 'var(--text-accent)' }}>Colour: {item.selected_colour}</p>
                                     )}
                                   </>
                                 )

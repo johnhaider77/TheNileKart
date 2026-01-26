@@ -582,11 +582,54 @@ const OrdersManagement: React.FC = () => {
                 <div className="items-list">
                   {selectedOrder.items?.map((item, index) => (
                     <div key={index} className="item-row">
+                      <div className="item-image" style={{ marginRight: '12px' }}>
+                        <img 
+                          src={(() => {
+                            // Handle products with JSONB images field
+                            if (item.images && Array.isArray(item.images) && item.images.length > 0) {
+                              const firstImage = item.images[0];
+                              if (typeof firstImage === 'string') {
+                                return firstImage.startsWith('http') ? firstImage : `http://localhost:5000${firstImage}`;
+                              }
+                              if (firstImage.url) {
+                                return firstImage.url.startsWith('http') ? firstImage.url : `http://localhost:5000${firstImage.url}`;
+                              }
+                            }
+                            // Handle products with single image_url field
+                            if (item.image_url && typeof item.image_url === 'string') {
+                              return item.image_url.startsWith('http') ? item.image_url : `http://localhost:5000${item.image_url}`;
+                            }
+                            return 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect fill="%23f0f0f0" width="100" height="100"/><text x="50" y="50" font-size="20" text-anchor="middle" dy=".3em" fill="%23999">No image</text></svg>';
+                          })()} 
+                          alt={item.product_name}
+                          style={{ 
+                            width: '60px',
+                            height: '60px',
+                            objectFit: 'cover',
+                            borderRadius: '4px'
+                          }}
+                          onError={(e: any) => {
+                            const target = e.target as HTMLImageElement;
+                            target.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><rect fill="%23f0f0f0" width="100" height="100"/><text x="50" y="50" font-size="20" text-anchor="middle" dy=".3em" fill="%23999">No image</text></svg>';
+                          }}
+                        />
+                      </div>
                       <div className="item-details">
                         <h4>{item.product_name}</h4>
                         <p>Product ID: {item.product_id}</p>
                         {item.selected_size && (
-                          <p><strong>Size:</strong> {item.selected_size}</p>
+                          item.selected_size === 'One Size' ? (
+                            item.selected_colour && item.selected_colour !== 'Default' && (
+                              <p><strong>Colour:</strong> {item.selected_colour}</p>
+                            )
+                          ) : (
+                            <>
+                              <p><strong>Size:</strong> {item.selected_size}</p>
+                              {item.selected_colour && item.selected_colour !== 'Default' && (
+                                <p><strong>Colour:</strong> {item.selected_colour}</p>
+                              )}
+                            </>
+                          )
                         )}
                       </div>
                       <div className="item-quantity">

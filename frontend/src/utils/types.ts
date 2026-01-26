@@ -61,9 +61,14 @@ export interface OrderItem {
   price: number | string; // API can return either
   total: number | string; // API can return either
   selected_size?: string; // Size selected for the product
+  selected_colour?: string; // Colour selected for the product
+  image_url?: string; // Product image URL
+  images?: Array<any>; // JSONB array of product images
   price_edited_by_seller?: boolean;
   quantity_edited_by_seller?: boolean;
   buy_price_edited_by_seller?: boolean;
+  other_profit_loss?: number;
+  other_profit_loss_edited_by_seller?: boolean;
   edited_at?: string;
 }
 
