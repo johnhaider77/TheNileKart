@@ -366,6 +366,19 @@ router.post('/products', [
       productMarketPrice = finalSizes[0].market_price;
     }
     
+    // Extract size chart if provided
+    let sizeChart = null;
+    if (req.body.sizeChart) {
+      try {
+        sizeChart = typeof req.body.sizeChart === 'string' 
+          ? JSON.parse(req.body.sizeChart) 
+          : req.body.sizeChart;
+      } catch (error) {
+        console.error('Error parsing size chart:', error);
+        sizeChart = null;
+      }
+    }
+    
     // Calculate total stock from sizes
     const totalStock = finalSizes.reduce((total, size) => total + size.quantity, 0);
 
@@ -373,12 +386,12 @@ router.post('/products', [
       `INSERT INTO products (
         name, description, price, actual_buy_price, category, 
         stock_quantity, sizes, seller_id, image_url, images, videos, 
-        product_id, is_active, cod_eligible, market_price
+        product_id, is_active, cod_eligible, market_price, size_chart
       )
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15) 
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16) 
        RETURNING id, name, description, price, actual_buy_price, category, 
                  stock_quantity, sizes, image_url, images, videos, product_id, 
-                 is_active, created_at, cod_eligible, market_price`,
+                 is_active, created_at, cod_eligible, market_price, size_chart`,
       [
         name, 
         description, 
@@ -394,7 +407,8 @@ router.post('/products', [
         finalProductId,
         true, // Always set active when created (sellers can toggle status if needed)
         cod_eligible,
-        productMarketPrice
+        productMarketPrice,
+        sizeChart ? JSON.stringify(sizeChart) : null
       ]
     );
 
@@ -612,7 +626,8 @@ router.put('/products/:id', [
       image_url: imageUrlField,
       existingImages,
       deletedImages,
-      cod_eligible
+      cod_eligible,
+      sizeChart
     } = req.body;
 
     // Check if product belongs to seller
@@ -883,6 +898,22 @@ router.put('/products/:id', [
       queryParams.push(imageUrlField);
     }
 
+    // Handle size chart if provided
+    if (sizeChart !== undefined) {
+      paramCount++;
+      let parsedSizeChart = sizeChart;
+      if (typeof sizeChart === 'string') {
+        try {
+          parsedSizeChart = JSON.parse(sizeChart);
+        } catch (error) {
+          console.error('Error parsing size chart:', error);
+          parsedSizeChart = null;
+        }
+      }
+      updateFields.push(`size_chart = $${paramCount}`);
+      queryParams.push(parsedSizeChart ? JSON.stringify(parsedSizeChart) : null);
+    }
+
     if (updateFields.length === 0) {
       return res.status(400).json({ message: 'No fields to update' });
     }
@@ -894,7 +925,7 @@ router.put('/products/:id', [
       UPDATE products SET ${updateFields.join(', ')}
       WHERE id = $${paramCount + 1} AND seller_id = $${paramCount + 2}
       RETURNING id, name, description, price, category, stock_quantity, product_id, 
-                actual_buy_price, other_details, image_url, images, updated_at, cod_eligible
+                actual_buy_price, other_details, image_url, images, updated_at, cod_eligible, size_chart
     `;
 
     const updatedProduct = await db.query(updateQuery, queryParams);

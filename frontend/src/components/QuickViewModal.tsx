@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Product } from '../utils/types';
 import { useCart } from '../context/CartContext';
+import SizeChartModal from './SizeChartModal';
 
 interface QuickViewModalProps {
   product: Product | any;
@@ -50,6 +51,7 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
   const [availableColours, setAvailableColours] = useState<any[]>([]);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [imageModalIndex, setImageModalIndex] = useState(0);
+  const [isSizeChartModalOpen, setIsSizeChartModalOpen] = useState(false);
   const { addToCart } = useCart();
 
   // Debug state changes
@@ -538,7 +540,20 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
             {/* Size Selection - Only show if more than one size or size is not "One Size" */}
             {availableSizes.length > 1 && (
               <div className="quickview-sizes">
-                <h4>Size</h4>
+                <div className="size-header">
+                  <h4>Size</h4>
+                  {product.size_chart && (
+                    <button
+                      type="button"
+                      className="size-chart-icon-btn"
+                      onClick={() => setIsSizeChartModalOpen(true)}
+                      title="View Size Chart"
+                      aria-label="View size chart"
+                    >
+                      📏
+                    </button>
+                  )}
+                </div>
                 <div className="size-options">
                   {availableSizes.map((size: any) => {
                     const hasSizeWithStock = product.sizes.some((s: any) => s.size === size.size && s.quantity > 0);
@@ -865,6 +880,13 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
             </div>
           )}
         </div>
+
+        {/* Size Chart Modal */}
+        <SizeChartModal
+          isOpen={isSizeChartModalOpen}
+          onClose={() => setIsSizeChartModalOpen(false)}
+          sizeChart={product.size_chart}
+        />
       </div>
     )}
     </>

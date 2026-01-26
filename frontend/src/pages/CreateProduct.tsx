@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { sellerAPI } from '../services/api';
 import { CATEGORY_NAMES } from '../utils/categories';
+import SizeChartBuilder from '../components/SizeChartBuilder';
 import '../styles/CreateProduct.css';
 
 interface ProductImage {
@@ -32,6 +33,13 @@ interface ProductSize {
   cod_eligible?: boolean;
 }
 
+interface SizeChartData {
+  rows: number;
+  columns: number;
+  headers?: string[];
+  data: string[][];
+}
+
 interface ProductFormData {
   name: string;
   product_id: string;
@@ -54,6 +62,8 @@ const CreateProduct: React.FC = () => {
   const [images, setImages] = useState<ProductImage[]>([]);
   const [videos, setVideos] = useState<ProductVideo[]>([]);
   const [sizes, setSizes] = useState<ProductSize[]>([{ id: '1', size: 'One Size', colour: 'Default', quantity: 0, price: 0, market_price: 0, actual_buy_price: 0, cod_eligible: true }]);
+  const [sizeChart, setSizeChart] = useState<SizeChartData | null>(null);
+  const [showSizeChartBuilder, setShowSizeChartBuilder] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<any>({});
 
@@ -251,6 +261,11 @@ const CreateProduct: React.FC = () => {
         cod_eligible: size.cod_eligible || false
       }));
       formDataToSend.append('sizes', JSON.stringify(validSizes));
+
+      // Add size chart if available
+      if (sizeChart) {
+        formDataToSend.append('sizeChart', JSON.stringify(sizeChart));
+      }
 
       // Add base price (minimum price from sizes for backend compatibility)
       const minPrice = validSizes.reduce((min, size) => {
@@ -542,6 +557,61 @@ const CreateProduct: React.FC = () => {
                     Total Stock: {sizes.reduce((total, size) => total + (parseInt(size.quantity.toString()) || 0), 0)} units
                   </small>
                 </div>
+              </div>
+
+              {/* Size Chart Section */}
+              <div className="form-section">
+                <h3>Size Chart (Optional)</h3>
+                <p className="form-text">Provide a size measurement chart for customers to help them choose the right size.</p>
+                
+                {!showSizeChartBuilder && (
+                  <div className="size-chart-actions">
+                    {sizeChart ? (
+                      <div className="size-chart-info">
+                        <div className="chart-info-box">
+                          <p className="chart-summary">
+                            Size Chart: <strong>{sizeChart.rows} rows × {sizeChart.columns} columns</strong>
+                          </p>
+                          <div className="chart-actions">
+                            <button
+                              type="button"
+                              onClick={() => setShowSizeChartBuilder(true)}
+                              className="btn btn-secondary btn-sm"
+                            >
+                              Edit Chart
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setSizeChart(null)}
+                              className="btn btn-danger btn-sm"
+                            >
+                              Remove Chart
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setShowSizeChartBuilder(true)}
+                        className="btn btn-primary"
+                      >
+                        + Create Size Chart
+                      </button>
+                    )}
+                  </div>
+                )}
+                
+                {showSizeChartBuilder && (
+                  <SizeChartBuilder
+                    initialData={sizeChart}
+                    onSave={(chart) => {
+                      setSizeChart(chart);
+                      setShowSizeChartBuilder(false);
+                    }}
+                    onCancel={() => setShowSizeChartBuilder(false)}
+                  />
+                )}
               </div>
             </div>
           </div>

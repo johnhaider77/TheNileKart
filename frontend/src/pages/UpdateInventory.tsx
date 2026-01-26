@@ -2,6 +2,14 @@ import React, { useState, useEffect } from 'react';
 import '../styles/InventoryManagement.css';
 import { sellerAPI } from '../services/api';
 import ProductOfferManager from '../components/ProductOfferManager';
+import SizeChartBuilder from '../components/SizeChartBuilder';
+
+interface SizeChartData {
+  rows: number;
+  columns: number;
+  headers?: string[];
+  data: string[][];
+}
 
 interface Product {
   id: number;
@@ -13,6 +21,7 @@ interface Product {
   category: string;
   stock_quantity: number;
   other_details?: string;
+  size_chart?: SizeChartData | null;
   sizes?: { size: string; colour?: string; quantity: number; price?: number; market_price?: number; actual_buy_price?: number; cod_eligible?: boolean; }[];
   is_active: boolean;
   created_at: string;
@@ -86,6 +95,9 @@ const UpdateInventory: React.FC = () => {
       }
     }
   }>({});
+  const [editingSizeChart, setEditingSizeChart] = useState(false);
+  const [editSizeChart, setEditSizeChart] = useState<SizeChartData | null>(null);
+  const [showSizeChartBuilder, setShowSizeChartBuilder] = useState(false);
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
@@ -607,6 +619,8 @@ const UpdateInventory: React.FC = () => {
   const openEditModal = (product: Product) => {
     setEditingProduct(product);
     setEditFormData({ ...product });
+    setEditSizeChart(product.size_chart || null);
+    setShowSizeChartBuilder(false);
     
     // Load existing images and ensure they have unique IDs
     if (product.images && Array.isArray(product.images)) {
@@ -639,6 +653,8 @@ const UpdateInventory: React.FC = () => {
     setExistingImages([]);
     setOriginalExistingImages([]);
     setDeletedImages([]);
+    setEditSizeChart(null);
+    setShowSizeChartBuilder(false);
     // Clear any pending size changes for the product being closed
     if (editingProduct) {
       setPendingSizeChanges(prev => {
@@ -800,6 +816,11 @@ const UpdateInventory: React.FC = () => {
       // Add existing images order and deletions
       formData.append('existingImages', JSON.stringify(existingImages));
       formData.append('deletedImages', JSON.stringify(deletedImages));
+
+      // Add size chart if it was modified
+      if (editSizeChart) {
+        formData.append('sizeChart', JSON.stringify(editSizeChart));
+      }
 
       console.log('Saving product with image changes:', {
         productId: editingProduct.id,
@@ -1509,6 +1530,61 @@ const UpdateInventory: React.FC = () => {
                     placeholder="Additional product information, specifications, etc."
                     rows={3}
                   />
+                </div>
+
+                {/* Size Chart Section */}
+                <div className="form-group">
+                  <label>Size Chart</label>
+                  <p className="form-text">Manage the size measurement chart for this product.</p>
+                  
+                  {!showSizeChartBuilder && (
+                    <div className="size-chart-actions">
+                      {editSizeChart ? (
+                        <div className="size-chart-info">
+                          <div className="chart-info-box">
+                            <p className="chart-summary">
+                              Size Chart: <strong>{editSizeChart.rows} rows × {editSizeChart.columns} columns</strong>
+                            </p>
+                            <div className="chart-actions">
+                              <button
+                                type="button"
+                                onClick={() => setShowSizeChartBuilder(true)}
+                                className="btn btn-secondary btn-sm"
+                              >
+                                Edit Chart
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setEditSizeChart(null)}
+                                className="btn btn-danger btn-sm"
+                              >
+                                Remove Chart
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setShowSizeChartBuilder(true)}
+                          className="btn btn-primary"
+                        >
+                          + Create Size Chart
+                        </button>
+                      )}
+                    </div>
+                  )}
+                  
+                  {showSizeChartBuilder && (
+                    <SizeChartBuilder
+                      initialData={editSizeChart}
+                      onSave={(chart) => {
+                        setEditSizeChart(chart);
+                        setShowSizeChartBuilder(false);
+                      }}
+                      onCancel={() => setShowSizeChartBuilder(false)}
+                    />
+                  )}
                 </div>
               </div>
 
