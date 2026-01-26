@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { Product } from '../utils/types';
 import { useCart } from '../context/CartContext';
 import SizeChartModal from './SizeChartModal';
@@ -960,16 +961,19 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
       </div>
     )}
 
-    {/* Size Chart Modal - Rendered at top level, NOT inside image modal */}
-    <SizeChartModal
-      isOpen={isSizeChartModalOpen}
-      onClose={() => {
-        console.log('📏 Closing size chart modal');
-        setIsSizeChartModalOpen(false);
-      }}
-      sizeChart={parsedSizeChart}
-      compact={true}
-    />
+    {/* Size Chart Modal - Rendered via Portal outside QuickViewModal hierarchy */}
+    {ReactDOM.createPortal(
+      <SizeChartModal
+        isOpen={isSizeChartModalOpen}
+        onClose={() => {
+          console.log('📏 Closing size chart modal');
+          setIsSizeChartModalOpen(false);
+        }}
+        sizeChart={parsedSizeChart}
+        compact={true}
+      />,
+      document.body
+    )}
     </>
   );
 };
