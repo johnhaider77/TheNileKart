@@ -7,6 +7,7 @@ import api from '../services/api';
 import BannerCarousel from '../components/BannerCarousel';
 import QuickViewModal from '../components/QuickViewModal';
 import ImageCarousel from '../components/ImageCarousel';
+import SplashScreen from '../components/SplashScreen';
 import { Product } from '../utils/types';
 // Categories moved to Hamburger menu
 import { useMetrics } from '../hooks/useMetrics';
@@ -227,6 +228,7 @@ const HomePage: React.FC = () => {
   const [shouldMarqueeTrending, setShouldMarqueeTrending] = useState(false);
   const [isUserScrollingPreferred, setIsUserScrollingPreferred] = useState(false);
   const [isUserScrollingTrending, setIsUserScrollingTrending] = useState(false);
+  const [showSplash, setShowSplash] = useState(true);
 
   // All products pagination state
   const [allProducts, setAllProducts] = useState<Product[]>([]);
@@ -527,7 +529,14 @@ const HomePage: React.FC = () => {
   }
 
   return (
-    <div className="page-container" style={{ background: 'var(--background-primary)', minHeight: '100vh', paddingTop: 0 }}>
+    <>
+      {showSplash && (
+        <SplashScreen
+          duration={2000}
+          onComplete={() => setShowSplash(false)}
+        />
+      )}
+      <div className="page-container" style={{ background: 'var(--background-primary)', minHeight: '100vh', paddingTop: 0 }}>
       {/* Hero Section with Banners */}
       <div className="hero-section">
         <div className="container">
@@ -1194,6 +1203,7 @@ const HomePage: React.FC = () => {
       {/* Footer */}
       <Footer />
     </div>
+    </>
   );
 };
 
