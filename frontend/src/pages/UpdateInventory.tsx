@@ -106,6 +106,9 @@ const UpdateInventory: React.FC = () => {
 
   // Debounce timers for colour changes
   const debounceTimers = useRef<{ [key: string]: NodeJS.Timeout }>({});
+  
+  // Track original colours for editing (to maintain correct API calls)
+  const [colourEdits, setColourEdits] = useState<{ [key: string]: string }>({});
 
   const categories = [
     'Mobiles, Tablets & Accessories',
@@ -669,6 +672,7 @@ const UpdateInventory: React.FC = () => {
     setDeletedImages([]);
     setEditSizeChart(null);
     setShowSizeChartBuilder(false);
+    setColourEdits({});
     // Clear any pending size changes for the product being closed
     if (editingProduct) {
       setPendingSizeChanges(prev => {
@@ -1620,8 +1624,15 @@ const UpdateInventory: React.FC = () => {
                             <input
                               type="text"
                               className="size-input"
-                              value={sizeData.colour || 'Default'}
-                              onChange={(e) => handleSizeColourChange(editingProduct.id, sizeData.size, sizeData.colour || 'Default', e.target.value)}
+                              value={colourEdits[`${editingProduct.id}-${sizeData.size}-${sizeData.colour || 'Default'}`] ?? (sizeData.colour || 'Default')}
+                              onChange={(e) => {
+                                const key = `${editingProduct.id}-${sizeData.size}-${sizeData.colour || 'Default'}`;
+                                setColourEdits(prev => ({
+                                  ...prev,
+                                  [key]: e.target.value
+                                }));
+                                handleSizeColourChange(editingProduct.id, sizeData.size, sizeData.colour || 'Default', e.target.value);
+                              }}
                             />
                           </div>
                           <div className="pricing-field">
