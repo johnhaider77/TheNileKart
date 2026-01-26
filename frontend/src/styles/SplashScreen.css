@@ -1,21 +1,81 @@
 /* Splash Screen Styles */
 
 .splash-screen {
-  animation: splashFadeIn 0.3s ease-out;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+  z-index: 9999;
+  overflow: hidden;
 }
 
 .splash-screen.zoom-out {
-  animation: splashZoomOut 0.6s ease-in forwards;
+  animation: screenFadeOut 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* Blurred background effect */
+.splash-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 1;
+  animation: backgroundBlur 0.6s ease-out forwards;
+}
+
+.splash-background.fade-out {
+  animation: backgroundFadeOut 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* Logo container */
+.splash-logo-container {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  animation: containerAppear 0.6s ease-out forwards;
+}
+
+.splash-logo-container.hide {
+  animation: containerDisappear 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+/* Glow effect behind logo */
+.splash-glow {
+  position: absolute;
+  width: 120%;
+  height: 120%;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.15) 0%, rgba(59, 130, 246, 0) 70%);
+  border-radius: 50%;
+  filter: blur(40px);
+  animation: glowPulse 3s ease-in-out infinite;
+  z-index: 1;
 }
 
 .splash-image {
-  width: 100%;
-  height: 100%;
-  animation: imageZoomIn 0.8s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  max-width: 90%;
+  max-height: 90%;
+  object-fit: contain;
+  animation: imageZoomIn 0.9s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  position: relative;
+  z-index: 2;
+  filter: drop-shadow(0 10px 40px rgba(0, 0, 0, 0.1));
 }
 
 .splash-image.zoom-out-image {
-  animation: imageZoomOut 0.6s ease-in forwards !important;
+  animation: imageZoomOut 0.8s cubic-bezier(0.4, 0, 0.2, 1) forwards !important;
 }
 
 /* Mobile: Full width */
@@ -25,8 +85,13 @@
   }
 
   .splash-image {
-    width: 100%;
-    height: auto;
+    max-width: 85%;
+    max-height: 85%;
+  }
+
+  .splash-glow {
+    width: 150%;
+    height: 150%;
   }
 }
 
@@ -37,44 +102,108 @@
   }
 
   .splash-image {
-    width: auto;
+    max-width: 70%;
+    max-height: 70%;
+  }
+
+  .splash-glow {
+    width: 100%;
     height: 100%;
   }
 }
 
 /* Animations */
 
-@keyframes splashFadeIn {
+@keyframes backgroundBlur {
   from {
     opacity: 0;
+    backdrop-filter: blur(0px);
+    -webkit-backdrop-filter: blur(0px);
   }
   to {
     opacity: 1;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+}
+
+@keyframes backgroundFadeOut {
+  from {
+    opacity: 1;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  to {
+    opacity: 0;
+    backdrop-filter: blur(0px);
+    -webkit-backdrop-filter: blur(0px);
+  }
+}
+
+@keyframes containerAppear {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes containerDisappear {
+  from {
+    opacity: 1;
+    transform: scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.1);
   }
 }
 
 @keyframes imageZoomIn {
   from {
-    transform: scale(0.8);
+    transform: scale(0.75) translateY(20px);
     opacity: 0;
   }
   to {
-    transform: scale(1);
+    transform: scale(1) translateY(0);
     opacity: 1;
   }
 }
 
 @keyframes imageZoomOut {
   from {
-    transform: scale(1);
+    transform: scale(1) translateY(0);
     opacity: 1;
   }
   to {
-    transform: scale(1.2);
+    transform: scale(1.15) translateY(-30px);
     opacity: 0;
   }
 }
 
+@keyframes glowPulse {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.8;
+  }
+}
+
+@keyframes screenFadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    pointer-events: none;
+  }
+}
 @keyframes splashZoomOut {
   from {
     transform: scale(1);

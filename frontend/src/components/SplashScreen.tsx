@@ -20,7 +20,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete, duration = 2000
     const hideTimer = setTimeout(() => {
       setIsVisible(false);
       onComplete?.();
-    }, duration + 600); // 600ms for animation
+    }, duration + 800); // 800ms for animation
 
     return () => {
       clearTimeout(showTimer);
@@ -35,29 +35,21 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete, duration = 2000
   return (
     <div
       className={`splash-screen ${isAnimating ? 'zoom-out' : ''}`}
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '100%',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: 'white',
-        zIndex: 9999,
-      }}
     >
-      <img
-        src="/TheNileKart.jpeg"
-        alt="TheNileKart Splash"
-        className={`splash-image ${isAnimating ? 'zoom-out-image' : ''}`}
-        style={{
-          maxWidth: '100%',
-          maxHeight: '100%',
-          objectFit: 'contain',
-        }}
-      />
+      {/* Blurred background container */}
+      <div className={`splash-background ${isAnimating ? 'fade-out' : ''}`} />
+      
+      {/* Logo container with shadow effect */}
+      <div className={`splash-logo-container ${isAnimating ? 'hide' : ''}`}>
+        <img
+          src="/TheNileKart.jpeg"
+          alt="TheNileKart Splash"
+          className={`splash-image ${isAnimating ? 'zoom-out-image' : ''}`}
+        />
+        
+        {/* Glow effect behind logo */}
+        <div className="splash-glow" />
+      </div>
     </div>
   );
 };
