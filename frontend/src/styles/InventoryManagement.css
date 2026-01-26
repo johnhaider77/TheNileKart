@@ -563,7 +563,7 @@
 .size-input-group {
   border: 1px solid #e0e0e0;
   border-radius: 8px;
-  padding: 1rem;
+  padding: 1.5rem;
   margin-bottom: 1rem;
   background-color: #fafafa;
 }
@@ -578,8 +578,8 @@
 
 .size-pricing-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 1.5rem;
   margin-bottom: 1rem;
 }
 
@@ -589,22 +589,29 @@
 }
 
 .pricing-field label {
-  font-weight: 500;
-  margin-bottom: 0.25rem;
-  color: #555;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: #2d3748;
+  font-size: 0.875rem;
+  display: block;
 }
 
 .pricing-field input {
-  padding: 0.5rem;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 0.9rem;
+  padding: 0.75rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  width: 100%;
+  box-sizing: border-box;
+  transition: all 0.3s ease;
+  background: white;
 }
 
 .pricing-field input:focus {
-  border-color: #007bff;
+  border-color: #4299e1;
   outline: none;
-  box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+  background: #f0f7ff;
 }
 
 .discount-display {
@@ -649,17 +656,21 @@
 }
 
 .size-input {
-  padding: 0.5rem;
-  border: 1px solid #e2e8f0;
+  padding: 0.75rem;
+  border: 2px solid #e2e8f0;
   border-radius: 6px;
-  font-size: 0.875rem;
-  transition: border-color 0.3s ease;
+  font-size: 0.95rem;
+  transition: all 0.3s ease;
+  width: 100%;
+  box-sizing: border-box;
+  background: white;
 }
 
 .size-input:focus {
   outline: none;
   border-color: #4299e1;
-  box-shadow: 0 0 0 2px rgba(66, 153, 225, 0.1);
+  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
+  background: #f0f7ff;
 }
 
 .modal-actions {
