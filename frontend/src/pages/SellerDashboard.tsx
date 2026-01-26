@@ -668,8 +668,71 @@ const ProductDetailsModal: React.FC<ProductDetailsModalProps> = ({
                     <p>Date: {new Date(order.created_at).toLocaleDateString()}</p>
                     <div className="order-items">
                       {order.items.map((item: any, index: number) => (
-                        <div key={index} className="order-item-detail">
-                          {item.product_name} (Qty: {item.quantity}) - AED {item.total}
+                        <div key={index} className="order-item-detail" style={{ display: 'flex', gap: '12px', alignItems: 'flex-start', marginBottom: '12px' }}>
+                          <div 
+                            style={{
+                              width: '64px',
+                              height: '64px',
+                              minWidth: '64px',
+                              minHeight: '64px',
+                              borderRadius: '4px',
+                              overflow: 'hidden',
+                              background: '#e5e7eb',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              flexShrink: 0
+                            }}
+                          >
+                            <img 
+                              src={(() => {
+                                // Handle products with JSONB images field
+                                if (item.images && Array.isArray(item.images) && item.images.length > 0) {
+                                  const firstImage = item.images[0];
+                                  if (typeof firstImage === 'string') {
+                                    return firstImage.startsWith('http') ? firstImage : `http://localhost:5000${firstImage}`;
+                                  }
+                                  if (firstImage.url) {
+                                    return firstImage.url.startsWith('http') ? firstImage.url : `http://localhost:5000${firstImage.url}`;
+                                  }
+                                }
+                                // Handle products with single image_url field
+                                if (item.image_url && typeof item.image_url === 'string') {
+                                  return item.image_url.startsWith('http') ? item.image_url : `http://localhost:5000${item.image_url}`;
+                                }
+                                // Fallback placeholder
+                                return 'https://via.placeholder.com/64';
+                              })()}
+                              alt={item.product_name}
+                              style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover' as const,
+                                display: 'block'
+                              }}
+                              onError={(e: any) => {
+                                e.target.src = 'https://via.placeholder.com/64';
+                              }}
+                            />
+                          </div>
+                          <div style={{ flex: 1 }}>
+                            <div><strong>{item.product_name}</strong></div>
+                            {item.selected_size && (
+                              item.selected_size === 'One Size' ? (
+                                item.selected_colour && item.selected_colour !== 'Default' && (
+                                  <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>Colour: {item.selected_colour}</div>
+                                )
+                              ) : (
+                                <>
+                                  <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>Size: {item.selected_size}</div>
+                                  {item.selected_colour && item.selected_colour !== 'Default' && (
+                                    <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>Colour: {item.selected_colour}</div>
+                                  )}
+                                </>
+                              )
+                            )}
+                            <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>Qty: {item.quantity} - AED {item.total}</div>
+                          </div>
                         </div>
                       ))}
                     </div>

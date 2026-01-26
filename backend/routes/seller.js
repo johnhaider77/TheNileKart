@@ -1053,10 +1053,13 @@ router.get('/orders', [
           json_build_object(
             'product_id', p.product_id,
             'product_name', p.name,
+            'image_url', p.image_url,
+            'images', p.images,
             'quantity', oi.quantity,
             'price', oi.price,
             'total', oi.total,
             'selected_size', COALESCE(oi.selected_size, 'One Size'),
+            'selected_colour', COALESCE(oi.selected_colour, 'Default'),
             'price_edited_by_seller', COALESCE(oi.price_edited_by_seller, false),
             'quantity_edited_by_seller', COALESCE(oi.quantity_edited_by_seller, false),
             'buy_price_edited_by_seller', COALESCE(oi.buy_price_edited_by_seller, false),

@@ -279,14 +279,16 @@ router.post('/capture/:orderId', [authenticateToken, requireCustomer], async (re
     // Create order items and update stock
     for (const item of orderItems) {
       await client.query(
-        `INSERT INTO order_items (order_id, product_id, quantity, price, total, selected_size)
-         VALUES ($1, $2, $3, $4, $5, $6)`,
-        [order_id, item.product_id, item.quantity, item.price, item.total, item.size]
+        `INSERT INTO order_items (order_id, product_id, quantity, price, total, selected_size, selected_colour)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [order_id, item.product_id, item.quantity, item.price, item.total, item.size, item.colour || 'Default']
       );
 
+      // Update product size+colour-specific stock using the database function
+      // Stock is reduced on successful payment capture for PayPal
       await client.query(
-        'SELECT update_product_size_quantity($1, $2, $3)',
-        [item.product_id, item.size, -item.quantity]
+        'SELECT update_product_size_colour_quantity($1, $2, $3, $4)',
+        [item.product_id, item.size, item.colour || 'Default', -item.quantity]
       );
     }
 

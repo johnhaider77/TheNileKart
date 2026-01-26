@@ -455,21 +455,26 @@ router.post('/', [
         [order_id, item.product_id, item.quantity, item.price, item.total, item.selectedSize, item.selectedColour]
       );
 
-      // Update product size+colour-specific stock using the database function
-      console.log(`📦 [ORDER-CREATED] Updating stock for product ${item.product_id}, size: ${item.selectedSize}, colour: ${item.selectedColour}, quantity change: -${item.quantity}`);
-      const stockUpdateResult = await client.query(
-        'SELECT update_product_size_quantity($1, $2, $3)',
-        [item.product_id, item.selectedSize, -item.quantity]
-      );
-      console.log(`✅ [ORDER-CREATED] Stock updated for product ${item.product_id}, size: ${item.selectedSize}, colour: ${item.selectedColour}`);
-      
-      // Verify the update to ensure cod_eligible wasn't affected
-      const verifyProduct = await client.query(
-        'SELECT sizes FROM products WHERE id = $1',
-        [item.product_id]
-      );
-      const verifySize = verifyProduct.rows[0]?.sizes?.find(s => s.size === item.selectedSize && (s.colour || 'Default') === item.selectedColour);
-      console.log(`🔍 [ORDER-CREATED] Verification - Product ${item.product_id}, size ${item.selectedSize}, colour ${item.selectedColour}: cod_eligible=${verifySize?.cod_eligible}, quantity=${verifySize?.quantity}`);
+      // Only reduce stock for successful orders (pending or processing status, not payment_failed/cancelled)
+      if (['pending', 'processing', 'shipped', 'delivered'].includes(status)) {
+        // Update product size+colour-specific stock using the database function
+        console.log(`📦 [ORDER-CREATED] Updating stock for product ${item.product_id}, size: ${item.selectedSize}, colour: ${item.selectedColour}, quantity change: -${item.quantity}`);
+        const stockUpdateResult = await client.query(
+          'SELECT update_product_size_colour_quantity($1, $2, $3, $4)',
+          [item.product_id, item.selectedSize, item.selectedColour, -item.quantity]
+        );
+        console.log(`✅ [ORDER-CREATED] Stock updated for product ${item.product_id}, size: ${item.selectedSize}, colour: ${item.selectedColour}`);
+        
+        // Verify the update to ensure cod_eligible wasn't affected
+        const verifyProduct = await client.query(
+          'SELECT sizes FROM products WHERE id = $1',
+          [item.product_id]
+        );
+        const verifySize = verifyProduct.rows[0]?.sizes?.find(s => s.size === item.selectedSize && (s.colour || 'Default') === item.selectedColour);
+        console.log(`🔍 [ORDER-CREATED] Verification - Product ${item.product_id}, size ${item.selectedSize}, colour ${item.selectedColour}: cod_eligible=${verifySize?.cod_eligible}, quantity=${verifySize?.quantity}`);
+      } else {
+        console.log(`⏭️  [ORDER-CREATED] Skipping stock update for product ${item.product_id} - order status is '${status}' (not a successful order)`);
+      }
     }
 
     // Save shipping address to user's saved addresses (if not already saved)
@@ -581,10 +586,12 @@ router.get('/', [authenticateToken, requireCustomer], async (req, res) => {
             'quantity', oi.quantity,
             'price', oi.price,
             'selected_size', COALESCE(oi.selected_size, 'One Size'),
+            'selected_colour', COALESCE(oi.selected_colour, 'Default'),
             'product', json_build_object(
               'id', p.id,
               'name', p.name,
               'image_url', p.image_url,
+              'images', p.images,
               'category', p.category
             )
           )
