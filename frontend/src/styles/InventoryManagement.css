@@ -606,37 +606,37 @@
 }
 
 .pricing-field input {
-  padding: 0.75rem;
-  border: 2px solid #e2e8f0;
-  border-radius: 6px;
-  font-size: 0.95rem;
-  width: 100%;
-  box-sizing: border-box;
+  padding: 0.75rem !important;
+  border: 2px solid #e2e8f0 !important;
+  border-radius: 6px !important;
+  font-size: 0.95rem !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
   transition: all 0.3s ease;
-  background: white;
-  cursor: text;
+  background: white !important;
+  cursor: text !important;
   pointer-events: auto !important;
-  appearance: textfield;
-  -webkit-appearance: textfield;
-  -moz-appearance: textfield;
-  color: #2d3748;
-  font-family: inherit;
-  line-height: 1.5;
-  user-select: text;
-  -webkit-user-select: text;
-  -moz-user-select: text;
-  min-height: 2.5rem;
-  display: block;
-  position: relative;
-  z-index: 10;
+  appearance: textfield !important;
+  -webkit-appearance: textfield !important;
+  -moz-appearance: textfield !important;
+  color: #2d3748 !important;
+  font-family: inherit !important;
+  line-height: 1.5 !important;
+  user-select: text !important;
+  -webkit-user-select: text !important;
+  -moz-user-select: text !important;
+  min-height: 2.5rem !important;
+  display: block !important;
+  position: relative !important;
+  z-index: 10 !important;
 }
 
 .pricing-field input:focus {
-  border-color: #4299e1;
-  outline: none;
-  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
-  background: #f0f7ff;
-  overflow-clip-margin: unset;
+  border-color: #4299e1 !important;
+  outline: none !important;
+  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1) !important;
+  background: #f0f7ff !important;
+  overflow-clip-margin: unset !important;
 }
 
 .discount-display {
@@ -681,37 +681,37 @@
 }
 
 .size-input {
-  padding: 0.75rem;
-  border: 2px solid #e2e8f0;
-  border-radius: 6px;
-  font-size: 0.95rem;
+  padding: 0.75rem !important;
+  border: 2px solid #e2e8f0 !important;
+  border-radius: 6px !important;
+  font-size: 0.95rem !important;
   transition: all 0.3s ease;
-  width: 100%;
-  box-sizing: border-box;
-  background: white;
-  cursor: text;
+  width: 100% !important;
+  box-sizing: border-box !important;
+  background: white !important;
+  cursor: text !important;
   pointer-events: auto !important;
-  appearance: textfield;
-  -webkit-appearance: textfield;
-  -moz-appearance: textfield;
-  color: #2d3748;
-  font-family: inherit;
-  line-height: 1.5;
-  user-select: text;
-  -webkit-user-select: text;
-  -moz-user-select: text;
-  min-height: 2.5rem;
-  display: block;
-  position: relative;
-  z-index: 10;
+  appearance: textfield !important;
+  -webkit-appearance: textfield !important;
+  -moz-appearance: textfield !important;
+  color: #2d3748 !important;
+  font-family: inherit !important;
+  line-height: 1.5 !important;
+  user-select: text !important;
+  -webkit-user-select: text !important;
+  -moz-user-select: text !important;
+  min-height: 2.5rem !important;
+  display: block !important;
+  position: relative !important;
+  z-index: 10 !important;
 }
 
 .size-input:focus {
-  outline: none;
-  border-color: #4299e1;
-  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1);
-  background: #f0f7ff;
-  overflow-clip-margin: unset;
+  outline: none !important;
+  border-color: #4299e1 !important;
+  box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1) !important;
+  background: #f0f7ff !important;
+  overflow-clip-margin: unset !important;
 }
 
 .modal-actions {
