@@ -190,7 +190,7 @@ router.post('/capture/:orderId', [authenticateToken, requireCustomer], async (re
 
       const productData = product.rows[0];
       let selectedSize = item.size;
-      const selectedColour = item.colour || 'Default';
+      let selectedColour = item.colour || 'Default';
       
       // If no size provided and product has sizes array, use first available size+colour with quantity > 0
       if (!selectedSize && productData.sizes && Array.isArray(productData.sizes)) {

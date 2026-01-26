@@ -170,7 +170,7 @@ export const productsAPI = {
 // Orders API calls
 export const ordersAPI = {
   createOrder: (orderData: {
-    items: Array<{ product_id: number; quantity: number; size?: string }>;
+    items: Array<{ product_id: number; quantity: number; size?: string; colour?: string }>;
     shipping_address: {
       full_name: string;
       address_line1: string;

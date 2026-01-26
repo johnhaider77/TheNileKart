@@ -266,7 +266,7 @@ router.post('/', [
 
     for (const item of items) {
       let selectedSize = item.size;
-      const selectedColour = item.colour || 'Default';
+      let selectedColour = item.colour || 'Default';
       console.log(`📦 Processing item: product_id=${item.product_id}, quantity=${item.quantity}, size=${selectedSize}, colour=${selectedColour}`);
       const product = await client.query(
         'SELECT id, name, price, stock_quantity, sizes, cod_eligible FROM products WHERE id = $1 AND is_active = true',
