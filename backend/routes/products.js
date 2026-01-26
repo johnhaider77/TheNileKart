@@ -120,7 +120,7 @@ router.get('/', [
     const productsQuery = `
       SELECT 
         p.id, p.name, p.description, p.price, p.category, 
-        p.image_url, p.images, p.videos, p.stock_quantity, p.sizes, p.market_price, p.created_at, p.cod_eligible,
+        p.image_url, p.images, p.videos, p.stock_quantity, p.sizes, p.market_price, p.created_at, p.cod_eligible, p.size_chart,
         u.full_name as seller_name
       FROM products p
       JOIN users u ON p.seller_id = u.id
@@ -304,7 +304,7 @@ router.get('/:id', async (req, res) => {
     const product = await db.query(
       `SELECT 
         p.id, p.name, p.description, p.price, p.category, 
-        p.image_url, p.images, p.videos, p.stock_quantity, p.sizes, p.created_at, p.updated_at,
+        p.image_url, p.images, p.videos, p.stock_quantity, p.sizes, p.created_at, p.updated_at, p.size_chart,
         u.full_name as seller_name, u.email as seller_email
       FROM products p
       JOIN users u ON p.seller_id = u.id
