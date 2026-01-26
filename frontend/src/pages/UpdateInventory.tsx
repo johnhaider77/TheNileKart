@@ -1474,11 +1474,21 @@ const UpdateInventory: React.FC = () => {
                   
                   <div className="sizes-grid">
                     {editingProduct.sizes.map((sizeData, index) => (
-                      <div key={`${editingProduct.id}-${sizeData.size}`} className="size-input-group">
+                      <div key={`${editingProduct.id}-${sizeData.size}-${sizeData.colour || 'Default'}`} className="size-input-group">
                         <div className="size-header">
-                          <h5>Size: {sizeData.size}</h5>
+                          <h5>Size: {sizeData.size} {sizeData.colour && sizeData.colour !== 'Default' ? `- Colour: ${sizeData.colour}` : ''}</h5>
                         </div>
                         <div className="size-pricing-grid">
+                          <div className="pricing-field">
+                            <label>Colour</label>
+                            <input
+                              type="text"
+                              className="size-input"
+                              value={sizeData.colour || 'Default'}
+                              disabled
+                              style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
+                            />
+                          </div>
                           <div className="pricing-field">
                             <label>Selling Price ($) *</label>
                             <input
