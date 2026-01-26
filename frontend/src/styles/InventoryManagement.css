@@ -633,12 +633,19 @@
   overflow-clip-margin: unset !important;
 }
 
+/* Override user agent stylesheet for text inputs */
+input[type="text"].size-input {
+  overflow: visible !important;
+  overflow-clip-margin: unset !important;
+}
+
 .pricing-field input:focus {
   border-color: #4299e1 !important;
   outline: none !important;
   box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1) !important;
   background: #f0f7ff !important;
   overflow-clip-margin: unset !important;
+  overflow: visible !important;
 }
 
 .discount-display {
@@ -710,12 +717,20 @@
   overflow-clip-margin: unset !important;
 }
 
+/* Ensure text inputs specifically have proper overflow */
+input.size-input[type="text"],
+.pricing-field input[type="text"] {
+  overflow: visible !important;
+  overflow-clip-margin: unset !important;
+}
+
 .size-input:focus {
   outline: none !important;
   border-color: #4299e1 !important;
   box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.1) !important;
   background: #f0f7ff !important;
   overflow-clip-margin: unset !important;
+  overflow: visible !important;
 }
 
 .modal-actions {
