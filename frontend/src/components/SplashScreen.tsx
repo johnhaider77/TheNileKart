@@ -51,7 +51,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete, duration = 2000
       <img
         src="/TheNileKart.jpeg"
         alt="TheNileKart Splash"
-        className="splash-image"
+        className={`splash-image ${isAnimating ? 'zoom-out-image' : ''}`}
         style={{
           maxWidth: '100%',
           maxHeight: '100%',
