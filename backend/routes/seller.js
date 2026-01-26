@@ -53,13 +53,21 @@ const cleanImageArray = (images) => {
 // Helper function to parse size_chart if it's a string
 const parseSizeChart = (product) => {
   if (!product) return product;
-  if (product.size_chart && typeof product.size_chart === 'string') {
-    try {
-      product.size_chart = JSON.parse(product.size_chart);
-    } catch (err) {
-      console.warn('Failed to parse size_chart:', err);
-      product.size_chart = null;
+  if (product.size_chart) {
+    console.log(`[SIZE-CHART] Product ${product.id}: size_chart type=${typeof product.size_chart}, value=${typeof product.size_chart === 'string' ? product.size_chart.substring(0, 80) : 'object'}`);
+    if (typeof product.size_chart === 'string') {
+      try {
+        product.size_chart = JSON.parse(product.size_chart);
+        console.log(`[SIZE-CHART] Successfully parsed size_chart for product ${product.id}`);
+      } catch (err) {
+        console.warn(`[SIZE-CHART] Failed to parse size_chart for product ${product.id}:`, err.message);
+        product.size_chart = null;
+      }
+    } else {
+      console.log(`[SIZE-CHART] size_chart is already an object for product ${product.id}`);
     }
+  } else {
+    console.log(`[SIZE-CHART] Product ${product.id}: size_chart is null/undefined`);
   }
   return product;
 };
@@ -956,7 +964,7 @@ router.put('/products/:id', [
 
     res.json({
       message: 'Product updated successfully',
-      product: responseProduct
+      product: parseSizeChart(responseProduct)
     });
 
   } catch (error) {
