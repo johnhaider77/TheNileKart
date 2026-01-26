@@ -17,7 +17,10 @@ interface SizeChartModalProps {
 const SizeChartModal: React.FC<SizeChartModalProps> = ({ isOpen, onClose, sizeChart }) => {
   if (!isOpen) return null;
 
+  console.log('📏 SizeChartModal rendering:', { isOpen, sizeChartExists: !!sizeChart, sizeChartData: sizeChart });
+
   if (!sizeChart || !sizeChart.data || sizeChart.data.length === 0) {
+    console.warn('⚠️ Size chart is empty or invalid:', sizeChart);
     return (
       <div className="modal-overlay" onClick={onClose}>
         <div className="modal-content size-chart-modal" onClick={(e) => e.stopPropagation()}>

@@ -52,7 +52,29 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [imageModalIndex, setImageModalIndex] = useState(0);
   const [isSizeChartModalOpen, setIsSizeChartModalOpen] = useState(false);
+  const [parsedSizeChart, setParsedSizeChart] = useState<any | null>(null);
   const { addToCart } = useCart();
+
+  // Parse size chart data when product changes
+  useEffect(() => {
+    if (product?.size_chart) {
+      try {
+        if (typeof product.size_chart === 'string') {
+          const parsed = JSON.parse(product.size_chart);
+          setParsedSizeChart(parsed);
+          console.log('✅ Size chart parsed from string:', parsed);
+        } else {
+          setParsedSizeChart(product.size_chart);
+          console.log('✅ Size chart is object:', product.size_chart);
+        }
+      } catch (err) {
+        console.error('❌ Error parsing size chart:', err);
+        setParsedSizeChart(null);
+      }
+    } else {
+      setParsedSizeChart(null);
+    }
+  }, [product?.size_chart]);
 
   // Debug state changes
   useEffect(() => {
@@ -598,12 +620,15 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
             )}
 
             {/* Size Chart Display - Show always if available, regardless of number of sizes */}
-            {product.size_chart && (
+            {parsedSizeChart && (
               <div className="quickview-size-chart-section">
                 <button
                   type="button"
                   className="quickview-size-chart-btn"
-                  onClick={() => setIsSizeChartModalOpen(true)}
+                  onClick={() => {
+                    console.log('📏 Size chart button clicked, opening modal...');
+                    setIsSizeChartModalOpen(true);
+                  }}
                   title="View detailed size chart"
                   aria-label="View size chart"
                 >
@@ -899,8 +924,11 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
         {/* Size Chart Modal */}
         <SizeChartModal
           isOpen={isSizeChartModalOpen}
-          onClose={() => setIsSizeChartModalOpen(false)}
-          sizeChart={product.size_chart}
+          onClose={() => {
+            console.log('📏 Closing size chart modal');
+            setIsSizeChartModalOpen(false);
+          }}
+          sizeChart={parsedSizeChart}
         />
       </div>
     )}

@@ -97,6 +97,7 @@ const UpdateInventory: React.FC = () => {
   }>({});
   const [editingSizeChart, setEditingSizeChart] = useState(false);
   const [editSizeChart, setEditSizeChart] = useState<SizeChartData | null>(null);
+  const [originalEditSizeChart, setOriginalEditSizeChart] = useState<SizeChartData | null>(null);
   const [showSizeChartBuilder, setShowSizeChartBuilder] = useState(false);
 
   // Pagination
@@ -637,6 +638,7 @@ const UpdateInventory: React.FC = () => {
     setEditingProduct(product);
     setEditFormData({ ...product });
     setEditSizeChart(product.size_chart || null);
+    setOriginalEditSizeChart(product.size_chart || null);
     setShowSizeChartBuilder(false);
     
     // Load existing images and ensure they have unique IDs
@@ -837,16 +839,19 @@ const UpdateInventory: React.FC = () => {
 
       // Add size chart if it was modified
       // Check if size chart was in original product but now is null (deletion)
-      const originalSizeChart = editingProduct.size_chart;
-      const sizeChartWasModified = JSON.stringify(originalSizeChart) !== JSON.stringify(editSizeChart);
+      const sizeChartWasModified = JSON.stringify(originalEditSizeChart) !== JSON.stringify(editSizeChart);
       
       if (sizeChartWasModified) {
         if (editSizeChart) {
           formData.append('sizeChart', JSON.stringify(editSizeChart));
+          console.log('📊 Size chart being updated');
         } else {
           // Signal to backend that size chart should be deleted
           formData.append('deleteSizeChart', 'true');
+          console.log('🗑️ Size chart being deleted');
         }
+      } else {
+        console.log('📊 Size chart unchanged');
       }
 
       console.log('Saving product with image changes:', {
