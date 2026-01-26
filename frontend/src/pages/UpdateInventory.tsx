@@ -1627,8 +1627,10 @@ const UpdateInventory: React.FC = () => {
                   <p className="section-subtitle">Adjust price, market price, stock, and COD eligibility for each size. Changes are saved when you click "Save Changes".</p>
                   
                   <div className="sizes-grid">
-                    {editingProduct.sizes.map((sizeData, index) => (
-                      <div key={`${editingProduct.id}-${sizeData.size}-${sizeData.colour || 'Default'}`} className="size-input-group">
+                    {editingProduct.sizes.map((sizeData, index) => {
+                      const originalColour = sizeData.colour || 'Default';
+                      return (
+                      <div key={`${editingProduct.id}-${sizeData.size}-${originalColour}-${index}`} className="size-input-group">
                         <div className="size-header">
                           <h5>Size: {sizeData.size} {sizeData.colour && sizeData.colour !== 'Default' ? `- Colour: ${sizeData.colour}` : ''}</h5>
                         </div>
@@ -1638,11 +1640,11 @@ const UpdateInventory: React.FC = () => {
                             <input
                               type="text"
                               className="size-input"
-                              defaultValue={sizeData.colour || 'Default'}
+                              defaultValue={originalColour}
                               onBlur={(e) => {
                                 const newColour = e.target.value.trim() || 'Default';
-                                if (newColour !== (sizeData.colour || 'Default')) {
-                                  handleSizeColourChange(editingProduct.id, sizeData.size, sizeData.colour || 'Default', newColour);
+                                if (newColour !== originalColour) {
+                                  handleSizeColourChange(editingProduct.id, sizeData.size, originalColour, newColour);
                                 }
                               }}
                               onKeyDown={(e) => {
@@ -1738,7 +1740,8 @@ const UpdateInventory: React.FC = () => {
                           </div>
                         )}
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}
