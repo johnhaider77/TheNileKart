@@ -590,50 +590,58 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
               )}
             </div>
 
-            {/* Size Selection - Only show if more than one size or size is not "One Size" */}
-            {availableSizes.length > 1 && (
-              <div className="quickview-sizes">
-                <div className="size-header">
-                  <h4>Size</h4>
-                  {product.size_chart && (
-                    <button
-                      type="button"
-                      className="size-chart-icon-btn"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        setIsSizeChartModalOpen(true);
-                      }}
-                      title="View Size Chart"
-                      aria-label="View size chart"
-                    >
-                      📏
-                    </button>
-                  )}
-                </div>
-                <div className="size-options">
-                  {availableSizes.map((size: any) => {
-                    const hasSizeWithStock = product.sizes.some((s: any) => s.size === size.size && s.quantity > 0);
-                    return (
-                      <button
-                        key={size.size}
-                        type="button"
-                        className={`size-option ${selectedSize === size.size ? 'selected' : ''} ${!hasSizeWithStock ? 'out-of-stock' : ''}`}
-                        onClick={() => hasSizeWithStock && handleSizeChange(size.size)}
-                        disabled={!hasSizeWithStock}
-                        title={!hasSizeWithStock ? 'Out of stock' : 'Select size'}
-                      >
-                        {size.size}
-                        {!hasSizeWithStock && <span className="oos-label">✕</span>}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
+            {/* Check if this is "One Size" with "Default" colour - if so, hide both size and colour */}
+            {(() => {
+              const isOneSize = availableSizes.length === 1 && availableSizes[0].size === 'One Size';
+              const hasDefaultColour = isOneSize && availableColours.length === 1 && 
+                (availableColours[0].colour === 'Default' || availableColours[0].colour === 'deult');
+              return !hasDefaultColour;
+            })() && (
+              <>
+                {/* Size Selection - Only show if more than one size or size is not "One Size" */}
+                {availableSizes.length > 1 && (
+                  <div className="quickview-sizes">
+                    <div className="size-header">
+                      <h4>Size</h4>
+                      {product.size_chart && (
+                        <button
+                          type="button"
+                          className="size-chart-icon-btn"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setIsSizeChartModalOpen(true);
+                          }}
+                          title="View Size Chart"
+                          aria-label="View size chart"
+                        >
+                          📏
+                        </button>
+                      )}
+                    </div>
+                    <div className="size-options">
+                      {availableSizes.map((size: any) => {
+                        const hasSizeWithStock = product.sizes.some((s: any) => s.size === size.size && s.quantity > 0);
+                        return (
+                          <button
+                            key={size.size}
+                            type="button"
+                            className={`size-option ${selectedSize === size.size ? 'selected' : ''} ${!hasSizeWithStock ? 'out-of-stock' : ''}`}
+                            onClick={() => hasSizeWithStock && handleSizeChange(size.size)}
+                            disabled={!hasSizeWithStock}
+                            title={!hasSizeWithStock ? 'Out of stock' : 'Select size'}
+                          >
+                            {size.size}
+                            {!hasSizeWithStock && <span className="oos-label">✕</span>}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
 
-            {/* Colour Selection - Show available colours for selected size */}
-            {availableColours.length > 0 && (
+                {/* Colour Selection - Show available colours for selected size */}
+                {availableColours.length > 0 && (
               <div className="quickview-sizes">
                 <h4>Colour</h4>
                 <div className="size-options">
@@ -652,6 +660,8 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
                   ))}
                 </div>
               </div>
+                )}
+              </>
             )}
 
             {/* Size Chart Display - Show always if available, regardless of number of sizes */}
