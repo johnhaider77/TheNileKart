@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import '../styles/InventoryManagement.css';
 import { sellerAPI } from '../services/api';
 import ProductOfferManager from '../components/ProductOfferManager';
@@ -104,6 +104,9 @@ const UpdateInventory: React.FC = () => {
   const [totalPages, setTotalPages] = useState(1);
   const itemsPerPage = 25;
 
+  // Debounce timers for colour changes
+  const debounceTimers = useRef<{ [key: string]: NodeJS.Timeout }>({});
+
   const categories = [
     'Mobiles, Tablets & Accessories',
     'Computers & Office Supplies', 
@@ -191,6 +194,13 @@ const UpdateInventory: React.FC = () => {
       console.log('🔑 Authentication token found');
     }
   }, [currentPage, filters]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Cleanup debounce timers on component unmount
+  useEffect(() => {
+    return () => {
+      Object.values(debounceTimers.current).forEach(timer => clearTimeout(timer));
+    };
+  }, []);
 
   const loadProducts = async () => {
     try {
@@ -504,51 +514,55 @@ const UpdateInventory: React.FC = () => {
     }
   };
 
-  const handleSizeColourChange = async (productId: number, size: string, oldColour: string, newColour: string) => {
-    try {
-      await sellerAPI.updateProductSizeColour(productId.toString(), size, oldColour, newColour);
+  const handleSizeColourChange = useCallback((productId: number, size: string, oldColour: string, newColour: string) => {
+    // Immediately update UI with the new colour
+    setEditingProduct(prev => {
+      if (!prev || !prev.sizes) return prev;
       
-      // Update the product sizes in state
-      setProducts(prev => prev.map(product => {
-        if (product.id === productId && product.sizes) {
-          const updatedSizes = product.sizes.map(sizeData => 
-            (sizeData.size === size && (sizeData.colour || 'Default') === oldColour)
-              ? { ...sizeData, colour: newColour }
-              : sizeData
-          );
-          
-          return {
-            ...product,
-            sizes: updatedSizes
-          };
-        }
-        return product;
-      }));
+      const updatedSizes = prev.sizes.map(sizeData => 
+        (sizeData.size === size && (sizeData.colour || 'Default') === oldColour)
+          ? { ...sizeData, colour: newColour }
+          : sizeData
+      );
+      
+      return {
+        ...prev,
+        sizes: updatedSizes
+      };
+    });
 
-      // Update editing product
-      if (editingProduct && editingProduct.id === productId) {
-        setEditingProduct(prev => {
-          if (!prev || !prev.sizes) return prev;
-          
-          const updatedSizes = prev.sizes.map(sizeData => 
-            (sizeData.size === size && (sizeData.colour || 'Default') === oldColour)
-              ? { ...sizeData, colour: newColour }
-              : sizeData
-          );
-          
-          return {
-            ...prev,
-            sizes: updatedSizes
-          };
-        });
+    setProducts(prev => prev.map(product => {
+      if (product.id === productId && product.sizes) {
+        const updatedSizes = product.sizes.map(sizeData => 
+          (sizeData.size === size && (sizeData.colour || 'Default') === oldColour)
+            ? { ...sizeData, colour: newColour }
+            : sizeData
+        );
+        
+        return {
+          ...product,
+          sizes: updatedSizes
+        };
       }
-      
-      showSuccess(`Colour for ${size} updated to ${newColour} successfully`);
-    } catch (err) {
-      setError(`Failed to update colour for ${size}`);
-      console.error('Error updating size colour:', err);
+      return product;
+    }));
+
+    // Debounce the API call
+    const debounceKey = `${productId}-${size}-${oldColour}`;
+    if (debounceTimers.current[debounceKey]) {
+      clearTimeout(debounceTimers.current[debounceKey]);
     }
-  };
+
+    debounceTimers.current[debounceKey] = setTimeout(async () => {
+      try {
+        await sellerAPI.updateProductSizeColour(productId.toString(), size, oldColour, newColour);
+        showSuccess(`Colour for ${size} updated to ${newColour} successfully`);
+      } catch (err) {
+        setError(`Failed to update colour for ${size}`);
+        console.error('Error updating size colour:', err);
+      }
+    }, 800); // 800ms debounce delay
+  }, []);
 
   const handleStatusToggle = async (productId: number, active: boolean) => {
     try {
