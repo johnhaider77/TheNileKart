@@ -55,8 +55,22 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
   const [parsedSizeChart, setParsedSizeChart] = useState<any | null>(null);
   const { addToCart } = useCart();
 
+  // Reset modal state when QuickView closes
+  useEffect(() => {
+    if (!isOpen) {
+      setIsSizeChartModalOpen(false);
+      setCurrentImageIndex(0);
+    }
+  }, [isOpen]);
+
   // Parse size chart data when product changes
   useEffect(() => {
+    console.log('📊 Processing product size_chart:', { 
+      hasSizeChart: !!product?.size_chart, 
+      type: typeof product?.size_chart,
+      value: product?.size_chart 
+    });
+    
     if (product?.size_chart) {
       try {
         if (typeof product.size_chart === 'string') {
@@ -72,6 +86,7 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
         setParsedSizeChart(null);
       }
     } else {
+      console.log('📊 No size_chart in product');
       setParsedSizeChart(null);
     }
   }, [product?.size_chart]);

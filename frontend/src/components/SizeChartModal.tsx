@@ -15,9 +15,17 @@ interface SizeChartModalProps {
 }
 
 const SizeChartModal: React.FC<SizeChartModalProps> = ({ isOpen, onClose, sizeChart }) => {
-  if (!isOpen) return null;
+  if (!isOpen) {
+    console.log('📏 SizeChartModal: isOpen=false, not rendering');
+    return null;
+  }
 
-  console.log('📏 SizeChartModal rendering:', { isOpen, sizeChartExists: !!sizeChart, sizeChartData: sizeChart });
+  console.log('📏 SizeChartModal rendering:', { 
+    isOpen, 
+    sizeChartExists: !!sizeChart, 
+    sizeChartData: sizeChart,
+    hasData: (sizeChart?.data?.length ?? 0) > 0
+  });
 
   if (!sizeChart || !sizeChart.data || sizeChart.data.length === 0) {
     console.warn('⚠️ Size chart is empty or invalid:', sizeChart);
