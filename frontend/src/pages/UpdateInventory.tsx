@@ -1638,9 +1638,17 @@ const UpdateInventory: React.FC = () => {
                             <input
                               type="text"
                               className="size-input"
-                              value={sizeData.colour || 'Default'}
-                              onChange={(e) => {
-                                handleSizeColourChange(editingProduct.id, sizeData.size, sizeData.colour || 'Default', e.target.value);
+                              defaultValue={sizeData.colour || 'Default'}
+                              onBlur={(e) => {
+                                const newColour = e.target.value.trim() || 'Default';
+                                if (newColour !== (sizeData.colour || 'Default')) {
+                                  handleSizeColourChange(editingProduct.id, sizeData.size, sizeData.colour || 'Default', newColour);
+                                }
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.currentTarget.blur();
+                                }
                               }}
                             />
                           </div>
