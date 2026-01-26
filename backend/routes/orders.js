@@ -171,6 +171,7 @@ router.post('/', [
   body('items.*.product_id').isInt(),
   body('items.*.quantity').isInt({ min: 1 }),
   body('items.*.size').optional().trim(),
+  body('items.*.colour').optional().trim(),
   body('shipping_address').isObject(),
   body('payment_method').optional().isIn(['cod', 'paypal', 'card', 'ziina']),
   body('status').optional().isIn(['pending', 'pending_payment', 'payment_failed', 'payment_cancelled', 'processing', 'shipped', 'delivered', 'cancelled']),
@@ -183,6 +184,7 @@ router.post('/', [
   console.log('   User ID:', req.user?.id);
   console.log('   Payment method:', req.body?.payment_method);
   console.log('   Items count:', req.body?.items?.length);
+  console.log('   Items:', JSON.stringify(req.body?.items, null, 2));
   console.log('   Promo Code ID:', req.body?.promo_code_id);
   console.log('   Promo Discount Amount:', req.body?.promo_discount_amount);
   
