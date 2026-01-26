@@ -6,13 +6,14 @@ interface CartItem {
   product: Product;
   quantity: number;
   selectedSize?: string;
+  selectedColour?: string;
 }
 
 interface CartContextType {
   items: CartItem[];
-  addToCart: (product: Product, quantity?: number, selectedSize?: string) => void;
-  removeFromCart: (productId: number, selectedSize?: string) => void;
-  updateQuantity: (productId: number, quantity: number, selectedSize?: string) => void;
+  addToCart: (product: Product, quantity?: number, selectedSize?: string, selectedColour?: string) => void;
+  removeFromCart: (productId: number, selectedSize?: string, selectedColour?: string) => void;
+  updateQuantity: (productId: number, quantity: number, selectedSize?: string, selectedColour?: string) => void;
   clearCart: () => void;
   getTotalItems: () => number;
   getTotalAmount: () => number;
@@ -80,7 +81,9 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
           
           guestItems.forEach(guestItem => {
             const existingItemIndex = mergedItems.findIndex(
-              item => item.product.id === guestItem.product.id
+              item => item.product.id === guestItem.product.id &&
+                       item.selectedSize === guestItem.selectedSize &&
+                       (item.selectedColour || 'Default') === (guestItem.selectedColour || 'Default')
             );
             
             if (existingItemIndex >= 0) {
@@ -123,46 +126,51 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     }
   }, [items, isAuthenticated, guestCartLoaded]);
 
-  const addToCart = (product: Product, quantity: number = 1, selectedSize?: string) => {
+  const addToCart = (product: Product, quantity: number = 1, selectedSize?: string, selectedColour?: string) => {
     const size = selectedSize || (product as any).selectedSize || 'One Size';
+    const colour = selectedColour || (product as any).selectedColour || 'Default';
     
-    // Get available quantity for the selected size
+    // Get available quantity for the selected size+colour
     let availableStock = 0;
     if (product.sizes && Array.isArray(product.sizes)) {
-      const sizeData = product.sizes.find((s: any) => s.size === size);
+      const sizeData = product.sizes.find((s: any) => s.size === size && (s.colour || 'Default') === colour);
       availableStock = sizeData?.quantity || 0;
     } else {
       availableStock = product.stock_quantity || 0;
     }
     
-    // Check if product/size is in stock
+    // Check if product/size/colour is in stock
     if (availableStock === 0) {
-      alert(`Sorry, size ${size} is sold out!`);
+      alert(`Sorry, ${size}${colour !== 'Default' ? ` in ${colour}` : ''} is sold out!`);
       return;
     }
 
     setItems(currentItems => {
       const existingItem = currentItems.find(item => 
-        item.product.id === product.id && item.selectedSize === size
+        item.product.id === product.id && 
+        item.selectedSize === size &&
+        (item.selectedColour || 'Default') === colour
       );
       
       if (existingItem) {
         const newQuantity = existingItem.quantity + quantity;
         
-        // Check if new quantity exceeds available stock for this size
+        // Check if new quantity exceeds available stock for this size+colour
         if (newQuantity > availableStock) {
           const availableToAdd = availableStock - existingItem.quantity;
           if (availableToAdd > 0) {
-            alert(`Only ${availableToAdd} more items available in size ${size}. Added ${availableToAdd} to cart.`);
+            alert(`Only ${availableToAdd} more items available${colour !== 'Default' ? ` in ${colour}` : ''}. Added ${availableToAdd} to cart.`);
             // Show notification for successful add
             setShowNotification(true);
             return currentItems.map(item =>
-              item.product.id === product.id && item.selectedSize === size
+              item.product.id === product.id && 
+              item.selectedSize === size &&
+              (item.selectedColour || 'Default') === colour
                 ? { ...item, quantity: availableStock }
                 : item
             );
           } else {
-            alert(`You already have the maximum available quantity (${availableStock}) for size ${size} in your cart.`);
+            alert(`You already have the maximum available quantity (${availableStock})${colour !== 'Default' ? ` for ${colour}` : ''} in your cart.`);
             return currentItems;
           }
         }
@@ -170,57 +178,63 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
         // Show notification for successful add
         setShowNotification(true);
         return currentItems.map(item =>
-          item.product.id === product.id && item.selectedSize === size
+          item.product.id === product.id && 
+          item.selectedSize === size &&
+          (item.selectedColour || 'Default') === colour
             ? { ...item, quantity: newQuantity }
             : item
         );
       } else {
-        // Check if requested quantity exceeds available stock for this size
+        // Check if requested quantity exceeds available stock for this size+colour
         if (quantity > availableStock) {
-          alert(`Only ${availableStock} items available in size ${size}. Added ${availableStock} to cart.`);
+          alert(`Only ${availableStock} items available${colour !== 'Default' ? ` in ${colour}` : ''}. Added ${availableStock} to cart.`);
           // Show notification for successful add
           setShowNotification(true);
-          return [...currentItems, { product, quantity: availableStock, selectedSize: size }];
+          return [...currentItems, { product, quantity: availableStock, selectedSize: size, selectedColour: colour }];
         }
         
         // Show notification for successful add
         setShowNotification(true);
-        return [...currentItems, { product, quantity, selectedSize: size }];
+        return [...currentItems, { product, quantity, selectedSize: size, selectedColour: colour }];
       }
     });
   };
 
-  const removeFromCart = (productId: number, selectedSize?: string) => {
+  const removeFromCart = (productId: number, selectedSize?: string, selectedColour?: string) => {
     setItems(currentItems => 
       currentItems.filter(item => 
         !(item.product.id === productId && 
-          (selectedSize === undefined || item.selectedSize === selectedSize))
+          (selectedSize === undefined || item.selectedSize === selectedSize) &&
+          (selectedColour === undefined || (item.selectedColour || 'Default') === selectedColour))
       )
     );
   };
 
-  const updateQuantity = (productId: number, quantity: number, selectedSize?: string) => {
+  const updateQuantity = (productId: number, quantity: number, selectedSize?: string, selectedColour?: string) => {
     if (quantity <= 0) {
-      removeFromCart(productId, selectedSize);
+      removeFromCart(productId, selectedSize, selectedColour);
       return;
     }
 
     setItems(currentItems =>
       currentItems.map(item => {
         if (item.product.id === productId && 
-            (selectedSize === undefined || item.selectedSize === selectedSize)) {
-          // Get available stock for this size
+            (selectedSize === undefined || item.selectedSize === selectedSize) &&
+            (selectedColour === undefined || (item.selectedColour || 'Default') === selectedColour)) {
+          // Get available stock for this size+colour
           let availableStock = 0;
           if (item.product.sizes && Array.isArray(item.product.sizes)) {
-            const sizeData = item.product.sizes.find((s: any) => s.size === item.selectedSize);
+            const sizeData = item.product.sizes.find((s: any) => 
+              s.size === item.selectedSize && (s.colour || 'Default') === (item.selectedColour || 'Default')
+            );
             availableStock = sizeData?.quantity || 0;
           } else {
             availableStock = item.product.stock_quantity || 0;
           }
           
-          // Check if requested quantity exceeds available stock for this size
+          // Check if requested quantity exceeds available stock for this size+colour
           if (quantity > availableStock) {
-            alert(`Only ${availableStock} items available${item.selectedSize ? ` in size ${item.selectedSize}` : ''}.`);
+            alert(`Only ${availableStock} items available${item.selectedColour && item.selectedColour !== 'Default' ? ` in ${item.selectedColour}` : ''}.`);
             return { ...item, quantity: availableStock };
           }
           return { ...item, quantity };
@@ -237,11 +251,13 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     }
   };
 
-  // Helper function to get the correct price for a cart item based on selected size
+  // Helper function to get the correct price for a cart item based on selected size and colour
   const getItemPrice = (item: CartItem): number => {
     // If product has sizes and a size is selected, use size-specific price
     if (item.product.sizes && Array.isArray(item.product.sizes) && item.selectedSize) {
-      const sizeData = item.product.sizes.find((s: any) => s.size === item.selectedSize);
+      const sizeData = item.product.sizes.find((s: any) => 
+        s.size === item.selectedSize && (s.colour || 'Default') === (item.selectedColour || 'Default')
+      );
       if (sizeData && sizeData.price !== undefined) {
         return Number(sizeData.price);
       }

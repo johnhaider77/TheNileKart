@@ -13,11 +13,11 @@ const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose }) => {
   const { items, updateQuantity, removeFromCart, getTotalAmount, getTotalItems, getItemPrice } = useCart();
   const { isAuthenticated } = useAuth();
 
-  const handleQuantityChange = (productId: number, newQuantity: number, selectedSize?: string) => {
+  const handleQuantityChange = (productId: number, newQuantity: number, selectedSize?: string, selectedColour?: string) => {
     if (newQuantity <= 0) {
-      removeFromCart(productId, selectedSize);
+      removeFromCart(productId, selectedSize, selectedColour);
     } else {
-      updateQuantity(productId, newQuantity, selectedSize);
+      updateQuantity(productId, newQuantity, selectedSize, selectedColour);
     }
   };
 
@@ -57,7 +57,7 @@ const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose }) => {
             <>
               <div className="cart-items">
                 {items.map((item) => (
-                  <div key={`${item.product.id}-${item.selectedSize || 'no-size'}`} className="cart-item">
+                  <div key={`${item.product.id}-${item.selectedSize || 'no-size'}-${item.selectedColour || 'default'}`} className="cart-item">
                     <div className="cart-item-image">
                       <img 
                         src={(() => {
@@ -85,21 +85,32 @@ const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose }) => {
                     </div>
                     <div className="cart-item-details">
                       <h4 className="cart-item-title">{item.product.name}</h4>
-                      {item.selectedSize && item.selectedSize !== 'One Size' && (
-                        <p className="cart-item-size">Size: {item.selectedSize}</p>
+                      {item.selectedSize && (
+                        item.selectedSize === 'One Size' ? (
+                          item.selectedColour && item.selectedColour !== 'Default' && (
+                            <p className="cart-item-size">Colour: {item.selectedColour}</p>
+                          )
+                        ) : (
+                          <>
+                            <p className="cart-item-size">Size: {item.selectedSize}</p>
+                            {item.selectedColour && item.selectedColour !== 'Default' && (
+                              <p className="cart-item-size">Colour: {item.selectedColour}</p>
+                            )}
+                          </>
+                        )
                       )}
                       <p className="cart-item-price">AED {getItemPrice(item).toFixed(2)}</p>
                       <div className="cart-item-quantity">
                         <button 
                           className="quantity-btn"
-                          onClick={() => handleQuantityChange(item.product.id, item.quantity - 1, item.selectedSize)}
+                          onClick={() => handleQuantityChange(item.product.id, item.quantity - 1, item.selectedSize, item.selectedColour)}
                         >
                           -
                         </button>
                         <span className="quantity">{item.quantity}</span>
                         <button 
                           className="quantity-btn"
-                          onClick={() => handleQuantityChange(item.product.id, item.quantity + 1, item.selectedSize)}
+                          onClick={() => handleQuantityChange(item.product.id, item.quantity + 1, item.selectedSize, item.selectedColour)}
                         >
                           +
                         </button>
@@ -110,7 +121,7 @@ const CartSidebar: React.FC<CartSidebarProps> = ({ isOpen, onClose }) => {
                     </div>
                     <button 
                       className="remove-item-btn"
-                      onClick={() => removeFromCart(item.product.id, item.selectedSize)}
+                      onClick={() => removeFromCart(item.product.id, item.selectedSize, item.selectedColour)}
                       aria-label="Remove item"
                     >
                       ×

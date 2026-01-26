@@ -265,7 +265,9 @@ router.post('/', [
     const orderItems = [];
 
     for (const item of items) {
-      console.log(`📦 Processing item: product_id=${item.product_id}, quantity=${item.quantity}, size=${item.size}`);
+      const selectedSize = item.size || 'One Size';
+      const selectedColour = item.colour || 'Default';
+      console.log(`📦 Processing item: product_id=${item.product_id}, quantity=${item.quantity}, size=${selectedSize}, colour=${selectedColour}`);
       const product = await client.query(
         'SELECT id, name, price, stock_quantity, sizes, cod_eligible FROM products WHERE id = $1 AND is_active = true',
         [item.product_id]
@@ -279,28 +281,29 @@ router.post('/', [
       }
 
       const productData = product.rows[0];
-      const selectedSize = item.size || 'One Size';
 
-      // Check size-specific availability
+      // Check size+colour-specific availability
       const sizeAvailability = await client.query(`
         SELECT 
           size_data->>'size' as size,
+          size_data->>'colour' as colour,
           (size_data->>'quantity')::INTEGER as available_quantity,
-          COALESCE((size_data->>'price')::NUMERIC, $3) as item_price,
-          COALESCE((size_data->>'cod_eligible')::BOOLEAN, $4) as cod_eligible
+          COALESCE((size_data->>'price')::NUMERIC, $4) as item_price,
+          COALESCE((size_data->>'cod_eligible')::BOOLEAN, $5) as cod_eligible
         FROM products p
         CROSS JOIN LATERAL jsonb_array_elements(p.sizes) AS size_data
         WHERE p.id = $1 
           AND size_data->>'size' = $2
+          AND COALESCE(size_data->>'colour', 'Default') = $3
           AND jsonb_typeof(size_data) = 'object'
           AND size_data ? 'size' 
           AND size_data ? 'quantity'
-      `, [item.product_id, selectedSize, productData.price, productData.cod_eligible]);
+      `, [item.product_id, selectedSize, selectedColour, productData.price, productData.cod_eligible]);
 
       if (sizeAvailability.rows.length === 0) {
         await client.query('ROLLBACK');
         return res.status(400).json({ 
-          message: `Size "${selectedSize}" not available for product ${productData.name}` 
+          message: `Size "${selectedSize}"${selectedColour !== 'Default' ? ` in ${selectedColour}` : ''} not available for product ${productData.name}` 
         });
       }
 
@@ -312,7 +315,7 @@ router.post('/', [
       if (availableQuantity < item.quantity) {
         await client.query('ROLLBACK');
         return res.status(400).json({ 
-          message: `Insufficient stock for product ${productData.name} in size ${selectedSize}. Available: ${availableQuantity}` 
+          message: `Insufficient stock for product ${productData.name} in size ${selectedSize}${selectedColour !== 'Default' ? ` (${selectedColour})` : ''}. Available: ${availableQuantity}` 
         });
       }
 
@@ -331,6 +334,7 @@ router.post('/', [
         price: itemPrice,
         total: item_total,
         selectedSize: selectedSize,
+        selectedColour: selectedColour,
         cod_eligible: codEligible,
         name: productData.name
       });
@@ -412,28 +416,28 @@ router.post('/', [
 
     // Create order items and update stock
     for (const item of orderItems) {
-      // Insert order item with size
+      // Insert order item with size and colour
       await client.query(
-        `INSERT INTO order_items (order_id, product_id, quantity, price, total, selected_size)
-         VALUES ($1, $2, $3, $4, $5, $6)`,
-        [order_id, item.product_id, item.quantity, item.price, item.total, item.selectedSize]
+        `INSERT INTO order_items (order_id, product_id, quantity, price, total, selected_size, selected_colour)
+         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+        [order_id, item.product_id, item.quantity, item.price, item.total, item.selectedSize, item.selectedColour]
       );
 
-      // Update product size-specific stock using the database function
-      console.log(`📦 [ORDER-CREATED] Updating stock for product ${item.product_id}, size: ${item.selectedSize}, quantity change: -${item.quantity}`);
+      // Update product size+colour-specific stock using the database function
+      console.log(`📦 [ORDER-CREATED] Updating stock for product ${item.product_id}, size: ${item.selectedSize}, colour: ${item.selectedColour}, quantity change: -${item.quantity}`);
       const stockUpdateResult = await client.query(
         'SELECT update_product_size_quantity($1, $2, $3)',
         [item.product_id, item.selectedSize, -item.quantity]
       );
-      console.log(`✅ [ORDER-CREATED] Stock updated for product ${item.product_id}, size: ${item.selectedSize}`);
+      console.log(`✅ [ORDER-CREATED] Stock updated for product ${item.product_id}, size: ${item.selectedSize}, colour: ${item.selectedColour}`);
       
       // Verify the update to ensure cod_eligible wasn't affected
       const verifyProduct = await client.query(
         'SELECT sizes FROM products WHERE id = $1',
         [item.product_id]
       );
-      const verifySize = verifyProduct.rows[0]?.sizes?.find(s => s.size === item.selectedSize);
-      console.log(`🔍 [ORDER-CREATED] Verification - Product ${item.product_id}, size ${item.selectedSize}: cod_eligible=${verifySize?.cod_eligible}, quantity=${verifySize?.quantity}`);
+      const verifySize = verifyProduct.rows[0]?.sizes?.find(s => s.size === item.selectedSize && (s.colour || 'Default') === item.selectedColour);
+      console.log(`🔍 [ORDER-CREATED] Verification - Product ${item.product_id}, size ${item.selectedSize}, colour ${item.selectedColour}: cod_eligible=${verifySize?.cod_eligible}, quantity=${verifySize?.quantity}`);
     }
 
     // Save shipping address to user's saved addresses (if not already saved)

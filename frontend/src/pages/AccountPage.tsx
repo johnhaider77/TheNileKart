@@ -13,6 +13,7 @@ interface Order {
     quantity: number;
     price: string;
     size?: string;
+    colour?: string;
     product: {
       id: number;
       name: string;
@@ -690,7 +691,18 @@ const AccountPage: React.FC = () => {
                             <div className="flex-1">
                               <h4 className="font-medium">{item.product.name}</h4>
                               {item.size && (
-                                <p className="text-sm text-accent font-medium" style={{ margin: '2px 0', color: 'var(--text-accent)' }}>Size: {item.size}</p>
+                                item.size === 'One Size' ? (
+                                  item.colour && item.colour !== 'Default' && (
+                                    <p className="text-sm text-accent font-medium" style={{ margin: '2px 0', color: 'var(--text-accent)' }}>Colour: {item.colour}</p>
+                                  )
+                                ) : (
+                                  <>
+                                    <p className="text-sm text-accent font-medium" style={{ margin: '2px 0', color: 'var(--text-accent)' }}>Size: {item.size}</p>
+                                    {item.colour && item.colour !== 'Default' && (
+                                      <p className="text-sm text-accent font-medium" style={{ margin: '2px 0', color: 'var(--text-accent)' }}>Colour: {item.colour}</p>
+                                    )}
+                                  </>
+                                )
                               )}
                               <div className="flex gap-4 text-sm text-gray-600">
                                 <span>Qty: {item.quantity}</span>

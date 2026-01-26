@@ -642,7 +642,8 @@ const CheckoutPage: React.FC = () => {
         items: items.map(item => ({
           product_id: item.product.id,
           quantity: item.quantity,
-          size: item.selectedSize || 'One Size'
+          size: item.selectedSize || 'One Size',
+          colour: item.selectedColour || 'Default'
         })),
         shipping_address: shippingAddress
       };
@@ -937,7 +938,7 @@ const CheckoutPage: React.FC = () => {
               <div className="cart-items">
                 <h3>Review Your Cart</h3>
                 {items.map(item => (
-                  <div key={item.product.id} className="cart-item card" data-product-id={item.product.id}>
+                  <div key={`${item.product.id}-${item.selectedSize || 'no-size'}-${item.selectedColour || 'default'}`} className="cart-item card" data-product-id={item.product.id}>
                     <div className="cart-item-content">
                       <div className="cart-item-image">
                         <img 
@@ -965,6 +966,20 @@ const CheckoutPage: React.FC = () => {
                       
                       <div className="cart-item-details">
                         <h4 className="cart-item-title">{item.product.name}</h4>
+                        {item.selectedSize && (
+                          item.selectedSize === 'One Size' ? (
+                            item.selectedColour && item.selectedColour !== 'Default' && (
+                              <p className="cart-item-size">Colour: {item.selectedColour}</p>
+                            )
+                          ) : (
+                            <>
+                              <p className="cart-item-size">Size: {item.selectedSize}</p>
+                              {item.selectedColour && item.selectedColour !== 'Default' && (
+                                <p className="cart-item-size">Colour: {item.selectedColour}</p>
+                              )}
+                            </>
+                          )
+                        )}
                         <p className="cart-item-price">{getItemPrice(item).toFixed(2)}</p>
                         
                         {/* COD Eligibility Status */}
@@ -972,7 +987,9 @@ const CheckoutPage: React.FC = () => {
                           // Check if this item is COD eligible
                           let isEligible = true;
                           if (item.product.sizes && item.selectedSize) {
-                            const sizeData = item.product.sizes.find((size: any) => size.size === item.selectedSize);
+                            const sizeData = item.product.sizes.find((size: any) => 
+                              size.size === item.selectedSize && (size.colour || 'Default') === (item.selectedColour || 'Default')
+                            );
                             isEligible = sizeData ? sizeData.cod_eligible === true : false;
                           } else {
                             isEligible = item.product.cod_eligible === true;
@@ -992,7 +1009,7 @@ const CheckoutPage: React.FC = () => {
                         <div className="cart-item-quantity">
                           <button
                             className="quantity-btn"
-                            onClick={() => updateQuantity(item.product.id, item.quantity - 1)}
+                            onClick={() => updateQuantity(item.product.id, item.quantity - 1, item.selectedSize, item.selectedColour)}
                             disabled={item.quantity <= 1}
                           >
                             -
@@ -1000,7 +1017,7 @@ const CheckoutPage: React.FC = () => {
                           <span className="quantity">{item.quantity}</span>
                           <button
                             className="quantity-btn"
-                            onClick={() => updateQuantity(item.product.id, item.quantity + 1)}
+                            onClick={() => updateQuantity(item.product.id, item.quantity + 1, item.selectedSize, item.selectedColour)}
                             disabled={item.quantity >= item.product.stock_quantity}
                           >
                             +
@@ -1014,7 +1031,7 @@ const CheckoutPage: React.FC = () => {
                       
                       <button
                         className="remove-item-btn"
-                        onClick={() => removeFromCart(item.product.id)}
+                        onClick={() => removeFromCart(item.product.id, item.selectedSize, item.selectedColour)}
                         aria-label="Remove item"
                       >
                         ×

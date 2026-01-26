@@ -13,6 +13,7 @@ interface Order {
     quantity: number;
     price: string;
     selected_size?: string;
+    selected_colour?: string;
     product: {
       id: number;
       name: string;
@@ -310,8 +311,19 @@ const OrderHistory: React.FC = () => {
                     <div className="item-details">
                       <h4 className="item-name">{item.product.name}</h4>
                       <p className="item-category">{item.product.category}</p>
-                      {item.selected_size && item.selected_size !== 'One Size' && (
-                        <p className="item-size">Size: {item.selected_size}</p>
+                      {item.selected_size && (
+                        item.selected_size === 'One Size' ? (
+                          item.selected_colour && item.selected_colour !== 'Default' && (
+                            <p className="item-size">Colour: {item.selected_colour}</p>
+                          )
+                        ) : (
+                          <>
+                            <p className="item-size">Size: {item.selected_size}</p>
+                            {item.selected_colour && item.selected_colour !== 'Default' && (
+                              <p className="item-size">Colour: {item.selected_colour}</p>
+                            )}
+                          </>
+                        )
                       )}
                       <div className="item-quantity-price">
                         <span>Qty: {item.quantity}</span>
