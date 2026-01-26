@@ -763,14 +763,24 @@ const CheckoutPage: React.FC = () => {
       const validatedItems = items.map(item => {
         // Ensure size is properly extracted - don't default to 'One Size' unless that's the actual product size
         let itemSize = item.selectedSize;
+        let itemColour = item.selectedColour || 'Default';
         
-        // If no selectedSize but product has sizes array, find the first available size
+        // If no selectedSize but product has sizes array, find the first available size+colour combination
         if (!itemSize && item.product?.sizes && Array.isArray(item.product.sizes) && item.product.sizes.length > 0) {
-          // Find a size with quantity > 0
-          const availableSize = item.product.sizes.find((s: any) => s.quantity > 0);
+          // First, try to find a size+colour combo that matches the selected colour
+          let availableSize = item.product.sizes.find((s: any) => 
+            s.quantity > 0 && (s.colour || 'Default') === itemColour
+          );
+          
+          // If not found, find any available size
+          if (!availableSize) {
+            availableSize = item.product.sizes.find((s: any) => s.quantity > 0);
+          }
+          
           if (availableSize) {
             itemSize = availableSize.size;
-            console.warn(`⚠️ Item ${item.product.id} had no selectedSize, using first available: ${itemSize}`);
+            itemColour = availableSize.colour || 'Default';
+            console.warn(`⚠️ Item ${item.product.id} had no selectedSize, using: size=${itemSize}, colour=${itemColour}`);
           }
         }
         
@@ -783,7 +793,8 @@ const CheckoutPage: React.FC = () => {
         return {
           product_id: item.product.id,
           quantity: item.quantity,
-          size: itemSize
+          size: itemSize,
+          colour: itemColour
         };
       });
 

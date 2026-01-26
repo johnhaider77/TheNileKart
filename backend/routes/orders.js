@@ -282,12 +282,25 @@ router.post('/', [
 
       const productData = product.rows[0];
       
-      // If no size provided and product has sizes array, use first available size with quantity > 0
+      // If no size provided and product has sizes array, use first available size+colour with quantity > 0
       if (!selectedSize && productData.sizes && Array.isArray(productData.sizes)) {
-        const availableSize = productData.sizes.find((s) => s.quantity > 0);
+        // First try to find a size+colour combo that matches the requested colour
+        let availableSize = productData.sizes.find((s) => 
+          s.quantity > 0 && (s.colour || 'Default') === selectedColour
+        );
+        
+        // If not found, find any available size
+        if (!availableSize) {
+          availableSize = productData.sizes.find((s) => s.quantity > 0);
+        }
+        
         if (availableSize) {
           selectedSize = availableSize.size;
-          console.log(`⚠️ No size provided for product ${item.product_id}, using first available: ${selectedSize}`);
+          // Also update colour if we found a different one
+          if (availableSize.colour) {
+            selectedColour = availableSize.colour;
+          }
+          console.log(`⚠️ No size provided for product ${item.product_id}, using: size=${selectedSize}, colour=${selectedColour}`);
         } else {
           await client.query('ROLLBACK');
           return res.status(400).json({

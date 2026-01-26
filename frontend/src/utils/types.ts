@@ -23,6 +23,7 @@ export interface Product {
   sizes?: Array<{
     size: string;
     quantity: number;
+    colour?: string; // Colour variant for the size
     price?: number; // Optional price per size
     market_price?: number; // Original market price for discount calculation
     actual_buy_price?: number; // Seller's cost price
