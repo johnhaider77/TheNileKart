@@ -45,7 +45,9 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [selectedSize, setSelectedSize] = useState<string>('');
+  const [selectedColour, setSelectedColour] = useState<string>('');
   const [availableSizes, setAvailableSizes] = useState<any[]>([]);
+  const [availableColours, setAvailableColours] = useState<any[]>([]);
   const [isImageModalOpen, setIsImageModalOpen] = useState(false);
   const [imageModalIndex, setImageModalIndex] = useState(0);
   const { addToCart } = useCart();
@@ -55,28 +57,76 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
     console.log('State changed:', { isImageModalOpen, imageModalIndex });
   }, [isImageModalOpen, imageModalIndex]);
 
+  // Get unique sizes from product
+  const getUniqueSizes = (sizesList: any[]) => {
+    const uniqueSizes = Array.from(new Map(
+      sizesList.map(s => [s.size, s])
+    ).values());
+    return uniqueSizes;
+  };
+
+  // Get colours available for a specific size
+  const getColoursForSize = (size: string) => {
+    if (!product.sizes || !Array.isArray(product.sizes)) return [];
+    return product.sizes
+      .filter((s: any) => s.size === size && s.quantity > 0)
+      .map((s: any) => ({
+        colour: s.colour || 'Default',
+        quantity: s.quantity,
+        price: s.price,
+        market_price: s.market_price,
+        actual_buy_price: s.actual_buy_price,
+        cod_eligible: s.cod_eligible
+      }))
+      .filter((c: any, i: number, arr: any[]) => arr.findIndex((x: any) => x.colour === c.colour) === i);
+  };
+
   // Reset states when modal opens with new product
   useEffect(() => {
     if (isOpen && product) {
       setCurrentImageIndex(0);
       setQuantity(1);
       setSelectedSize('');
+      setSelectedColour('');
       
       // Load available sizes from product
       if (product.sizes && Array.isArray(product.sizes)) {
-        setAvailableSizes(product.sizes);
+        const uniqueSizes = getUniqueSizes(product.sizes);
+        setAvailableSizes(uniqueSizes);
+        
         // Auto-select first available size
-        const availableSize = product.sizes.find((size: any) => size.quantity > 0);
-        if (availableSize) {
-          setSelectedSize(availableSize.size);
+        const firstAvailableSize = uniqueSizes.find((size: any) => 
+          product.sizes.some((s: any) => s.size === size.size && s.quantity > 0)
+        );
+        
+        if (firstAvailableSize) {
+          setSelectedSize(firstAvailableSize.size);
+          const coloursForSize = getColoursForSize(firstAvailableSize.size);
+          setAvailableColours(coloursForSize);
+          if (coloursForSize.length > 0) {
+            setSelectedColour(coloursForSize[0].colour);
+          }
         }
       } else {
         // Fallback to single size for backward compatibility
         setAvailableSizes([{ size: 'One Size', quantity: product.stock_quantity || 0 }]);
         setSelectedSize('One Size');
+        setSelectedColour('Default');
       }
     }
   }, [isOpen, product]);
+
+  // Handle size selection change - update available colours
+  const handleSizeChange = (newSize: string) => {
+    setSelectedSize(newSize);
+    const coloursForSize = getColoursForSize(newSize);
+    setAvailableColours(coloursForSize);
+    if (coloursForSize.length > 0) {
+      setSelectedColour(coloursForSize[0].colour);
+    } else {
+      setSelectedColour('');
+    }
+  };
 
   // Handle keyboard events
   useEffect(() => {
@@ -265,30 +315,40 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
     setCurrentImageIndex((prev) => (prev === mediaItems.length - 1 ? 0 : prev + 1));
   };
 
+  // Calculate effective selected size (auto-select "One Size" if it's the only option)
+  const effectiveSelectedSize = availableSizes.length === 1 && availableSizes[0].size === 'One Size' 
+    ? 'One Size' 
+    : selectedSize;
+
   const handleAddToCart = async () => {
     try {
-      // If there's only one size and it's "One Size", auto-select it
-      const effectiveSelectedSize = availableSizes.length === 1 && availableSizes[0].size === 'One Size' 
-        ? 'One Size' 
-        : selectedSize;
-        
       if (!effectiveSelectedSize) {
         alert('Please select a size');
         return;
       }
       
-      // Check if selected size has enough stock
-      const selectedSizeData = availableSizes.find(size => size.size === effectiveSelectedSize);
-      if (!selectedSizeData || selectedSizeData.quantity < quantity) {
-        alert(`Not enough stock for size ${effectiveSelectedSize}. Available: ${selectedSizeData?.quantity || 0}`);
+      // Check if colour is selected (if colours are available)
+      if (availableColours.length > 0 && !selectedColour) {
+        alert('Please select a colour');
         return;
       }
       
-      // Transform product to include size and image_url for cart display
+      // Check if selected size+colour combination has enough stock
+      const selectedSizeColourData = product.sizes?.find((s: any) => 
+        s.size === effectiveSelectedSize && (s.colour || 'Default') === (selectedColour || 'Default')
+      );
+      
+      if (!selectedSizeColourData || selectedSizeColourData.quantity < quantity) {
+        alert(`Not enough stock for size ${effectiveSelectedSize} in ${selectedColour || 'Default'}. Available: ${selectedSizeColourData?.quantity || 0}`);
+        return;
+      }
+      
+      // Transform product to include size, colour, and image_url for cart display
       const productForCart = {
         ...product,
         image_url: currentMedia.type === 'image' ? currentMedia.url : (product.image_url || 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&h=300&fit=crop'),
-        selectedSize: effectiveSelectedSize
+        selectedSize: effectiveSelectedSize,
+        selectedColour: selectedColour || 'Default'
       };
       await addToCart(productForCart, quantity);
       onClose(); // Close modal after adding to cart
@@ -440,21 +500,46 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
             </div>
 
             {/* Size Selection - Only show if more than one size or size is not "One Size" */}
-            {availableSizes.length > 0 && !(availableSizes.length === 1 && availableSizes[0].size === 'One Size') && (
+            {availableSizes.length > 1 && (
               <div className="quickview-sizes">
                 <h4>Size</h4>
                 <div className="size-options">
-                  {availableSizes.map((size: any) => (
+                  {availableSizes.map((size: any) => {
+                    const hasSizeWithStock = product.sizes.some((s: any) => s.size === size.size && s.quantity > 0);
+                    return (
+                      <button
+                        key={size.size}
+                        type="button"
+                        className={`size-option ${selectedSize === size.size ? 'selected' : ''} ${!hasSizeWithStock ? 'out-of-stock' : ''}`}
+                        onClick={() => hasSizeWithStock && handleSizeChange(size.size)}
+                        disabled={!hasSizeWithStock}
+                        title={!hasSizeWithStock ? 'Out of stock' : 'Select size'}
+                      >
+                        {size.size}
+                        {!hasSizeWithStock && <span className="oos-label">✕</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Colour Selection - Show available colours for selected size */}
+            {availableColours.length > 0 && (
+              <div className="quickview-sizes">
+                <h4>Colour</h4>
+                <div className="size-options">
+                  {availableColours.map((colour: any) => (
                     <button
-                      key={size.size}
+                      key={colour.colour}
                       type="button"
-                      className={`size-option ${selectedSize === size.size ? 'selected' : ''} ${size.quantity === 0 ? 'out-of-stock' : ''}`}
-                      onClick={() => size.quantity > 0 && setSelectedSize(size.size)}
-                      disabled={size.quantity === 0}
-                      title={size.quantity === 0 ? 'Out of stock' : `${size.quantity} available`}
+                      className={`size-option ${selectedColour === colour.colour ? 'selected' : ''} ${colour.quantity === 0 ? 'out-of-stock' : ''}`}
+                      onClick={() => colour.quantity > 0 && setSelectedColour(colour.colour)}
+                      disabled={colour.quantity === 0}
+                      title={colour.quantity === 0 ? 'Out of stock' : `${colour.quantity} available`}
                     >
-                      {size.size}
-                      {size.quantity === 0 && <span className="oos-label">✕</span>}
+                      {colour.colour}
+                      {colour.quantity === 0 && <span className="oos-label">✕</span>}
                     </button>
                   ))}
                 </div>
@@ -463,18 +548,15 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
 
             {/* Quantity and Add to Cart - Moved above description */}
             <div className="quickview-actions">
-              {/* Get stock for selected size */}
+              {/* Get stock for selected size+colour combination */}
               {(() => {
-                // Calculate effective selected size (auto-select "One Size" if it's the only option)
-                const effectiveSelectedSize = availableSizes.length === 1 && availableSizes[0].size === 'One Size' 
-                  ? 'One Size' 
-                  : selectedSize;
+                // Find the selected size+colour combination
+                const selectedSizeColourData = product.sizes?.find((s: any) => 
+                  s.size === selectedSize && (s.colour || 'Default') === (selectedColour || 'Default')
+                );
+                const currentStock = selectedSizeColourData?.quantity || 0;
                 
-                const selectedSizeData = availableSizes.find(size => size.size === effectiveSelectedSize);
-                const currentStock = selectedSizeData?.quantity || 0;
-                const totalStock = availableSizes.reduce((total, size) => total + size.quantity, 0);
-                
-                if (totalStock === 0) {
+                if (currentStock === 0) {
                   return (
                     <div 
                       style={{

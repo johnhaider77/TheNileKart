@@ -194,15 +194,18 @@ const CreateProduct: React.FC = () => {
     if (!formData.category) newErrors.category = 'Category is required';
     if (images.length === 0) newErrors.images = 'At least one image is required';
     
-    // Validate sizes
+    // Validate sizes with colours (parent->child relationship)
     const validSizes = sizes.filter(size => size.size.trim());
     if (validSizes.length === 0) {
       newErrors.sizes = 'At least one size is required';
     } else {
-      const sizeNames = validSizes.map(size => size.size.trim().toLowerCase());
-      const duplicates = sizeNames.filter((name, index) => sizeNames.indexOf(name) !== index);
-      if (duplicates.length > 0) {
-        newErrors.sizes = 'Duplicate size names are not allowed';
+      // Check for duplicate (size, colour) combinations
+      const sizeColourPairs = validSizes.map(size => 
+        `${size.size.trim().toLowerCase()}|${(size.colour || 'Default').trim().toLowerCase()}`
+      );
+      const duplicatePairs = sizeColourPairs.filter((pair, index) => sizeColourPairs.indexOf(pair) !== index);
+      if (duplicatePairs.length > 0) {
+        newErrors.sizes = 'Duplicate size-colour combinations are not allowed';
       }
       
       // Check if all sizes have non-negative quantities
@@ -240,6 +243,7 @@ const CreateProduct: React.FC = () => {
       // Add sizes data
       const validSizes = sizes.filter(size => size.size.trim()).map(size => ({
         size: size.size.trim(),
+        colour: size.colour || 'Default',
         quantity: parseInt(size.quantity.toString()) || 0,
         price: parseFloat(size.price?.toString() || '0') || 0,
         market_price: parseFloat(size.market_price?.toString() || '0') || 0,
