@@ -50,6 +50,20 @@ const cleanImageArray = (images) => {
   });
 };
 
+// Helper function to parse size_chart if it's a string
+const parseSizeChart = (product) => {
+  if (!product) return product;
+  if (product.size_chart && typeof product.size_chart === 'string') {
+    try {
+      product.size_chart = JSON.parse(product.size_chart);
+    } catch (err) {
+      console.warn('Failed to parse size_chart:', err);
+      product.size_chart = null;
+    }
+  }
+  return product;
+};
+
 // Create new product
 router.post('/products', [
   authenticateToken,
@@ -1388,7 +1402,7 @@ router.get('/products/search', [
     const products = await db.query(
       `SELECT id, product_id, name, description, price, actual_buy_price, 
               category, stock_quantity, sizes, image_url, images, is_active, 
-              created_at, updated_at, cod_eligible
+              created_at, updated_at, cod_eligible, size_chart
        FROM products 
        ${whereClause}
        ORDER BY created_at DESC
@@ -1403,7 +1417,7 @@ router.get('/products/search', [
     );
 
     res.json({
-      products: products.rows,
+      products: products.rows.map(parseSizeChart),
       pagination: {
         currentPage: page,
         totalPages: Math.ceil(totalCount.rows[0].total / limit),

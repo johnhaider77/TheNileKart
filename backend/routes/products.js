@@ -62,6 +62,17 @@ const convertProductImageUrls = (product) => {
       url: getAbsoluteUrl(video.url)
     }));
   }
+  
+  // Parse size_chart if it's a string (from database)
+  if (product.size_chart && typeof product.size_chart === 'string') {
+    try {
+      product.size_chart = JSON.parse(product.size_chart);
+    } catch (err) {
+      console.warn('Failed to parse size_chart:', err);
+      product.size_chart = null;
+    }
+  }
+  
   return product;
 };
 
