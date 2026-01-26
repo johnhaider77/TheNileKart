@@ -7,9 +7,19 @@ const path = require('path');
 const http = require('http');
 const socketIo = require('socket.io');
 
+// Ensure NODE_ENV is set (default to development)
+if (!process.env.NODE_ENV) {
+  process.env.NODE_ENV = 'development';
+}
+
+console.log('🚀 Starting server with NODE_ENV:', process.env.NODE_ENV);
+
 // Load environment variables - use .env.production in production
 const envFile = process.env.NODE_ENV === 'production' ? '.env.production' : '.env';
-dotenv.config({ path: path.join(__dirname, '..', envFile) });
+const envPath = path.join(__dirname, '..', envFile);
+console.log('📂 Loading environment from:', envPath);
+dotenv.config({ path: envPath });
+console.log('✅ Environment variables loaded');
 
 // Import database connection
 const db = require('./config/database');

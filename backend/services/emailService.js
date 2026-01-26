@@ -1,5 +1,10 @@
 const nodemailer = require('nodemailer');
-require('dotenv').config();
+const path = require('path');
+const dotenv = require('dotenv');
+
+// Load environment variables from .env.production if NODE_ENV is production
+const envFile = process.env.NODE_ENV === 'production' ? '.env.production' : '.env';
+dotenv.config({ path: path.join(__dirname, '..', envFile) });
 
 // Email service for sending password reset codes
 class EmailService {
@@ -11,11 +16,17 @@ class EmailService {
 
   async initialize() {
     try {
+      // Debug: Log environment variables
+      console.log('📧 EMAIL_USER:', process.env.EMAIL_USER ? '✅ SET' : '❌ NOT SET');
+      console.log('📧 EMAIL_PASS:', process.env.EMAIL_PASS ? '✅ SET' : '❌ NOT SET');
+      console.log('📧 EMAIL_HOST:', process.env.EMAIL_HOST || 'NOT SET');
+      console.log('📧 NODE_ENV:', process.env.NODE_ENV || 'NOT SET');
+      
       // Try to use environment variables first (for production)
       if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
         this.transporter = nodemailer.createTransport({
-          service: process.env.EMAIL_SERVICE || 'gmail',
-          host: process.env.EMAIL_HOST || 'smtp.gmail.com',
+          service: process.env.EMAIL_SERVICE || 'outlook',
+          host: process.env.EMAIL_HOST || 'smtp-mail.outlook.com',
           port: parseInt(process.env.EMAIL_PORT) || 587,
           secure: false,
           auth: {
@@ -25,6 +36,7 @@ class EmailService {
         });
         
         console.log('📧 Email service initialized with configured credentials');
+        console.log('📧 Using email service:', process.env.EMAIL_SERVICE || 'outlook');
         this.isInitialized = true;
         return;
       }
