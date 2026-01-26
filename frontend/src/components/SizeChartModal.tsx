@@ -12,9 +12,10 @@ interface SizeChartModalProps {
   isOpen: boolean;
   onClose: () => void;
   sizeChart?: SizeChartData | null;
+  compact?: boolean;
 }
 
-const SizeChartModal: React.FC<SizeChartModalProps> = ({ isOpen, onClose, sizeChart }) => {
+const SizeChartModal: React.FC<SizeChartModalProps> = ({ isOpen, onClose, sizeChart, compact = false }) => {
   if (!isOpen) {
     console.log('📏 SizeChartModal: isOpen=false, not rendering');
     return null;
@@ -31,7 +32,7 @@ const SizeChartModal: React.FC<SizeChartModalProps> = ({ isOpen, onClose, sizeCh
     console.warn('⚠️ Size chart is empty or invalid:', sizeChart);
     return (
       <div className="modal-overlay" onClick={onClose}>
-        <div className="modal-content size-chart-modal" onClick={(e) => e.stopPropagation()}>
+        <div className={`modal-content size-chart-modal ${compact ? 'compact-mode' : ''}`} onClick={(e) => e.stopPropagation()}>
           <div className="modal-header">
             <h2>Size Chart</h2>
             <button className="close-btn" onClick={onClose}>×</button>
@@ -48,7 +49,7 @@ const SizeChartModal: React.FC<SizeChartModalProps> = ({ isOpen, onClose, sizeCh
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content size-chart-modal" onClick={(e) => e.stopPropagation()}>
+      <div className={`modal-content size-chart-modal ${compact ? 'compact-mode' : ''}`} onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2>Size Chart</h2>
           <button className="close-btn" onClick={onClose}>×</button>

@@ -598,7 +598,11 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
                     <button
                       type="button"
                       className="size-chart-icon-btn"
-                      onClick={() => setIsSizeChartModalOpen(true)}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setIsSizeChartModalOpen(true);
+                      }}
                       title="View Size Chart"
                       aria-label="View size chart"
                     >
@@ -655,7 +659,9 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
                 <button
                   type="button"
                   className="quickview-size-chart-btn"
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
                     console.log('📏 Size chart button clicked, opening modal...');
                     setIsSizeChartModalOpen(true);
                   }}
@@ -951,17 +957,19 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
           )}
         </div>
 
-        {/* Size Chart Modal */}
-        <SizeChartModal
-          isOpen={isSizeChartModalOpen}
-          onClose={() => {
-            console.log('📏 Closing size chart modal');
-            setIsSizeChartModalOpen(false);
-          }}
-          sizeChart={parsedSizeChart}
-        />
       </div>
     )}
+
+    {/* Size Chart Modal - Rendered at top level, NOT inside image modal */}
+    <SizeChartModal
+      isOpen={isSizeChartModalOpen}
+      onClose={() => {
+        console.log('📏 Closing size chart modal');
+        setIsSizeChartModalOpen(false);
+      }}
+      sizeChart={parsedSizeChart}
+      compact={true}
+    />
     </>
   );
 };
