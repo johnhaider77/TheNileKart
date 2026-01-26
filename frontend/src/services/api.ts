@@ -128,6 +128,21 @@ export const authAPI = {
     user_type: 'customer' | 'seller';
     phone?: string;
   }) => api.post('/auth/register', userData),
+
+  sendSignupOTP: (email: string) =>
+    api.post('/auth/send-signup-otp', { email }),
+
+  verifySignupOTP: (email: string, otp: string) =>
+    api.post('/auth/verify-signup-otp', { email, otp }),
+
+  registerWithOTP: (userData: {
+    email: string;
+    password: string;
+    full_name: string;
+    user_type: 'customer' | 'seller';
+    phone?: string;
+    temp_token: string;
+  }) => api.post('/auth/register-with-otp', userData),
   
   getProfile: () => api.get('/auth/profile'),
   

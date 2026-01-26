@@ -93,6 +93,90 @@ class EmailService {
     };
   }
 
+  async sendOTPEmail(email, otp, type = 'signup') {
+    try {
+      if (!this.transporter) {
+        return this.consoleFallbackOTP(email, otp, type, 'Development mode - OTP displayed in console');
+      }
+
+      const subject = type === 'signup' ? 'Signup OTP - TheNileKart' : 'OTP Code - TheNileKart';
+      const mailOptions = {
+        from: process.env.EMAIL_FROM || '"TheNileKart" <no-reply@thenilekart.com>',
+        to: email,
+        subject: subject,
+        html: this.getOTPEmailTemplate(otp, type),
+        text: `Your OTP code is: ${otp}. This code will expire in 5 minutes.`
+      };
+
+      const info = await this.transporter.sendMail(mailOptions);
+      
+      console.log(`📧 OTP email sent to ${email}`);
+      console.log(`📧 Message ID: ${info.messageId}`);
+
+      return {
+        success: true,
+        messageId: info.messageId,
+        previewUrl: null
+      };
+
+    } catch (error) {
+      console.error('Failed to send OTP email:', error.message);
+      return this.consoleFallbackOTP(email, otp, type, error.message);
+    }
+  }
+
+  consoleFallbackOTP(email, otp, type, reason) {
+    const typeLabel = type === 'signup' ? 'SIGNUP OTP' : 'OTP CODE';
+    console.log('\n' + '='.repeat(60));
+    console.log(`📧 ${typeLabel} FOR: ` + email.toUpperCase());
+    console.log('🔑 OTP CODE: ' + otp);
+    console.log('⏰ EXPIRES IN: 5 minutes');
+    console.log('📋 REASON: ' + reason);
+    console.log('='.repeat(60) + '\n');
+    
+    return {
+      success: true,
+      messageId: 'console-fallback',
+      previewUrl: null,
+      fallback: true,
+      otp: otp,
+      reason: reason
+    };
+  }
+
+  getOTPEmailTemplate(otp, type = 'signup') {
+    const title = type === 'signup' ? 'Verify Your Email' : 'Verify Your Identity';
+    const description = type === 'signup' 
+      ? 'Use this code to verify your email and complete your signup process.'
+      : 'Use this code to verify your identity.';
+
+    return `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+        <div style="background-color: #f8f9fa; padding: 20px; text-align: center;">
+          <h1 style="color: #007bff; margin: 0;">TheNileKart</h1>
+        </div>
+        <div style="padding: 30px 20px; background-color: white;">
+          <h2 style="color: #333; margin-bottom: 20px;">${title}</h2>
+          <p style="color: #666; font-size: 16px; line-height: 1.5;">
+            ${description}
+          </p>
+          <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0;">
+            <h1 style="font-size: 48px; color: #007bff; margin: 0; letter-spacing: 4px;">${otp}</h1>
+          </div>
+          <p style="color: #666; font-size: 14px; line-height: 1.5;">
+            This code will expire in <strong>5 minutes</strong>. Do not share this code with anyone.
+          </p>
+          <p style="color: #999; font-size: 12px; line-height: 1.5;">
+            If you didn't request this code, please ignore this email.
+          </p>
+        </div>
+        <div style="background-color: #f8f9fa; padding: 15px 20px; text-align: center; color: #999; font-size: 12px;">
+          <p style="margin: 0;">This is an automated message from TheNileKart. Please do not reply to this email.</p>
+        </div>
+      </div>
+    `;
+  }
+
   getEmailTemplate(code) {
     return `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">

@@ -900,4 +900,207 @@ router.post('/reset-password', async (req, res) => {
   }
 });
 
+// Generate and send OTP for customer signup
+router.post('/send-signup-otp', [
+  body('email').isEmail().trim(),
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { email } = req.body;
+
+    // Check if user already exists
+    const existingUser = await db.query(
+      'SELECT id FROM users WHERE email = $1',
+      [email]
+    );
+
+    if (existingUser.rows.length > 0) {
+      return res.status(400).json({ message: 'Email already registered' });
+    }
+
+    // Generate 6-digit OTP
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    
+    // Set expiration to 5 minutes from now
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+
+    // Delete any previous unused OTPs for this email
+    await db.query(
+      'DELETE FROM signup_otp_attempts WHERE email = $1 AND is_used = false',
+      [email]
+    );
+
+    // Store the OTP
+    await db.query(
+      `INSERT INTO signup_otp_attempts (email, otp_code, expires_at, ip_address)
+       VALUES ($1, $2, $3, $4)`,
+      [email, otp, expiresAt, req.ip || 'unknown']
+    );
+
+    // Send OTP via email
+    console.log(`📧 Sending OTP to ${email}: ${otp}`);
+    await emailService.sendOTPEmail(email, otp, 'signup');
+
+    res.json({
+      success: true,
+      message: 'OTP sent to your email',
+      expires_in: 300 // 5 minutes in seconds
+    });
+
+  } catch (error) {
+    console.error('Send OTP error:', error);
+    res.status(500).json({ message: 'Server error sending OTP' });
+  }
+});
+
+// Verify OTP for customer signup
+router.post('/verify-signup-otp', [
+  body('email').isEmail().trim(),
+  body('otp').trim().isLength({ min: 6, max: 6 }).isNumeric(),
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { email, otp } = req.body;
+
+    // Check if OTP exists and is valid
+    const otpRecord = await db.query(
+      `SELECT id, is_used, expires_at FROM signup_otp_attempts
+       WHERE email = $1 AND otp_code = $2
+       ORDER BY created_at DESC
+       LIMIT 1`,
+      [email, otp]
+    );
+
+    if (otpRecord.rows.length === 0) {
+      return res.status(400).json({ message: 'Invalid OTP' });
+    }
+
+    const record = otpRecord.rows[0];
+
+    // Check if OTP is already used
+    if (record.is_used) {
+      return res.status(400).json({ message: 'OTP has already been used' });
+    }
+
+    // Check if OTP has expired
+    if (new Date(record.expires_at) < new Date()) {
+      return res.status(400).json({ message: 'OTP has expired' });
+    }
+
+    // Mark OTP as used
+    await db.query(
+      'UPDATE signup_otp_attempts SET is_used = true, used_at = NOW() WHERE id = $1',
+      [record.id]
+    );
+
+    // Generate a temporary token that allows registration (valid for 10 minutes)
+    const tempToken = jwt.sign(
+      { email, verified_otp: true, type: 'signup_otp' },
+      process.env.JWT_SECRET,
+      { expiresIn: '10m' }
+    );
+
+    res.json({
+      success: true,
+      message: 'OTP verified successfully',
+      temp_token: tempToken
+    });
+
+  } catch (error) {
+    console.error('Verify OTP error:', error);
+    res.status(500).json({ message: 'Server error verifying OTP' });
+  }
+});
+
+// Register user with OTP verification token
+router.post('/register-with-otp', [
+  body('email').isEmail().trim(),
+  body('password').isLength({ min: 6 }),
+  body('full_name').trim().isLength({ min: 2 }),
+  body('user_type').isIn(['customer', 'seller']),
+], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const { email, password, full_name, user_type, phone, temp_token } = req.body;
+
+    // Verify the temporary OTP token
+    if (!temp_token) {
+      return res.status(400).json({ message: 'OTP verification required' });
+    }
+
+    let decoded;
+    try {
+      decoded = jwt.verify(temp_token, process.env.JWT_SECRET);
+    } catch (err) {
+      return res.status(400).json({ message: 'Invalid or expired OTP verification' });
+    }
+
+    if (!decoded.verified_otp || decoded.type !== 'signup_otp' || decoded.email !== email) {
+      return res.status(400).json({ message: 'OTP verification mismatch' });
+    }
+
+    // SELLER RESTRICTION: Only allow maryam.zaidi2904@gmail.com to register as seller
+    const ALLOWED_SELLER_EMAIL = 'maryam.zaidi2904@gmail.com';
+    if (user_type === 'seller' && email.toLowerCase() !== ALLOWED_SELLER_EMAIL.toLowerCase()) {
+      return res.status(403).json({ message: "You can't register as a seller" });
+    }
+
+    // Check if user already exists
+    const existingUser = await db.query(
+      'SELECT id FROM users WHERE email = $1',
+      [email]
+    );
+
+    if (existingUser.rows.length > 0) {
+      return res.status(400).json({ message: 'User already exists' });
+    }
+
+    // Hash password
+    const saltRounds = 12;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+    // Insert new user
+    const newUser = await db.query(
+      `INSERT INTO users (email, password_hash, full_name, user_type, phone) 
+       VALUES ($1, $2, $3, $4, $5) RETURNING id, email, full_name, user_type, created_at`,
+      [email, hashedPassword, full_name, user_type, phone]
+    );
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { userId: newUser.rows[0].id },
+      process.env.JWT_SECRET,
+      { expiresIn: process.env.JWT_EXPIRES_IN }
+    );
+
+    res.status(201).json({
+      message: 'User registered successfully',
+      token,
+      user: {
+        id: newUser.rows[0].id,
+        email: newUser.rows[0].email,
+        full_name: newUser.rows[0].full_name,
+        user_type: newUser.rows[0].user_type,
+        created_at: newUser.rows[0].created_at
+      }
+    });
+
+  } catch (error) {
+    console.error('Registration with OTP error:', error);
+    res.status(500).json({ message: 'Server error during registration' });
+  }
+});
+
 module.exports = router;
