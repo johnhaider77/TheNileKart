@@ -232,7 +232,7 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
   
   const currentMedia = mediaItems[currentImageIndex];
   
-  // Calculate current price based on selected size
+  // Calculate current price based on selected (size, colour) combination
   const getCurrentPrice = () => {
     // If there's only one size and it's "One Size", auto-select it
     const effectiveSelectedSize = availableSizes.length === 1 && availableSizes[0].size === 'One Size' 
@@ -243,7 +243,17 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
       return Number(product.price);
     }
     
-    // Find the selected size data
+    // If colour is selected, look up by (size, colour) combination
+    if (selectedColour && product.sizes && product.sizes.length > 0) {
+      const selectedSizeColourData = product.sizes.find((s: any) => 
+        s.size === effectiveSelectedSize && (s.colour || 'Default') === (selectedColour || 'Default')
+      );
+      if (selectedSizeColourData?.price) {
+        return Number(selectedSizeColourData.price);
+      }
+    }
+    
+    // Fall back to size-only lookup if no colour selected
     const selectedSizeData = availableSizes.find(size => size.size === effectiveSelectedSize);
     
     // Use size-specific price if available, otherwise fall back to base product price
@@ -252,27 +262,53 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
   
   const currentPrice = getCurrentPrice();
   
-  // Calculate actual discount percentage based on selected size
+  // Calculate actual discount percentage based on selected (size, colour) combination
   const getDiscountPercentage = () => {
     const effectiveSelectedSize = availableSizes.length === 1 && availableSizes[0].size === 'One Size' 
       ? 'One Size' 
       : selectedSize;
       
-    if (effectiveSelectedSize) {
-      return calculateSizePercentOff(product, effectiveSelectedSize);
+    if (!effectiveSelectedSize) {
+      return 0;
     }
-    return 0;
+    
+    // If colour is selected, calculate discount based on (size, colour) combination
+    if (selectedColour && product.sizes && product.sizes.length > 0) {
+      const sizeColourData = product.sizes.find((s: any) => 
+        s.size === effectiveSelectedSize && (s.colour || 'Default') === (selectedColour || 'Default')
+      );
+      if (sizeColourData && sizeColourData.market_price && sizeColourData.market_price > 0 && 
+          sizeColourData.price !== undefined && sizeColourData.price > 0) {
+        if (sizeColourData.price < sizeColourData.market_price) {
+          return ((sizeColourData.market_price - sizeColourData.price) / sizeColourData.market_price) * 100;
+        }
+      }
+    }
+    
+    // Fall back to size-only calculation
+    return calculateSizePercentOff(product, effectiveSelectedSize);
   };
   
   const discountPercentage = getDiscountPercentage();
   
-  // Get the market price for the selected size, with fallback to product level
+  // Get the market price for the selected (size, colour) combination, with fallback to product level
   const getMarketPrice = (): number => {
     const effectiveSelectedSize = availableSizes.length === 1 && availableSizes[0].size === 'One Size' 
       ? 'One Size' 
       : selectedSize;
     
     if (effectiveSelectedSize && product.sizes && product.sizes.length > 0) {
+      // If colour is selected, look up by (size, colour) combination
+      if (selectedColour) {
+        const sizeColourData = product.sizes.find((s: any) => 
+          s.size === effectiveSelectedSize && (s.colour || 'Default') === (selectedColour || 'Default')
+        );
+        if (sizeColourData && sizeColourData.market_price && sizeColourData.market_price > 0) {
+          return Number(sizeColourData.market_price);
+        }
+      }
+      
+      // Fall back to size-only lookup if no colour selected
       const sizeData = product.sizes.find((s: any) => s.size === effectiveSelectedSize);
       if (sizeData && sizeData.market_price && sizeData.market_price > 0) {
         return Number(sizeData.market_price);
