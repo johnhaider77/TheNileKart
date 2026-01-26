@@ -597,6 +597,21 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
               </div>
             )}
 
+            {/* Size Chart Display - Show always if available, regardless of number of sizes */}
+            {product.size_chart && (
+              <div className="quickview-size-chart-section">
+                <button
+                  type="button"
+                  className="quickview-size-chart-btn"
+                  onClick={() => setIsSizeChartModalOpen(true)}
+                  title="View detailed size chart"
+                  aria-label="View size chart"
+                >
+                  📏 View Size Chart
+                </button>
+              </div>
+            )}
+
             {/* Quantity and Add to Cart - Moved above description */}
             <div className="quickview-actions">
               {/* Get stock for selected size+colour combination */}

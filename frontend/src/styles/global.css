@@ -3089,6 +3089,40 @@ h6 { font-size: 1rem; }
   gap: 8px;
 }
 
+/* Size Chart Section */
+.quickview-size-chart-section {
+  padding-top: 16px;
+  border-top: 1px solid var(--border-color);
+  margin-top: 16px;
+}
+
+.quickview-size-chart-btn {
+  width: 100%;
+  padding: 12px 20px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+}
+
+.quickview-size-chart-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+}
+
+.quickview-size-chart-btn:active {
+  transform: translateY(0);
+}
+
 /* Mobile Responsive */
 @media (max-width: 768px) {
   .quickview-overlay {
