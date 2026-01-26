@@ -64,21 +64,21 @@ const convertProductImageUrls = (product) => {
   }
   
   // Parse size_chart if it's a string (from database)
+  // Database can return it as either a string (old format) or object (new format)
   if (product.size_chart) {
-    console.log(`[SIZE-CHART] Product ${product.id}: size_chart type=${typeof product.size_chart}, value=${typeof product.size_chart === 'string' ? product.size_chart.substring(0, 80) : 'object'}`);
+    console.log(`[SIZE-CHART] Product ${product.id}: size_chart type=${typeof product.size_chart}`);
     if (typeof product.size_chart === 'string') {
       try {
         product.size_chart = JSON.parse(product.size_chart);
-        console.log(`[SIZE-CHART] Successfully parsed size_chart for product ${product.id}`);
+        console.log(`[SIZE-CHART] Parsed string to object for product ${product.id}`);
       } catch (err) {
         console.warn(`[SIZE-CHART] Failed to parse size_chart for product ${product.id}:`, err.message);
         product.size_chart = null;
       }
-    } else {
+    } else if (typeof product.size_chart === 'object') {
       console.log(`[SIZE-CHART] size_chart is already an object for product ${product.id}`);
+      // Ensure it's kept as-is
     }
-  } else {
-    console.log(`[SIZE-CHART] Product ${product.id}: size_chart is null/undefined`);
   }
   
   return product;
@@ -335,7 +335,11 @@ router.get('/:id', async (req, res) => {
       return res.status(404).json({ message: 'Product not found' });
     }
 
-    res.json({ product: convertProductImageUrls(product.rows[0]) });
+    const productData = product.rows[0];
+    console.log(`[API-GET-PRODUCT] Product ${productId} - size_chart in DB: ${productData.size_chart ? 'YES (' + typeof productData.size_chart + ')' : 'NO'}`);
+    const convertedProduct = convertProductImageUrls(productData);
+    console.log(`[API-GET-PRODUCT] Product ${productId} - size_chart after conversion: ${convertedProduct.size_chart ? 'YES (' + typeof convertedProduct.size_chart + ')' : 'NO'}`);
+    res.json({ product: convertedProduct });
 
   } catch (error) {
     console.error('Product fetch error:', error);
