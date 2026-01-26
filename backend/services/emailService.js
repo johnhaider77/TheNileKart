@@ -11,10 +11,11 @@ class EmailService {
   constructor() {
     this.transporter = null;
     this.isInitialized = false;
-    this.initialize();
+    // Call initialize synchronously to set up the transporter
+    this.initializeSync();
   }
 
-  async initialize() {
+  initializeSync() {
     try {
       // Debug: Log environment variables
       console.log('📧 EMAIL_USER:', process.env.EMAIL_USER ? '✅ SET' : '❌ NOT SET');
@@ -54,6 +55,11 @@ class EmailService {
       this.transporter = null;
       this.isInitialized = true;
     }
+  }
+
+  async initialize() {
+    // For backwards compatibility, just ensure we're initialized
+    return this.isInitialized;
   }
 
   async sendPasswordResetCode(email, code) {

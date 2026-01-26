@@ -611,19 +611,30 @@ router.post('/forgot-password', async (req, res) => {
     );
 
     // Send email with verification code
-    const emailResult = await emailService.sendPasswordResetCode(email, verificationCode);
-    
-    if (emailResult.previewUrl) {
-      console.log(`📧 Preview the email at: ${emailResult.previewUrl}`);
+    try {
+      const emailResult = await emailService.sendPasswordResetCode(email, verificationCode);
+      
+      if (emailResult.previewUrl) {
+        console.log(`📧 Preview the email at: ${emailResult.previewUrl}`);
+      }
+    } catch (emailError) {
+      console.error('❌ Email sending failed:', emailError.message);
+      // Still return success to the user for security, but log the error
+      console.error('Failed to send password reset email to:', email);
     }
 
     res.json({
       success: true,
-      message: 'Verification code sent to your email'
+      message: 'If an account with this email exists, you will receive a verification code'
     });
 
   } catch (error) {
-    console.error('Forgot password error:', error);
+    console.error('❌ Forgot password error:', error);
+    console.error('Error details:', {
+      message: error.message,
+      code: error.code,
+      stack: error.stack
+    });
     res.status(500).json({
       success: false,
       message: 'Server error sending verification code'
