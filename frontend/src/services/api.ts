@@ -275,6 +275,13 @@ export const sellerAPI = {
     console.log(`📡 Calling: PUT ${url}`);
     return api.put(url, { cod_eligible });
   },
+
+  updateProductSizeColour: (productId: string, size: string, oldColour: string, newColour: string) => {
+    console.log(`🔄 API Call: updateProductSizeColour(${productId}, ${size}, ${oldColour}, ${newColour})`);
+    const url = `/seller/products/${productId}/sizes/${encodeURIComponent(size)}/${encodeURIComponent(oldColour)}/colour`;
+    console.log(`📡 Calling: PATCH ${url}`);
+    return api.patch(url, { colour: newColour });
+  },
   
   // Orders
   getSellerOrders: (params?: {

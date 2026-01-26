@@ -2079,4 +2079,81 @@ router.get('/products/:productId/cod-eligibility', [
   }
 });
 
+// Update colour for a specific size-colour combination
+router.patch('/products/:productId/sizes/:size/:colour/colour', [
+  authenticateToken,
+  requireSeller,
+  body('colour').isString().trim().notEmpty(),
+], async (req, res) => {
+  try {
+    const { productId, size, colour } = req.params;
+    const { colour: newColour } = req.body;
+    const seller_id = req.user.id;
+    const decodedSize = decodeURIComponent(size);
+    const decodedColour = decodeURIComponent(colour);
+
+    console.log(`🔄 [COLOUR-UPDATE] Product ${productId}, Size+Colour: ${decodedSize}/${decodedColour}, New Colour: ${newColour}, Seller: ${seller_id}`);
+
+    // Verify product belongs to seller
+    const product = await db.query(
+      'SELECT id, sizes, name FROM products WHERE id = $1 AND seller_id = $2',
+      [productId, seller_id]
+    );
+
+    if (product.rows.length === 0) {
+      console.log(`❌ [COLOUR-UPDATE] Product not found or access denied`);
+      return res.status(404).json({ success: false, message: 'Product not found or access denied' });
+    }
+
+    const sizes = product.rows[0].sizes || [];
+    console.log(`📋 [COLOUR-UPDATE] Current sizes before update:`, JSON.stringify(sizes));
+
+    const updatedSizes = sizes.map(sizeData => {
+      if (sizeData.size === decodedSize && (sizeData.colour || 'Default') === decodedColour) {
+        console.log(`  ✏️ Updating ${decodedSize}/${decodedColour}: colour ${decodedColour} → ${newColour}`);
+        return { ...sizeData, colour: newColour };
+      }
+      return sizeData;
+    });
+
+    // Check if any size was actually updated
+    const wasUpdated = sizes.some((s, idx) => s.size === decodedSize && (s.colour || 'Default') === decodedColour && s.colour !== updatedSizes[idx].colour);
+    console.log(`  Update found: ${wasUpdated}, sizes modified: ${JSON.stringify(updatedSizes).substring(0, 100)}...`);
+
+    // Update the product with new sizes array
+    const updateResult = await db.query(
+      'UPDATE products SET sizes = $1, updated_at = CURRENT_TIMESTAMP WHERE id = $2 AND seller_id = $3 RETURNING sizes',
+      [JSON.stringify(updatedSizes), productId, seller_id]
+    );
+
+    if (updateResult.rows.length === 0) {
+      console.log(`❌ [COLOUR-UPDATE] Update failed - no rows returned`);
+      return res.status(500).json({ success: false, message: 'Failed to update product' });
+    }
+
+    const returnedSizes = updateResult.rows[0].sizes;
+    console.log(`✅ [COLOUR-UPDATE] Update successful. Returned sizes:`, JSON.stringify(returnedSizes).substring(0, 150));
+    
+    // Verify the update actually took effect
+    const verifyProduct = await db.query(
+      'SELECT sizes FROM products WHERE id = $1',
+      [productId]
+    );
+    const verifiedSize = verifyProduct.rows[0].sizes.find(s => s.size === decodedSize && (s.colour || 'Default') === newColour);
+    console.log(`🔍 [COLOUR-UPDATE] Verification - Size+Colour ${decodedSize}/${newColour} in DB:`, verifiedSize);
+
+    res.json({ 
+      success: true, 
+      message: `Colour for ${decodedSize} updated to ${newColour} successfully`,
+      colour: newColour,
+      verified_in_db: verifiedSize?.colour === newColour
+    });
+
+  } catch (error) {
+    console.error('❌ [COLOUR-UPDATE] Error updating size+colour:', error);
+    res.status(500).json({ success: false, message: 'Server error updating colour' });
+  }
+});
+
 module.exports = router;
+

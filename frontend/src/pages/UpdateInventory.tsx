@@ -492,6 +492,52 @@ const UpdateInventory: React.FC = () => {
     }
   };
 
+  const handleSizeColourChange = async (productId: number, size: string, oldColour: string, newColour: string) => {
+    try {
+      await sellerAPI.updateProductSizeColour(productId.toString(), size, oldColour, newColour);
+      
+      // Update the product sizes in state
+      setProducts(prev => prev.map(product => {
+        if (product.id === productId && product.sizes) {
+          const updatedSizes = product.sizes.map(sizeData => 
+            (sizeData.size === size && (sizeData.colour || 'Default') === oldColour)
+              ? { ...sizeData, colour: newColour }
+              : sizeData
+          );
+          
+          return {
+            ...product,
+            sizes: updatedSizes
+          };
+        }
+        return product;
+      }));
+
+      // Update editing product
+      if (editingProduct && editingProduct.id === productId) {
+        setEditingProduct(prev => {
+          if (!prev || !prev.sizes) return prev;
+          
+          const updatedSizes = prev.sizes.map(sizeData => 
+            (sizeData.size === size && (sizeData.colour || 'Default') === oldColour)
+              ? { ...sizeData, colour: newColour }
+              : sizeData
+          );
+          
+          return {
+            ...prev,
+            sizes: updatedSizes
+          };
+        });
+      }
+      
+      showSuccess(`Colour for ${size} updated to ${newColour} successfully`);
+    } catch (err) {
+      setError(`Failed to update colour for ${size}`);
+      console.error('Error updating size colour:', err);
+    }
+  };
+
   const handleStatusToggle = async (productId: number, active: boolean) => {
     try {
       await sellerAPI.toggleProduct(productId.toString());
@@ -1485,8 +1531,7 @@ const UpdateInventory: React.FC = () => {
                               type="text"
                               className="size-input"
                               value={sizeData.colour || 'Default'}
-                              disabled
-                              style={{ backgroundColor: '#f5f5f5', cursor: 'not-allowed' }}
+                              onChange={(e) => handleSizeColourChange(editingProduct.id, sizeData.size, sizeData.colour || 'Default', e.target.value)}
                             />
                           </div>
                           <div className="pricing-field">
