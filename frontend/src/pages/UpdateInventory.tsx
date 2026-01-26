@@ -1638,13 +1638,8 @@ const UpdateInventory: React.FC = () => {
                             <input
                               type="text"
                               className="size-input"
-                              value={colourEdits[`${editingProduct.id}-${sizeData.size}-${sizeData.colour || 'Default'}`] ?? (sizeData.colour || 'Default')}
+                              value={sizeData.colour || 'Default'}
                               onChange={(e) => {
-                                const key = `${editingProduct.id}-${sizeData.size}-${sizeData.colour || 'Default'}`;
-                                setColourEdits(prev => ({
-                                  ...prev,
-                                  [key]: e.target.value
-                                }));
                                 handleSizeColourChange(editingProduct.id, sizeData.size, sizeData.colour || 'Default', e.target.value);
                               }}
                             />
