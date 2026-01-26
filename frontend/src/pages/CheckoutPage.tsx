@@ -760,11 +760,32 @@ const CheckoutPage: React.FC = () => {
 
       // Always use fresh items from current cart state, not stale sessionStorage
       // This ensures we have the correct product IDs and avoid issues with corrupted cached data
-      const validatedItems = items.map(item => ({
-        product_id: item.product.id,
-        quantity: item.quantity,
-        size: item.selectedSize || 'One Size'
-      }));
+      const validatedItems = items.map(item => {
+        // Ensure size is properly extracted - don't default to 'One Size' unless that's the actual product size
+        let itemSize = item.selectedSize;
+        
+        // If no selectedSize but product has sizes array, find the first available size
+        if (!itemSize && item.product?.sizes && Array.isArray(item.product.sizes) && item.product.sizes.length > 0) {
+          // Find a size with quantity > 0
+          const availableSize = item.product.sizes.find((s: any) => s.quantity > 0);
+          if (availableSize) {
+            itemSize = availableSize.size;
+            console.warn(`⚠️ Item ${item.product.id} had no selectedSize, using first available: ${itemSize}`);
+          }
+        }
+        
+        // Only use 'One Size' if that's actually in the product's sizes array
+        if (!itemSize) {
+          const hasOneSize = item.product?.sizes?.some((s: any) => s.size === 'One Size');
+          itemSize = hasOneSize ? 'One Size' : (item.product?.sizes?.[0]?.size || 'One Size');
+        }
+        
+        return {
+          product_id: item.product.id,
+          quantity: item.quantity,
+          size: itemSize
+        };
+      });
 
       console.log('📝 Creating COD order with fresh cart data');
       console.log('📋 Validated items:', validatedItems);

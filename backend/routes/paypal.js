@@ -189,7 +189,24 @@ router.post('/capture/:orderId', [authenticateToken, requireCustomer], async (re
       }
 
       const productData = product.rows[0];
-      const selectedSize = item.size || 'One Size';
+      let selectedSize = item.size;
+      
+      // If no size provided and product has sizes array, use first available size with quantity > 0
+      if (!selectedSize && productData.sizes && Array.isArray(productData.sizes)) {
+        const availableSize = productData.sizes.find((s) => s.quantity > 0);
+        if (availableSize) {
+          selectedSize = availableSize.size;
+          console.log(`⚠️ No size provided for product ${item.product_id}, using first available: ${selectedSize}`);
+        } else {
+          await client.query('ROLLBACK');
+          return res.status(400).json({
+            message: `No available sizes for product ${productData.name}`
+          });
+        }
+      } else if (!selectedSize) {
+        // Fallback to 'One Size' only if product doesn't have a sizes array
+        selectedSize = 'One Size';
+      }
 
       // Check size-specific availability
       const sizeAvailability = await client.query(`
