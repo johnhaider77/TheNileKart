@@ -9,7 +9,7 @@ const db = require('./config/database');
  */
 
 async function cleanupTestData() {
-  const client = await db.connect();
+  const client = await db.getClient();
   
   try {
     await client.query('BEGIN');
