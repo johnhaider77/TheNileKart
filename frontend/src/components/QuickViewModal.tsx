@@ -206,7 +206,22 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
     };
   }, [isImageModalOpen]);
 
-  if (!isOpen || !product) return null;
+  if (!isOpen || !product) {
+    // Still render SizeChartModal even if QuickView is closed
+    // This allows the size chart modal to display independently
+    return (
+      <>
+        <SizeChartModal
+          isOpen={isSizeChartModalOpen}
+          onClose={() => {
+            console.log('📏 Closing size chart modal');
+            setIsSizeChartModalOpen(false);
+          }}
+          sizeChart={parsedSizeChart}
+        />
+      </>
+    );
+  }
 
   // Process images and videos together - videos appear as last items
   const mediaItems = (() => {
