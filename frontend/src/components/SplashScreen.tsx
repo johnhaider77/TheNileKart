@@ -3,10 +3,10 @@ import '../styles/SplashScreen.css';
 
 interface SplashScreenProps {
   onComplete?: () => void;
-  duration?: number; // Duration to show splash in ms (default: 2000)
+  duration?: number; // Duration to show splash in ms (default: 1000)
 }
 
-const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete, duration = 2000 }) => {
+const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete, duration = 1000 }) => {
   const [isVisible, setIsVisible] = useState(true);
   const [isAnimating, setIsAnimating] = useState(false);
 

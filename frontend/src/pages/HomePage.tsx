@@ -532,7 +532,7 @@ const HomePage: React.FC = () => {
     <>
       {showSplash && (
         <SplashScreen
-          duration={2000}
+          duration={1000}
           onComplete={() => setShowSplash(false)}
         />
       )}
