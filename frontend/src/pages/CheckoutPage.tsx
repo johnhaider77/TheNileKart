@@ -540,7 +540,7 @@ const CheckoutPage: React.FC = () => {
     try {
       const cartItems = items.map(item => ({
         product_id: item.product.id,
-        selectedSize: item.selectedSize || 'One Size',
+        selectedSize: item.selectedSize,
         quantity: item.quantity
       }));
 
@@ -576,7 +576,7 @@ const CheckoutPage: React.FC = () => {
     try {
       const cartItems = items.map(item => ({
         product_id: item.product.id,
-        selectedSize: item.selectedSize || 'One Size',
+        selectedSize: item.selectedSize,
         quantity: item.quantity
       }));
 
@@ -659,12 +659,18 @@ const CheckoutPage: React.FC = () => {
 
       // Store order data for payment processing (DO NOT CREATE ORDER YET)
       const orderData = {
-        items: items.map(item => ({
-          product_id: item.product.id,
-          quantity: item.quantity,
-          size: item.selectedSize || 'One Size',
-          colour: item.selectedColour || 'Default'
-        })),
+        items: items.map(item => {
+          const itemData: any = {
+            product_id: item.product.id,
+            quantity: item.quantity
+          };
+          // Only include size if explicitly selected
+          if (item.selectedSize) {
+            itemData.size = item.selectedSize;
+            itemData.colour = item.selectedColour || 'Default';
+          }
+          return itemData;
+        }),
         shipping_address: shippingAddress
       };
 
@@ -1392,7 +1398,7 @@ const CheckoutPage: React.FC = () => {
                     try {
                       const cartItems = items.map(item => ({
                         product_id: item.product.id,
-                        selectedSize: item.selectedSize || 'One Size',
+                        selectedSize: item.selectedSize,
                         quantity: item.quantity
                       }));
 
