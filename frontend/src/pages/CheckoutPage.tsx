@@ -31,7 +31,7 @@ interface ToastMessage {
 }
 
 const CheckoutPage: React.FC = () => {
-  const { items, clearCart, updateQuantity, removeFromCart, getTotalAmount, getItemPrice } = useCart();
+  const { items, clearCart, updateQuantity, removeFromCart, getTotalAmount, getItemPrice, reloadCartFromLocalStorage } = useCart();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   
@@ -256,6 +256,9 @@ const CheckoutPage: React.FC = () => {
       console.log('❌ Payment callback received - Failure for orderId:', orderId);
       sessionStorage.setItem('paymentStatusProcessed', paymentStatus + '_' + orderId);
       
+      // CRITICAL: Reload cart from localStorage in case it was lost during navigation
+      reloadCartFromLocalStorage();
+      
       // Restore shipping address from sessionStorage
       const savedAddressFailure = sessionStorage.getItem('checkoutShippingAddress');
       if (savedAddressFailure) {
@@ -331,9 +334,9 @@ const CheckoutPage: React.FC = () => {
       // Keep on checkout page to allow retry
       setStep('payment');
       
-      // Log warning if items are empty after payment failure
+      // Log warning if items are empty after payment failure (after reload attempt)
       if (items.length === 0) {
-        console.warn('⚠️ WARNING: Cart is empty after payment failure! This should not happen.');
+        console.warn('⚠️ WARNING: Cart is still empty after reload attempt!');
         console.log('📦 Checking localStorage for cart data...');
         try {
           const savedCart = localStorage.getItem('guestCart');
@@ -355,6 +358,9 @@ const CheckoutPage: React.FC = () => {
     } else if (paymentStatus === 'cancelled') {
       console.log('⚠️ Payment callback received - Cancelled for orderId:', orderId);
       sessionStorage.setItem('paymentStatusProcessed', paymentStatus + '_' + orderId);
+      
+      // CRITICAL: Reload cart from localStorage in case it was lost during navigation
+      reloadCartFromLocalStorage();
       
       // Restore shipping address from sessionStorage
       const savedAddressCancelled = sessionStorage.getItem('checkoutShippingAddress');
@@ -431,9 +437,9 @@ const CheckoutPage: React.FC = () => {
       // Set step back to payment so user can retry
       setStep('payment');
       
-      // Log warning if items are empty after payment cancellation
+      // Log warning if items are empty after payment cancellation (after reload attempt)
       if (items.length === 0) {
-        console.warn('⚠️ WARNING: Cart is empty after payment cancellation! This should not happen.');
+        console.warn('⚠️ WARNING: Cart is still empty after reload attempt!');
         console.log('📦 Checking localStorage for cart data...');
         try {
           const savedCart = localStorage.getItem('guestCart');
@@ -453,7 +459,7 @@ const CheckoutPage: React.FC = () => {
         paymentSection?.scrollIntoView({ behavior: 'smooth' });
       }, 300);
     }
-  }, [searchParams, navigate, clearCart]);
+  }, [searchParams, navigate, clearCart, reloadCartFromLocalStorage]);
 
   const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setShippingAddress({

@@ -19,6 +19,7 @@ interface CartContextType {
   getTotalAmount: () => number;
   getItemPrice: (item: CartItem) => number;
   mergeGuestCart: () => void;
+  reloadCartFromLocalStorage: () => void;
   showNotification: boolean;
   hideNotification: () => void;
 }
@@ -261,6 +262,22 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     }
   };
 
+  // Force reload cart from localStorage (useful when returning from payment pages)
+  const reloadCartFromLocalStorage = () => {
+    try {
+      const guestCart = localStorage.getItem('guestCart');
+      if (guestCart) {
+        const parsedCart = JSON.parse(guestCart);
+        console.log('🔄 Cart reloaded from localStorage:', parsedCart.length, 'items');
+        setItems(parsedCart);
+      } else {
+        console.warn('⚠️ No cart found in localStorage to reload');
+      }
+    } catch (error) {
+      console.error('Error reloading cart from localStorage:', error);
+    }
+  };
+
   // Helper function to get the correct price for a cart item based on selected size and colour
   const getItemPrice = (item: CartItem): number => {
     // If product has sizes and a size is selected, use size-specific price
@@ -294,6 +311,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
     getTotalAmount,
     getItemPrice,
     mergeGuestCart,
+    reloadCartFromLocalStorage,
     showNotification,
     hideNotification: () => setShowNotification(false),
   };
