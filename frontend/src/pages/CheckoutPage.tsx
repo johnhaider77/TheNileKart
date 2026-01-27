@@ -792,27 +792,22 @@ const CheckoutPage: React.FC = () => {
         console.warn('⚠️ checkoutData not in sessionStorage, creating it now...');
         const orderData = {
           items: enrichedItems.map(item => {
-            // Use smart size selection logic
-            let size = item.selectedSize;
-            console.log(`📋 Processing item ${item.product.id} (${item.product.name}):`, {
-              selectedSize: item.selectedSize,
-              hasSizesArray: !!item.product?.sizes,
-              sizesCount: item.product?.sizes?.length || 0
-            });
-            
-            if (!size && item.product?.sizes && Array.isArray(item.product.sizes) && item.product.sizes.length > 0) {
-              size = item.product.sizes[0].size;
-              console.warn(`⚠️ No selectedSize for product ${item.product.name}, using first available size: ${size}`);
-            }
-            if (!size) {
-              size = 'One Size';
-              console.log(`ℹ️ Product ${item.product.name} has no sizes array, using 'One Size'`);
-            }
-            return {
+            // Only send selectedSize if it was explicitly selected by user
+            // Let backend handle size defaulting for products without explicit selection
+            const itemData: any = {
               product_id: item.product.id,
-              quantity: item.quantity,
-              size: size
+              quantity: item.quantity
             };
+            
+            // Only include size if it was explicitly selected
+            if (item.selectedSize) {
+              itemData.size = item.selectedSize;
+              console.log(`✅ Using explicit selectedSize for ${item.product.name}: ${item.selectedSize}`);
+            } else {
+              console.log(`ℹ️ No selectedSize for ${item.product.name}, backend will handle size selection`);
+            }
+            
+            return itemData;
           }),
           shipping_address: shippingAddress
         };
@@ -853,12 +848,20 @@ const CheckoutPage: React.FC = () => {
           itemSize = hasOneSize ? 'One Size' : (item.product?.sizes?.[0]?.size || 'One Size');
         }
         
-        return {
+        // Only include size and colour if size was explicitly selected
+        // Let backend handle defaulting for unselected sizes
+        const itemData: any = {
           product_id: item.product.id,
-          quantity: item.quantity,
-          size: itemSize,
-          colour: itemColour
+          quantity: item.quantity
         };
+        
+        // Only include size/colour if size was explicitly selected
+        if (itemSize) {
+          itemData.size = itemSize;
+          itemData.colour = itemColour;
+        }
+        
+        return itemData;
       });
 
       console.log('📝 Creating COD order with fresh cart data');
