@@ -1433,17 +1433,21 @@ const CheckoutPage: React.FC = () => {
                   </div>
                   <div className="summary-row">
                     <span className="summary-label">Subtotal:</span>
-                    <span className="summary-value">AED {getTotalAmount().toFixed(2)}</span>
+                    <span className="summary-value">AED {(shippingFeeDetails?.subtotal || getTotalAmount()).toFixed(2)}</span>
                   </div>
-                  {shippingFeeDetails && shippingFeeDetails.fee > 0 && (
-                    <div className="summary-row">
-                      <span className="summary-label">Shipping Fee:</span>
-                      <span className="summary-value">AED {shippingFeeDetails.fee.toFixed(2)}</span>
+                  <div className="summary-row">
+                    <span className="summary-label">Shipping Fee:</span>
+                    <span className="summary-value">AED {(shippingFeeDetails?.fee || 0).toFixed(2)}</span>
+                  </div>
+                  {appliedPromoCode && promoCodeDiscount > 0 && (
+                    <div className="summary-row promo-row">
+                      <span className="summary-label">Promo Discount ({appliedPromoCode.code}):</span>
+                      <span className="summary-value discount">-AED {promoCodeDiscount.toFixed(2)}</span>
                     </div>
                   )}
                   <div className="summary-row total-row">
                     <span className="summary-label">Order Total:</span>
-                    <span className="summary-value">AED {(shippingFeeDetails?.total || getTotalAmount()).toFixed(2)}</span>
+                    <span className="summary-value">AED {((shippingFeeDetails?.total || getTotalAmount()) - promoCodeDiscount).toFixed(2)}</span>
                   </div>
                 </div>
               </div>
