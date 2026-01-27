@@ -329,10 +329,13 @@ const CheckoutPage: React.FC = () => {
   }, [step]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (step === 'payment' && items.length > 0) {
-      // Clear any cached shipping fee data and recalculate fresh from API
-      setShippingFeeDetails(undefined);
-      // Calculate shipping fee for online payments when entering payment step
+    if ((step === 'cart' || step === 'payment') && items.length > 0) {
+      // Calculate shipping fee whenever we're on cart or payment step
+      // This ensures both pages show the SAME calculated shipping fee
+      if (step === 'payment') {
+        // Clear any cached shipping fee data and recalculate fresh from API
+        setShippingFeeDetails(undefined);
+      }
       calculateShippingFee();
     }
   }, [step, items]); // Recalculate when step or items change
@@ -1094,15 +1097,20 @@ const CheckoutPage: React.FC = () => {
                     <h4>Order Summary</h4>
                     <div className="summary-line">
                       <span>Subtotal:</span>
-                      <span>AED {getTotalAmount().toFixed(2)}</span>
+                      <span>AED {(shippingFeeDetails?.subtotal || getTotalAmount()).toFixed(2)}</span>
                     </div>
                     <div className="summary-line">
                       <span>Shipping:</span>
-                      <span>AED {calculateLocalShippingFee(getTotalAmount(), (window as any).__enrichedCheckoutItems || items).toFixed(2)}</span>
+                      <span>AED {(shippingFeeDetails?.fee !== undefined ? shippingFeeDetails.fee : calculateLocalShippingFee(getTotalAmount(), (window as any).__enrichedCheckoutItems || items)).toFixed(2)}</span>
                     </div>
+                    {shippingFeeDetails?.message && (
+                      <div className="summary-line" style={{ fontSize: '0.85rem', color: '#666' }}>
+                        <span style={{ fontStyle: 'italic' }}>{shippingFeeDetails.message}</span>
+                      </div>
+                    )}
                     <div className="summary-line total">
                       <span>Total:</span>
-                      <span>AED {(getTotalAmount() + calculateLocalShippingFee(getTotalAmount(), (window as any).__enrichedCheckoutItems || items)).toFixed(2)}</span>
+                      <span>AED {(shippingFeeDetails?.total || (getTotalAmount() + calculateLocalShippingFee(getTotalAmount(), (window as any).__enrichedCheckoutItems || items))).toFixed(2)}</span>
                     </div>
                   </div>
                 </div>

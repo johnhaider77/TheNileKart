@@ -29,25 +29,12 @@ const areAllItemsCODEligible = (items) => {
   }
   
   return items.every(item => {
-    // Primary: Use item-level cod_eligible (already determined from DB query with size-specific logic)
-    if (item.cod_eligible === true) {
-      return true;
-    }
-    
-    // Secondary: Check size-specific COD eligibility if cod_eligible not set
-    if (item.product && item.product.sizes && item.selectedSize && item.cod_eligible !== false) {
-      const sizeData = item.product.sizes.find(size => size.size === item.selectedSize);
-      if (sizeData && sizeData.cod_eligible === true) {
-        return true;
-      }
-    }
-    
-    // Tertiary: Fallback to product-level COD eligibility for backward compatibility
-    if (item.product && item.product.cod_eligible === true) {
-      return true;
-    }
-    
-    return false;
+    // The item.cod_eligible field is already properly set in orders.js endpoint
+    // It's determined with this priority:
+    // 1. Size-specific cod_eligible (if available)
+    // 2. Product-level cod_eligible (fallback)
+    // So we can trust it completely
+    return item.cod_eligible === true;
   });
 };
 
@@ -61,16 +48,8 @@ const getNonCODEligibleItems = (items) => {
     return [];
   }
   
-  return items.filter(item => {
-    // Check size-specific COD eligibility
-    if (item.product && item.product.sizes && item.selectedSize) {
-      const sizeData = item.product.sizes.find(size => size.size === item.selectedSize);
-      return !sizeData || sizeData.cod_eligible !== true;
-    }
-    
-    // Fallback to product-level COD eligibility
-    return item.cod_eligible !== true && !(item.product && item.product.cod_eligible === true);
-  }).map(item => ({
+  // Filter items where cod_eligible is not true
+  return items.filter(item => item.cod_eligible !== true).map(item => ({
     ...item,
     reason: item.selectedSize ? `Size "${item.selectedSize}" is not COD eligible` : 'Product is not COD eligible'
   }));
