@@ -331,7 +331,7 @@ const CheckoutPage: React.FC = () => {
       // Calculate shipping fee for online payments when entering payment step
       calculateShippingFee();
     }
-  }, [step]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [step, items]); // Recalculate when step or items change
   
   // Track checkout start when component mounts
   useEffect(() => {
@@ -1348,7 +1348,7 @@ const CheckoutPage: React.FC = () => {
                     
                     setStep('payment');
                     
-                    // Calculate COD details and save them before proceeding
+                    // Calculate shipping fee and COD details before proceeding to payment
                     try {
                       const cartItems = items.map(item => ({
                         product_id: item.product.id,
@@ -1356,13 +1356,36 @@ const CheckoutPage: React.FC = () => {
                         quantity: item.quantity
                       }));
 
-                      const response = await ordersAPI.calculateCOD(cartItems);
-                      const data = response.data;
+                      // Calculate shipping fee
+                      try {
+                        const shippingResponse = await ordersAPI.calculateShipping(cartItems);
+                        const shippingData = shippingResponse.data;
+                        
+                        setShippingFeeDetails({
+                          subtotal: shippingData.subtotal,
+                          fee: shippingData.shippingFee || 0,
+                          total: shippingData.total
+                        });
+                        console.log('💾 Shipping fee calculated:', shippingData);
+                      } catch (error: any) {
+                        console.error('Error calculating shipping fee:', error);
+                        // Fall back to local calculation
+                        const localFee = calculateLocalShippingFee(getTotalAmount(), items);
+                        setShippingFeeDetails({
+                          subtotal: getTotalAmount(),
+                          fee: localFee,
+                          total: getTotalAmount() + localFee
+                        });
+                      }
+
+                      // Calculate COD details
+                      const codResponse = await ordersAPI.calculateCOD(cartItems);
+                      const codData = codResponse.data;
                       
                       const newCodDetails = {
-                        eligible: data.codEligible,
-                        fee: data.codFee || 0,
-                        nonEligibleItems: data.nonCodItems || []
+                        eligible: codData.codEligible,
+                        fee: codData.codFee || 0,
+                        nonEligibleItems: codData.nonCodItems || []
                       };
                       
                       // Save to sessionStorage immediately after calculation
