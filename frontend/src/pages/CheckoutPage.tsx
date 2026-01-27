@@ -67,6 +67,8 @@ const CheckoutPage: React.FC = () => {
     subtotal: number;
     fee: number;
     total: number;
+    message?: string;
+    allCODEligible?: boolean;
   } | undefined>(undefined);
   const [appliedPromoCode, setAppliedPromoCode] = useState<any>(null);
   const [promoCodeDiscount, setPromoCodeDiscount] = useState(0);
@@ -576,10 +578,19 @@ const CheckoutPage: React.FC = () => {
       const response = await ordersAPI.calculateShipping(cartItems);
       const data = response.data;
       
+      console.log('🎯 Shipping fee response from backend:', {
+        subtotal: data.subtotal,
+        fee: data.shippingFee,
+        message: data.message,
+        allCODEligible: data.allCODEligible
+      });
+      
       setShippingFeeDetails({
         subtotal: data.subtotal,
         fee: data.shippingFee || 0,
-        total: data.total
+        total: data.total,
+        message: data.message,
+        allCODEligible: data.allCODEligible
       });
     } catch (error: any) {
       console.error('Error calculating shipping fee:', error);
@@ -595,7 +606,8 @@ const CheckoutPage: React.FC = () => {
       setShippingFeeDetails({
         subtotal: getTotalAmount(),
         fee: localFee,
-        total: getTotalAmount() + localFee
+        total: getTotalAmount() + localFee,
+        message: '⚠️ Using fallback calculation'
       });
     }
   };
@@ -1361,10 +1373,19 @@ const CheckoutPage: React.FC = () => {
                         const shippingResponse = await ordersAPI.calculateShipping(cartItems);
                         const shippingData = shippingResponse.data;
                         
+                        console.log('📦 Shipping fee calculated on address change:', {
+                          subtotal: shippingData.subtotal,
+                          fee: shippingData.shippingFee,
+                          message: shippingData.message,
+                          allCODEligible: shippingData.allCODEligible
+                        });
+                        
                         setShippingFeeDetails({
                           subtotal: shippingData.subtotal,
                           fee: shippingData.shippingFee || 0,
-                          total: shippingData.total
+                          total: shippingData.total,
+                          message: shippingData.message,
+                          allCODEligible: shippingData.allCODEligible
                         });
                         console.log('💾 Shipping fee calculated:', shippingData);
                       } catch (error: any) {
@@ -1374,7 +1395,8 @@ const CheckoutPage: React.FC = () => {
                         setShippingFeeDetails({
                           subtotal: getTotalAmount(),
                           fee: localFee,
-                          total: getTotalAmount() + localFee
+                          total: getTotalAmount() + localFee,
+                          message: '⚠️ Using fallback calculation'
                         });
                       }
 
@@ -1439,6 +1461,11 @@ const CheckoutPage: React.FC = () => {
                     <span className="summary-label">Shipping Fee:</span>
                     <span className="summary-value">AED {(shippingFeeDetails?.fee || 0).toFixed(2)}</span>
                   </div>
+                  {shippingFeeDetails?.message && (
+                    <div className="summary-row shipping-message-row" style={{ fontSize: '0.85rem', color: '#666', marginTop: '4px' }}>
+                      <span style={{ fontStyle: 'italic' }}>{shippingFeeDetails.message}</span>
+                    </div>
+                  )}
                   {appliedPromoCode && promoCodeDiscount > 0 && (
                     <div className="summary-row promo-row">
                       <span className="summary-label">Promo Discount ({appliedPromoCode.code}):</span>

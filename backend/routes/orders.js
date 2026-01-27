@@ -2,7 +2,7 @@ const express = require('express');
 const { body, validationResult } = require('express-validator');
 const db = require('../config/database');
 const { authenticateToken, requireCustomer } = require('../middleware/auth');
-const { calculateOrderWithCOD, calculateOrderWithOnlineShipping } = require('../utils/codCalculations');
+const { calculateOrderWithCOD, calculateOrderWithOnlineShipping, areAllItemsCODEligible } = require('../utils/codCalculations');
 
 const router = express.Router();
 
@@ -159,7 +159,18 @@ router.post('/calculate-shipping', [
 
     // Determine reason for shipping fee based on cart and COD eligibility
     let reasonMessage = '';
-    const allCODEligible = cartItems.every(item => item.cod_eligible === true);
+    const allCODEligible = areAllItemsCODEligible(cartItems);
+    
+    console.log('📊 Shipping fee calculation:', {
+      allCODEligible,
+      cartTotal: shippingCalculation.subtotal,
+      shippingFee: shippingCalculation.shippingFee,
+      items: cartItems.map(item => ({
+        name: item.name,
+        cod_eligible: item.cod_eligible,
+        price: item.price
+      }))
+    });
     
     if (allCODEligible) {
       if (shippingCalculation.shippingFee === 0) {
@@ -179,7 +190,8 @@ router.post('/calculate-shipping', [
       subtotal: shippingCalculation.subtotal,
       shippingFee: shippingCalculation.shippingFee,
       total: shippingCalculation.total,
-      message: reasonMessage
+      message: reasonMessage,
+      allCODEligible
     });
 
   } catch (error) {
