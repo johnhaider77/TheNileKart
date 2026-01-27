@@ -766,11 +766,21 @@ const CheckoutPage: React.FC = () => {
       if (!checkoutDataStr) {
         console.warn('⚠️ checkoutData not in sessionStorage, creating it now...');
         const orderData = {
-          items: items.map(item => ({
-            product_id: item.product.id,
-            quantity: item.quantity,
-            size: item.selectedSize || 'One Size'
-          })),
+          items: items.map(item => {
+            // Use smart size selection logic
+            let size = item.selectedSize;
+            if (!size && item.product?.sizes && Array.isArray(item.product.sizes) && item.product.sizes.length > 0) {
+              size = item.product.sizes[0].size;
+            }
+            if (!size) {
+              size = 'One Size';
+            }
+            return {
+              product_id: item.product.id,
+              quantity: item.quantity,
+              size: size
+            };
+          }),
           shipping_address: shippingAddress
         };
         sessionStorage.setItem('checkoutData', JSON.stringify(orderData));

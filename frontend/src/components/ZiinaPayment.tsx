@@ -102,11 +102,27 @@ const ZiinaPayment: React.FC<ZiinaPaymentProps> = ({
       });
 
       const orderData = {
-        items: items.map(item => ({
-          product_id: item.product.id,
-          quantity: item.quantity,
-          size: item.selectedSize || 'One Size'
-        })),
+        items: items.map(item => {
+          // Determine the size to send
+          let size = item.selectedSize;
+          
+          // If product has sizes array but no selectedSize, use first available size
+          if (!size && item.product?.sizes && Array.isArray(item.product.sizes) && item.product.sizes.length > 0) {
+            size = item.product.sizes[0].size;
+            console.warn(`⚠️ No selectedSize for product ${item.product.name}, using first available size: ${size}`);
+          }
+          
+          // If still no size (product has no sizes), use 'One Size'
+          if (!size) {
+            size = 'One Size';
+          }
+          
+          return {
+            product_id: item.product.id,
+            quantity: item.quantity,
+            size: size
+          };
+        }),
         shipping_address: shippingAddressWithPhone,
         payment_method: 'ziina',
         status: 'pending_payment',  // Set to pending_payment until payment is verified
