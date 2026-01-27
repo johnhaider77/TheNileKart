@@ -161,14 +161,18 @@ router.post('/calculate-shipping', [
     let reasonMessage = '';
     const allCODEligible = areAllItemsCODEligible(cartItems);
     
-    console.log('📊 Shipping fee calculation:', {
+    console.log('📊 SHIPPING CALCULATION DEBUG:', {
       allCODEligible,
       cartTotal: shippingCalculation.subtotal,
       shippingFee: shippingCalculation.shippingFee,
+      itemsCount: cartItems.length,
       items: cartItems.map(item => ({
+        id: item.product_id,
         name: item.name,
+        selectedSize: item.selectedSize,
         cod_eligible: item.cod_eligible,
-        price: item.price
+        price: item.price,
+        quantity: item.quantity
       }))
     });
     

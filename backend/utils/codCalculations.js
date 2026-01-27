@@ -29,14 +29,25 @@ const areAllItemsCODEligible = (items) => {
   }
   
   return items.every(item => {
-    // Check size-specific COD eligibility
-    if (item.product && item.product.sizes && item.selectedSize) {
-      const sizeData = item.product.sizes.find(size => size.size === item.selectedSize);
-      return sizeData && sizeData.cod_eligible === true;
+    // Primary: Use item-level cod_eligible (already determined from DB query with size-specific logic)
+    if (item.cod_eligible === true) {
+      return true;
     }
     
-    // Fallback to product-level COD eligibility for backward compatibility
-    return item.cod_eligible === true || (item.product && item.product.cod_eligible === true);
+    // Secondary: Check size-specific COD eligibility if cod_eligible not set
+    if (item.product && item.product.sizes && item.selectedSize && item.cod_eligible !== false) {
+      const sizeData = item.product.sizes.find(size => size.size === item.selectedSize);
+      if (sizeData && sizeData.cod_eligible === true) {
+        return true;
+      }
+    }
+    
+    // Tertiary: Fallback to product-level COD eligibility for backward compatibility
+    if (item.product && item.product.cod_eligible === true) {
+      return true;
+    }
+    
+    return false;
   });
 };
 
