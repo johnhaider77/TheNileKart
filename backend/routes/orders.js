@@ -115,7 +115,7 @@ router.post('/calculate-shipping', [
     // Fetch product details for all items including size-specific pricing
     for (const item of items) {
       const product = await db.query(
-        'SELECT id, name, price, sizes FROM products WHERE id = $1 AND is_active = true',
+        'SELECT id, name, price, sizes, cod_eligible FROM products WHERE id = $1 AND is_active = true',
         [item.product_id]
       );
 
@@ -127,21 +127,30 @@ router.post('/calculate-shipping', [
 
       const productData = product.rows[0];
       let itemPrice = productData.price;
+      let codEligible = productData.cod_eligible; // Fallback to product-level
       
-      // Check if product has sizes and find size-specific pricing
+      // Check if product has sizes and find size-specific pricing and COD eligibility
       if (productData.sizes && Array.isArray(productData.sizes) && item.selectedSize) {
         const sizeData = productData.sizes.find(size => size.size === item.selectedSize);
         if (sizeData) {
           itemPrice = sizeData.price || productData.price || 0;
+          codEligible = sizeData.cod_eligible !== undefined ? sizeData.cod_eligible : productData.cod_eligible;
         }
       }
 
       cartItems.push({
+        product: {
+          id: productData.id,
+          name: productData.name,
+          sizes: productData.sizes,
+          cod_eligible: productData.cod_eligible
+        },
         product_id: item.product_id,
         name: productData.name,
         price: itemPrice,
         quantity: item.quantity,
-        selectedSize: item.selectedSize
+        selectedSize: item.selectedSize,
+        cod_eligible: codEligible
       });
     }
 
