@@ -6,13 +6,13 @@
  * @returns {number} COD fee in AED
  */
 const calculateCODFee = (orderValue) => {
-  if (orderValue >= 100) {
-    return 0; // Free COD for orders >= 100 AED
+  if (orderValue >= 150) {
+    return 0; // Free COD for orders >= 150 AED
   }
   
   const feeRate = 0.10; // 10% fee
-  const maxFee = 10; // Maximum 10 AED
-  const minFee = 5; // Minimum 5 AED
+  const maxFee = 15; // Maximum 15 AED
+  const minFee = 10; // Minimum 10 AED
   
   const calculatedFee = orderValue * feeRate;
   return Math.max(minFee, Math.min(calculatedFee, maxFee));
@@ -109,15 +109,15 @@ const calculateOrderWithCOD = (items, shippingFee = 0) => {
 
 /**
  * Calculate shipping fee for online (pre-paid) payments
- * Rule: Flat 5 AED for orders <= 50 AED, else free
+ * Rule: 10% for orders <= 100 AED, else free
  * @param {number} orderValue - Total order value in AED
  * @returns {number} Shipping fee in AED
  */
 const calculateOnlineShippingFee = (orderValue) => {
-  if (orderValue <= 50) {
-    return 5; // 5 AED flat fee for orders <= 50 AED
+  if (orderValue <= 100) {
+    return parseFloat((orderValue * 0.10).toFixed(2)); // 10% fee for orders <= 100 AED
   }
-  return 0; // Free shipping for orders > 50 AED
+  return 0; // Free shipping for orders > 100 AED
 };
 
 /**

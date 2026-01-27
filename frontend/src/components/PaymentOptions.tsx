@@ -146,10 +146,10 @@ const PaymentOptions: React.FC<PaymentOptionsProps> = ({
                   <li>Cash payment only (no cards accepted at delivery)</li>
                   <li>Order will be processed immediately</li>
                   {codDetails && codDetails.fee > 0 ? (
-                    <li>COD fee: {codDetails.fee} AED (10% of order value, min 5 AED, max 10 AED)</li>
+                    <li>COD fee: {codDetails.fee} AED (10% of order value, min 10 AED, max 15 AED)</li>
                   ) : null}
-                  {codDetails && codDetails.fee === 0 && amount >= 100 ? (
-                    <li>✅ Free COD for orders above 100 AED</li>
+                  {codDetails && codDetails.fee === 0 && amount >= 150 ? (
+                    <li>✅ Free COD for orders above 150 AED</li>
                   ) : null}
                 </ul>
               </div>

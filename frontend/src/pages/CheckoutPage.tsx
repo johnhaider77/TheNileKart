@@ -117,21 +117,25 @@ const CheckoutPage: React.FC = () => {
     console.log('  ✅ hasNonCODItems:', hasNonCODItems);
     
     if (hasNonCODItems) {
-      // If cart contains any non-COD items: 5 AED if < 50, else FREE
-      const fee = cartTotal < 50 ? 5 : 0;
-      console.log(`  💳 Mixed/Non-COD cart (${cartTotal} AED < 50?): fee = ${fee}`);
-      return fee;
+      // If cart contains any non-COD items: 10% if <= 100, else FREE
+      if (cartTotal <= 100) {
+        const fee = Math.round(cartTotal * 0.10 * 100) / 100;
+        console.log(`  💳 Mixed/Non-COD cart (${cartTotal} AED <= 100): 10% = ${fee}`);
+        return fee;
+      }
+      console.log(`  💳 Mixed/Non-COD cart (${cartTotal} AED > 100): FREE`);
+      return 0;
     } else {
-      // All items are COD: 10% of cart value (min 5 AED, max 10 AED) if < 100
-      if (cartTotal < 100) {
+      // All items are COD: 10% of cart value (min 10 AED, max 15 AED) if < 150
+      if (cartTotal < 150) {
         const calculatedFee = cartTotal * 0.1;
-        const fee = Math.max(5, Math.min(calculatedFee, 10));
+        const fee = Math.max(10, Math.min(calculatedFee, 15));
         const finalFee = Math.round(fee * 100) / 100;
-        console.log(`  🎁 All COD cart (${cartTotal} AED < 100): 10% = ${calculatedFee}, clamped to [5,10] = ${fee}, final = ${finalFee}`);
+        console.log(`  🎁 All COD cart (${cartTotal} AED < 150): 10% = ${calculatedFee}, clamped to [10,15] = ${fee}, final = ${finalFee}`);
         return finalFee;
       }
-      console.log(`  🎁 All COD cart (${cartTotal} AED >= 100): FREE`);
-      return 0; // FREE if total >= 100
+      console.log(`  🎁 All COD cart (${cartTotal} AED >= 150): FREE`);
+      return 0; // FREE if total >= 150
     }
   };
 

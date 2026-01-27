@@ -85,7 +85,7 @@ router.post('/calculate-cod', [
         name: item.name
       })),
       message: codCalculation.codEligible ? 
-        (codCalculation.codFee === 0 ? 'Free COD (order value ≥ 100 AED)' : `COD fee: ${codCalculation.codFee} AED`) :
+        (codCalculation.codFee === 0 ? 'Free COD (order value ≥ 150 AED)' : `COD fee: ${codCalculation.codFee} AED`) :
         'Some items are not eligible for Cash on Delivery'
     });
 
@@ -153,7 +153,7 @@ router.post('/calculate-shipping', [
       shippingFee: shippingCalculation.shippingFee,
       total: shippingCalculation.total,
       message: shippingCalculation.shippingFee === 0 ? 
-        'Free shipping (order value > 50 AED)' : 
+        'Free shipping (order value > 100 AED)' : 
         `Shipping fee: ${shippingCalculation.shippingFee} AED`
     });
 
