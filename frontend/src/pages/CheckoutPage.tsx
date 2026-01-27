@@ -117,11 +117,10 @@ const CheckoutPage: React.FC = () => {
     console.log('  ✅ hasNonCODItems:', hasNonCODItems);
     
     if (hasNonCODItems) {
-      // If cart contains any non-COD items: 10% if <= 100, else FREE
+      // If cart contains any non-COD items: Flat 10 AED if <= 100, else FREE
       if (cartTotal <= 100) {
-        const fee = Math.round(cartTotal * 0.10 * 100) / 100;
-        console.log(`  💳 Mixed/Non-COD cart (${cartTotal} AED <= 100): 10% = ${fee}`);
-        return fee;
+        console.log(`  💳 Mixed/Non-COD cart (${cartTotal} AED <= 100): flat 10 AED`);
+        return 10;
       }
       console.log(`  💳 Mixed/Non-COD cart (${cartTotal} AED > 100): FREE`);
       return 0;
