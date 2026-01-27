@@ -239,7 +239,11 @@ const ZiinaPayment: React.FC<ZiinaPaymentProps> = ({
       const errorMessage = err instanceof Error ? err.message : 'Failed to process payment';
       setError(errorMessage);
       setIsProcessing(false);
-      onError(new Error(errorMessage));
+      
+      // Pass error with orderId if available so it can be marked as failed
+      const errorObj = new Error(errorMessage);
+      (errorObj as any).orderId = orderId; // Include the orderId from props
+      onError(errorObj);
     }
   }, [amount, items, orderId, shippingAddress, isValidAmount, onError]);
 

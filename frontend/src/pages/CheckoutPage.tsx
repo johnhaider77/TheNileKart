@@ -764,14 +764,65 @@ const CheckoutPage: React.FC = () => {
     console.error('Payment error:', error);
     setError(error.message || 'Payment failed. Please try again.');
     
+    // Mark the order as payment_failed in the backend
+    const markOrderAsFailed = async () => {
+      try {
+        // Try to get the order ID from sessionStorage or error details
+        let orderId = null;
+        
+        // First check if error has orderId
+        if (error?.orderId) {
+          orderId = error.orderId;
+        } else {
+          // Try to get from checkoutData stored in sessionStorage
+          const checkoutDataStr = sessionStorage.getItem('checkoutData');
+          if (checkoutDataStr) {
+            try {
+              const checkoutData = JSON.parse(checkoutDataStr);
+              orderId = checkoutData.orderId;
+            } catch (e) {
+              console.warn('Could not parse checkoutData from sessionStorage');
+            }
+          }
+        }
+        
+        if (orderId) {
+          const token = localStorage.getItem('token');
+          if (token) {
+            console.log('📤 Marking order as payment_failed:', orderId);
+            const response = await fetch(`/api/ziina/payment-status/${orderId}`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+              },
+              body: JSON.stringify({ paymentStatus: 'failed' })
+            });
+            
+            if (response.ok) {
+              console.log('✅ Order status updated to payment_failed');
+            } else {
+              console.warn('⚠️ Failed to update order status:', response.status);
+            }
+          }
+        } else {
+          console.warn('⚠️ No order ID found to mark as failed');
+        }
+      } catch (err) {
+        console.error('Error marking order as failed:', err);
+      }
+    };
+    
+    markOrderAsFailed();
+    
     // Track payment error with details
     trackPaymentError({
       errorCode: error.code || 'UNKNOWN',
       errorMessage: error.message || 'Payment failed. Please try again.',
       errorDetails: {
-        error: error,
+        error: error.message,
         step: step,
-        paymentMethod: 'unknown', // Payment method context
+        paymentMethod: 'ziina',
         totalAmount: getTotalAmount(),
         itemCount: items.length
       }
