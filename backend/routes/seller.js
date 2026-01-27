@@ -157,7 +157,7 @@ router.post('/products', [
       sizes,
       product_id,
       other_details,
-      cod_eligible = true 
+      cod_eligible = false 
     } = req.body;
     
     const files = req.files;
@@ -352,7 +352,7 @@ router.post('/products', [
           price: sizePrice,
           market_price: calculatedMarketPrice,
           actual_buy_price: sizeBuyPrice,
-          cod_eligible: size.cod_eligible !== undefined ? size.cod_eligible : true
+          cod_eligible: size.cod_eligible !== undefined ? size.cod_eligible : false
         };
       });
       
@@ -382,7 +382,7 @@ router.post('/products', [
         price: parseFloat(price) || 0,
         market_price: defaultMarketPrice,
         actual_buy_price: parseFloat(actual_buy_price) || 0,
-        cod_eligible: cod_eligible !== false
+        cod_eligible: cod_eligible === true
       }];
       // Set product market price to the same as the default size market price
       productMarketPrice = finalSizes[0].market_price;
