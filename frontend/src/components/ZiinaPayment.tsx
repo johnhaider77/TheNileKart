@@ -201,7 +201,7 @@ const ZiinaPayment: React.FC<ZiinaPaymentProps> = ({
       const currentCart = items.map(item => ({
         product: item.product,
         quantity: item.quantity,
-        selectedSize: item.selectedSize || 'One Size'
+        selectedSize: item.selectedSize
       }));
       localStorage.setItem('guestCart', JSON.stringify(currentCart));
       console.log('Cart items preserved to localStorage before Ziina redirect:', currentCart.length, 'items');
