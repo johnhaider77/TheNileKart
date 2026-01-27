@@ -127,21 +127,31 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
   }, [items, isAuthenticated, guestCartLoaded]);
 
   const addToCart = (product: Product, quantity: number = 1, selectedSize?: string, selectedColour?: string) => {
-    const size = selectedSize || (product as any).selectedSize || 'One Size';
+    // Only use size if explicitly provided - don't default to 'One Size'
+    // Backend will handle size defaulting during order creation
+    const size = selectedSize || (product as any).selectedSize || undefined;
     const colour = selectedColour || (product as any).selectedColour || 'Default';
     
     // Get available quantity for the selected size+colour
     let availableStock = 0;
     if (product.sizes && Array.isArray(product.sizes)) {
-      const sizeData = product.sizes.find((s: any) => s.size === size && (s.colour || 'Default') === colour);
-      availableStock = sizeData?.quantity || 0;
+      // If size is provided, find matching size+colour
+      // If not provided, any available size is OK
+      if (size) {
+        const sizeData = product.sizes.find((s: any) => s.size === size && (s.colour || 'Default') === colour);
+        availableStock = sizeData?.quantity || 0;
+      } else {
+        // No size specified - check if product has any available stock
+        const availableSizeData = product.sizes.find((s: any) => s.quantity > 0);
+        availableStock = availableSizeData?.quantity || 0;
+      }
     } else {
       availableStock = product.stock_quantity || 0;
     }
     
     // Check if product/size/colour is in stock
     if (availableStock === 0) {
-      alert(`Sorry, ${size}${colour !== 'Default' ? ` in ${colour}` : ''} is sold out!`);
+      alert(`Sorry, ${size || 'this item'}${colour !== 'Default' ? ` in ${colour}` : ''} is sold out!`);
       return;
     }
 
