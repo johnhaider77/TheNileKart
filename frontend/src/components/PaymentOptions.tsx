@@ -133,7 +133,15 @@ const PaymentOptions: React.FC<PaymentOptionsProps> = ({
               <div className="payment-method-title cod-title">
                 <span className="payment-icon">💵</span>
                 <span>Cash on Delivery</span>
+                {codDetails && !codDetails.eligible && (
+                  <span className="badge badge-danger" style={{ marginLeft: '8px', fontSize: '0.75rem' }}>Unavailable</span>
+                )}
               </div>
+              {codDetails && !codDetails.eligible && (
+                <div className="payment-method-subtitle" style={{ color: '#d32f2f', fontSize: '0.85rem', marginTop: '4px' }}>
+                  Not available for items in your cart. Pay online or remove non-COD items.
+                </div>
+              )}
             </label>
           </div>
           
@@ -153,6 +161,13 @@ const PaymentOptions: React.FC<PaymentOptionsProps> = ({
                   ) : null}
                 </ul>
               </div>
+              
+              {codDetails && !codDetails.eligible && (
+                <div style={{ padding: '12px', backgroundColor: '#fff3cd', border: '1px solid #ffc107', borderRadius: '4px', marginBottom: '12px', color: '#856404' }}>
+                  <strong>⚠️ COD Not Available:</strong>
+                  <p style={{ margin: '4px 0 0 0', fontSize: '0.9rem' }}>Some items in your cart cannot be delivered with Cash on Delivery. You must use online payment (PayPal/Card) to complete your order, or go back to remove non-COD items.</p>
+                </div>
+              )}
               
               <button
                 className="payment-submit-btn cod-btn"
