@@ -38,7 +38,8 @@ router.post('/calculate-cod', [
 
       const productData = product.rows[0];
       let itemPrice = productData.price;
-      let codEligible = productData.cod_eligible; // Fallback to product-level
+      // CRITICAL: Default to NOT COD eligible (false) unless explicitly marked true
+      let codEligible = productData.cod_eligible === true; // Converts NULL/undefined/0 to false
       
       console.log(`📦 [CALCULATE-COD] Processing item - Product: ${productData.id} (${productData.name}), Selected Size: ${item.selectedSize}, Product COD Eligible: ${productData.cod_eligible}`);
       
@@ -47,7 +48,12 @@ router.post('/calculate-cod', [
         const sizeData = productData.sizes.find(size => size.size === item.selectedSize);
         if (sizeData) {
           itemPrice = sizeData.price || productData.price || 0;
-          codEligible = sizeData.cod_eligible !== undefined ? sizeData.cod_eligible : productData.cod_eligible;
+          // CRITICAL: If size has explicit cod_eligible value, use it; otherwise fallback to product level
+          if (sizeData.cod_eligible !== undefined && sizeData.cod_eligible !== null) {
+            codEligible = sizeData.cod_eligible === true;
+          } else {
+            codEligible = productData.cod_eligible === true;
+          }
           console.log(`  ✓ Size ${item.selectedSize} found - Price: ${sizeData.price}, Size COD Eligible: ${sizeData.cod_eligible}, Using: ${codEligible}`);
         } else {
           console.log(`  ⚠️ Size ${item.selectedSize} NOT found in sizes array. Available sizes: ${productData.sizes.map(s => s.size).join(', ')}`);
@@ -127,18 +133,26 @@ router.post('/calculate-shipping', [
 
       const productData = product.rows[0];
       let itemPrice = productData.price;
-      // CRITICAL: Treat NULL/undefined cod_eligible as FALSE (not COD eligible)
-      let codEligible = productData.cod_eligible === true; // Converts to boolean, defaults to false
+      // CRITICAL: Default to NOT COD eligible (false) unless explicitly marked true
+      let codEligible = productData.cod_eligible === true; // Converts NULL/undefined/0 to false
       
       // Check if product has sizes and find size-specific pricing and COD eligibility
       if (productData.sizes && Array.isArray(productData.sizes) && item.selectedSize) {
         const sizeData = productData.sizes.find(size => size.size === item.selectedSize);
         if (sizeData) {
           itemPrice = sizeData.price || productData.price || 0;
-          // CRITICAL: Use size-specific cod_eligible if available, ensure boolean
-          codEligible = sizeData.cod_eligible === true ? true : (productData.cod_eligible === true ? true : false);
+          // CRITICAL: If size has explicit cod_eligible value (true or false), use it
+          // Otherwise fallback to product-level cod_eligible
+          if (sizeData.cod_eligible !== undefined && sizeData.cod_eligible !== null) {
+            codEligible = sizeData.cod_eligible === true;
+          } else {
+            // Size doesn't have explicit cod_eligible, use product level
+            codEligible = productData.cod_eligible === true;
+          }
         }
       }
+
+      console.log(`📦 [CALCULATE-SHIPPING] Item: ${productData.name}, Size: ${item.selectedSize}, COD Eligible: ${codEligible}`);
 
       cartItems.push({
         product: {
