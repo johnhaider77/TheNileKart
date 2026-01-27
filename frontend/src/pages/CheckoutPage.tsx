@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
-import { ordersAPI, authAPI } from '../services/api';
+import { ordersAPI, authAPI, productsAPI } from '../services/api';
 import { ShippingAddress } from '../utils/types';
 import api from '../services/api';
 import PaymentOptions from '../components/PaymentOptions';
@@ -758,22 +758,55 @@ const CheckoutPage: React.FC = () => {
       }
       console.log('✅ Address validation passed');
 
+      // Enrich items with full product data (especially sizes)
+      console.log('📥 Enriching cart items with product details...');
+      const enrichedItems = await Promise.all(
+        items.map(async (item) => {
+          try {
+            const productResponse = await productsAPI.getProduct(String(item.product.id));
+            const productData = productResponse.data;
+            
+            console.log(`✅ Fetched product ${item.product.id}:`, {
+              name: productData.name,
+              hasSizes: !!productData.sizes,
+              sizesCount: productData.sizes?.length || 0
+            });
+            
+            return {
+              ...item,
+              product: { ...item.product, ...productData }  // Merge fetched data
+            };
+          } catch (err) {
+            console.warn(`⚠️ Failed to fetch product ${item.product.id}, using cached data`, err);
+            return item;
+          }
+        })
+      );
+
       // Ensure checkoutData exists in sessionStorage
       console.log('📦 Retrieving checkoutData from sessionStorage...');
       let checkoutDataStr = sessionStorage.getItem('checkoutData');
       
-      // If checkoutData doesn't exist, create it now from current cart state
+      // If checkoutData doesn't exist, create it now from enriched items
       if (!checkoutDataStr) {
         console.warn('⚠️ checkoutData not in sessionStorage, creating it now...');
         const orderData = {
-          items: items.map(item => {
+          items: enrichedItems.map(item => {
             // Use smart size selection logic
             let size = item.selectedSize;
+            console.log(`📋 Processing item ${item.product.id} (${item.product.name}):`, {
+              selectedSize: item.selectedSize,
+              hasSizesArray: !!item.product?.sizes,
+              sizesCount: item.product?.sizes?.length || 0
+            });
+            
             if (!size && item.product?.sizes && Array.isArray(item.product.sizes) && item.product.sizes.length > 0) {
               size = item.product.sizes[0].size;
+              console.warn(`⚠️ No selectedSize for product ${item.product.name}, using first available size: ${size}`);
             }
             if (!size) {
               size = 'One Size';
+              console.log(`ℹ️ Product ${item.product.name} has no sizes array, using 'One Size'`);
             }
             return {
               product_id: item.product.id,
@@ -788,9 +821,9 @@ const CheckoutPage: React.FC = () => {
         console.log('✅ checkoutData created and stored:', orderData);
       }
 
-      // Always use fresh items from current cart state, not stale sessionStorage
+      // Always use fresh items from enriched cart state, not stale sessionStorage
       // This ensures we have the correct product IDs and avoid issues with corrupted cached data
-      const validatedItems = items.map(item => {
+      const validatedItems = enrichedItems.map(item => {
         // Ensure size is properly extracted - don't default to 'One Size' unless that's the actual product size
         let itemSize = item.selectedSize;
         let itemColour = item.selectedColour || 'Default';

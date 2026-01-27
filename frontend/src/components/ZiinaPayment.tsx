@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ordersAPI } from '../services/api';
+import { ordersAPI, productsAPI } from '../services/api';
 
 // Ziina payment component interface
 interface ZiinaPaymentProps {
@@ -101,10 +101,42 @@ const ZiinaPayment: React.FC<ZiinaPaymentProps> = ({
         address_line2: shippingAddressWithPhone.address_line2 || 'N/A'
       });
 
+      // STEP: Enrich items with full product data (especially sizes)
+      console.log('📥 Enriching cart items with product details...');
+      const enrichedItems = await Promise.all(
+        items.map(async (item) => {
+          try {
+            const productResponse = await productsAPI.getProduct(String(item.product.id));
+            const productData = productResponse.data;
+            
+            console.log(`✅ Fetched product ${item.product.id}:`, {
+              name: productData.name,
+              hasSizes: !!productData.sizes,
+              sizesCount: productData.sizes?.length || 0
+            });
+            
+            return {
+              ...item,
+              product: { ...item.product, ...productData }  // Merge fetched data
+            };
+          } catch (err) {
+            console.warn(`⚠️ Failed to fetch product ${item.product.id}, using cached data`, err);
+            return item;
+          }
+        })
+      );
+
       const orderData = {
-        items: items.map(item => {
+        items: enrichedItems.map(item => {
           // Determine the size to send
           let size = item.selectedSize;
+          
+          console.log(`📋 Processing item ${item.product.id} (${item.product.name}):`, {
+            selectedSize: item.selectedSize,
+            hasSizesArray: !!item.product?.sizes,
+            sizesCount: item.product?.sizes?.length || 0,
+            sizes: item.product?.sizes ? item.product.sizes.map((s: any) => s.size) : 'N/A'
+          });
           
           // If product has sizes array but no selectedSize, use first available size
           if (!size && item.product?.sizes && Array.isArray(item.product.sizes) && item.product.sizes.length > 0) {
@@ -115,6 +147,7 @@ const ZiinaPayment: React.FC<ZiinaPaymentProps> = ({
           // If still no size (product has no sizes), use 'One Size'
           if (!size) {
             size = 'One Size';
+            console.log(`ℹ️ Product ${item.product.name} has no sizes array, using 'One Size'`);
           }
           
           return {
