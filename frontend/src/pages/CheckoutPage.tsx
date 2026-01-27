@@ -1646,40 +1646,45 @@ const CheckoutPage: React.FC = () => {
                 </div>
               </div>
               
-              {/* COD Eligibility Error Section */}
-              {codDetails && !codDetails.eligible && codDetails.nonEligibleItems && codDetails.nonEligibleItems.length > 0 && (
+              {/* COD Eligibility Error Section - Show when COD is not eligible */}
+              {codDetails && !codDetails.eligible && (
                 <div className="payment-cod-error">
                   <div className="cod-error-header">
                     <div className="error-icon">⚠️</div>
                     <div className="error-content">
                       <h4>Cash on Delivery Not Available</h4>
-                      <p>The following {codDetails.nonEligibleItems.length === 1 ? 'item is' : 'items are'} not eligible for Cash on Delivery:</p>
+                      <p>Your cart contains items that cannot be delivered with Cash on Delivery. Please use online payment or remove these items from your cart.</p>
                     </div>
                   </div>
                   
-                  <div className="cod-non-eligible-items">
-                    {codDetails.nonEligibleItems.map((item: any, index: number) => (
-                      <div key={index} className="non-eligible-item-card">
-                        <div className="item-image">
-                          {item.image_url ? (
-                            <img src={item.image_url} alt={item.name} />
-                          ) : (
-                            <div className="no-image">📦</div>
-                          )}
-                        </div>
-                        <div className="item-details">
-                          <h5>{item.name}</h5>
-                          <p className="item-reason">
-                            {item.size ? `Size: ${item.size} - ` : ''}
-                            COD not available for this item
-                          </p>
-                        </div>
-                        <div className="item-price">
-                          AED {item.price ? item.price.toFixed(2) : '0.00'}
-                        </div>
+                  {codDetails.nonEligibleItems && codDetails.nonEligibleItems.length > 0 && (
+                    <>
+                      <p style={{ margin: '16px 0 12px 0', fontWeight: 500 }}>The following {codDetails.nonEligibleItems.length === 1 ? 'item is' : 'items are'} not eligible for Cash on Delivery:</p>
+                      <div className="cod-non-eligible-items">
+                        {codDetails.nonEligibleItems.map((item: any, index: number) => (
+                          <div key={index} className="non-eligible-item-card">
+                            <div className="item-image">
+                              {item.image_url ? (
+                                <img src={item.image_url} alt={item.name} />
+                              ) : (
+                                <div className="no-image">📦</div>
+                              )}
+                            </div>
+                            <div className="item-details">
+                              <h5>{item.name}</h5>
+                              <p className="item-reason">
+                                {item.size ? `Size: ${item.size} - ` : ''}
+                                COD not available for this item
+                              </p>
+                            </div>
+                            <div className="item-price">
+                              AED {item.price ? item.price.toFixed(2) : '0.00'}
+                            </div>
+                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
+                    </>
+                  )}
                   
                   <div className="cod-error-actions">
                     <div className="action-section">
