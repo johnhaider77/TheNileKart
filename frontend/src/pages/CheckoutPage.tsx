@@ -310,7 +310,7 @@ const CheckoutPage: React.FC = () => {
     }
   }, [searchParams, navigate, clearCart]);
 
-  const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAddressChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setShippingAddress({
       ...shippingAddress,
       [e.target.name]: e.target.value
