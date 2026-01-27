@@ -186,6 +186,26 @@ const CheckoutPage: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [step]);
 
+  // Restore promo code from sessionStorage on component mount or when step changes to payment
+  useEffect(() => {
+    if (step === 'payment') {
+      const savedPromoCode = sessionStorage.getItem('appliedPromoCode');
+      const savedPromoDiscount = sessionStorage.getItem('promoCodeDiscount');
+      
+      if (savedPromoCode && savedPromoDiscount) {
+        try {
+          const promoCode = JSON.parse(savedPromoCode);
+          const discount = parseFloat(savedPromoDiscount);
+          setAppliedPromoCode(promoCode);
+          setPromoCodeDiscount(discount);
+          console.log('✅ Promo code restored from sessionStorage:', { code: promoCode.code, discount });
+        } catch (err) {
+          console.warn('⚠️ Failed to parse saved promo code:', err);
+        }
+      }
+    }
+  }, [step]);
+
   // Handle payment return from Ziina (success/failure/cancel)
   useEffect(() => {
     const paymentStatus = searchParams.get('payment_status');
@@ -207,6 +227,11 @@ const CheckoutPage: React.FC = () => {
       addToast('Payment successful! Processing your order...', 'success');
       // Clear the cart since the order has been created
       clearCart();
+      // Clear promo code and related data on successful payment
+      sessionStorage.removeItem('appliedPromoCode');
+      sessionStorage.removeItem('promoCodeDiscount');
+      setAppliedPromoCode(null);
+      setPromoCodeDiscount(0);
       // Clear stored order data from session
       sessionStorage.removeItem('pendingOrderData');
       sessionStorage.removeItem('ziinaPaymentIntentId');
@@ -232,6 +257,21 @@ const CheckoutPage: React.FC = () => {
           console.log('✅ Address restored from sessionStorage:', parsedAddress);
         } catch (err) {
           console.warn('⚠️ Failed to parse saved address:', err);
+        }
+      }
+      
+      // Restore promo code from sessionStorage
+      const savedPromoCode = sessionStorage.getItem('appliedPromoCode');
+      const savedPromoDiscount = sessionStorage.getItem('promoCodeDiscount');
+      if (savedPromoCode && savedPromoDiscount) {
+        try {
+          const promoCode = JSON.parse(savedPromoCode);
+          const discount = parseFloat(savedPromoDiscount);
+          setAppliedPromoCode(promoCode);
+          setPromoCodeDiscount(discount);
+          console.log('✅ Promo code restored from sessionStorage:', { code: promoCode.code, discount });
+        } catch (err) {
+          console.warn('⚠️ Failed to parse saved promo code:', err);
         }
       }
       
@@ -299,6 +339,21 @@ const CheckoutPage: React.FC = () => {
           console.log('✅ Address restored from sessionStorage:', parsedAddress);
         } catch (err) {
           console.warn('⚠️ Failed to parse saved address:', err);
+        }
+      }
+      
+      // Restore promo code from sessionStorage
+      const savedPromoCode = sessionStorage.getItem('appliedPromoCode');
+      const savedPromoDiscount = sessionStorage.getItem('promoCodeDiscount');
+      if (savedPromoCode && savedPromoDiscount) {
+        try {
+          const promoCode = JSON.parse(savedPromoCode);
+          const discount = parseFloat(savedPromoDiscount);
+          setAppliedPromoCode(promoCode);
+          setPromoCodeDiscount(discount);
+          console.log('✅ Promo code restored from sessionStorage:', { code: promoCode.code, discount });
+        } catch (err) {
+          console.warn('⚠️ Failed to parse saved promo code:', err);
         }
       }
       
@@ -888,6 +943,11 @@ const CheckoutPage: React.FC = () => {
         sessionStorage.removeItem('checkoutData');
         sessionStorage.removeItem('checkoutShippingAddress');
         sessionStorage.removeItem('checkoutCodDetails');
+        // Clear promo code on successful order
+        sessionStorage.removeItem('appliedPromoCode');
+        sessionStorage.removeItem('promoCodeDiscount');
+        setAppliedPromoCode(null);
+        setPromoCodeDiscount(0);
 
         // Add success toast
         addToast('Order placed successfully!', 'success');
@@ -1605,11 +1665,19 @@ const CheckoutPage: React.FC = () => {
                 onPromoApplied={(discount) => {
                   setAppliedPromoCode(discount);
                   setPromoCodeDiscount(discount.discountAmount);
+                  // Store promo code to sessionStorage for persistence on payment failure
+                  sessionStorage.setItem('appliedPromoCode', JSON.stringify(discount));
+                  sessionStorage.setItem('promoCodeDiscount', discount.discountAmount.toString());
+                  console.log('💾 Promo code saved to sessionStorage:', { code: discount.code, discount: discount.discountAmount });
                   addToast(`Promo code "${discount.code}" applied! You save AED ${discount.discountAmount.toFixed(2)}`, 'success');
                 }}
                 onPromoRemoved={() => {
                   setAppliedPromoCode(null);
                   setPromoCodeDiscount(0);
+                  // Clear promo code from sessionStorage
+                  sessionStorage.removeItem('appliedPromoCode');
+                  sessionStorage.removeItem('promoCodeDiscount');
+                  console.log('🗑️ Promo code removed from sessionStorage');
                 }}
               />
               
