@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ordersAPI, productsAPI } from '../services/api';
+import { ordersAPI } from '../services/api';
 
 // Ziina payment component interface
 interface ZiinaPaymentProps {
@@ -101,33 +101,8 @@ const ZiinaPayment: React.FC<ZiinaPaymentProps> = ({
         address_line2: shippingAddressWithPhone.address_line2 || 'N/A'
       });
 
-      // STEP: Enrich items with full product data (especially sizes)
-      console.log('📥 Enriching cart items with product details...');
-      const enrichedItems = await Promise.all(
-        items.map(async (item) => {
-          try {
-            const productResponse = await productsAPI.getProduct(String(item.product.id));
-            const productData = productResponse.data;
-            
-            console.log(`✅ Fetched product ${item.product.id}:`, {
-              name: productData.name,
-              hasSizes: !!productData.sizes,
-              sizesCount: productData.sizes?.length || 0
-            });
-            
-            return {
-              ...item,
-              product: { ...item.product, ...productData }  // Merge fetched data
-            };
-          } catch (err) {
-            console.warn(`⚠️ Failed to fetch product ${item.product.id}, using cached data`, err);
-            return item;
-          }
-        })
-      );
-
       const orderData = {
-        items: enrichedItems.map(item => {
+        items: items.map(item => {
           // Only send selectedSize if it was explicitly selected by user
           // Let backend handle size defaulting for products without explicit selection
           const itemData: any = {
@@ -135,12 +110,10 @@ const ZiinaPayment: React.FC<ZiinaPaymentProps> = ({
             quantity: item.quantity
           };
           
-          // Only include size if it was explicitly selected
+          // Only include size if it was explicitly selected by user
+          // (not a default or system-assigned value)
           if (item.selectedSize) {
             itemData.size = item.selectedSize;
-            console.log(`✅ Using explicit selectedSize for ${item.product.name}: ${item.selectedSize}`);
-          } else {
-            console.log(`ℹ️ No selectedSize for ${item.product.name}, backend will handle size selection`);
           }
           
           return itemData;
