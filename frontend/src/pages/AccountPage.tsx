@@ -106,7 +106,7 @@ const AccountPage: React.FC = () => {
     city: '',
     state: '',
     postal_code: '',
-    country: 'US',
+    country: 'United Arab Emirates',
     is_default: false
   });
 
@@ -834,15 +834,23 @@ const AccountPage: React.FC = () => {
 
                     <div className="form-control">
                       <label className="label">
-                        <span className="label-text">State *</span>
+                        <span className="label-text">State (Emirate) *</span>
                       </label>
-                      <input 
-                        type="text"
-                        className="input input-bordered"
+                      <select 
+                        className="select select-bordered"
                         value={newAddress.state}
                         onChange={(e) => setNewAddress({...newAddress, state: e.target.value})}
                         required
-                      />
+                      >
+                        <option value="">Select an Emirate</option>
+                        <option value="Abu Dhabi">Abu Dhabi</option>
+                        <option value="Dubai">Dubai</option>
+                        <option value="Sharjah">Sharjah</option>
+                        <option value="Ajman">Ajman</option>
+                        <option value="Umm Al Quwain">Umm Al Quwain</option>
+                        <option value="Ras Al Khaimah">Ras Al Khaimah</option>
+                        <option value="Fujairah">Fujairah</option>
+                      </select>
                     </div>
 
                     <div className="form-control">
@@ -864,10 +872,9 @@ const AccountPage: React.FC = () => {
                       </label>
                       <input 
                         type="text"
-                        className="input input-bordered"
-                        value={newAddress.country}
-                        onChange={(e) => setNewAddress({...newAddress, country: e.target.value})}
-                        required
+                        className="input input-bordered disabled:bg-gray-100 disabled:cursor-not-allowed"
+                        value="United Arab Emirates"
+                        disabled
                       />
                     </div>
 

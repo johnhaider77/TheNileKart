@@ -1246,16 +1246,24 @@ const CheckoutPage: React.FC = () => {
                   </div>
                   
                   <div className="form-group">
-                    <label htmlFor="state" className="form-label">State *</label>
-                    <input
-                      type="text"
+                    <label htmlFor="state" className="form-label">State (Emirate) *</label>
+                    <select
                       id="state"
                       name="state"
                       value={shippingAddress.state}
                       onChange={handleAddressChange}
                       className="form-control"
                       required
-                    />
+                    >
+                      <option value="">Select an Emirate</option>
+                      <option value="Abu Dhabi">Abu Dhabi</option>
+                      <option value="Dubai">Dubai</option>
+                      <option value="Sharjah">Sharjah</option>
+                      <option value="Ajman">Ajman</option>
+                      <option value="Umm Al Quwain">Umm Al Quwain</option>
+                      <option value="Ras Al Khaimah">Ras Al Khaimah</option>
+                      <option value="Fujairah">Fujairah</option>
+                    </select>
                   </div>
                   
                   <div className="form-group">
@@ -1270,6 +1278,19 @@ const CheckoutPage: React.FC = () => {
                       required
                     />
                   </div>
+                </div>
+
+                <div className="form-group" style={{ marginTop: '1rem' }}>
+                  <label htmlFor="country" className="form-label">Country *</label>
+                  <input
+                    type="text"
+                    id="country"
+                    name="country"
+                    value="United Arab Emirates"
+                    disabled
+                    className="form-control"
+                    style={{ backgroundColor: '#f3f4f6', cursor: 'not-allowed' }}
+                  />
                 </div>
 
                 <div style={{ marginTop: '1.5rem', paddingTop: '1rem', borderTop: '1px solid #e5e7eb' }}>
