@@ -1,16 +1,41 @@
 {
   "short_name": "TheNileKart",
-  "name": "TheNileKart",
+  "name": "TheNileKart - Online Shopping Platform",
+  "description": "TheNileKart is your ultimate online shopping destination. Browse and shop a wide variety of products including fashion, accessories, and more. Fast delivery and secure payments.",
   "icons": [
     {
       "src": "TheNileKart.jpeg",
       "type": "image/jpeg",
       "sizes": "512x512",
       "purpose": "any"
+    },
+    {
+      "src": "TheNileKart.jpeg",
+      "type": "image/jpeg",
+      "sizes": "512x512",
+      "purpose": "maskable"
     }
   ],
-  "start_url": ".",
+  "start_url": "/",
+  "scope": "/",
   "display": "standalone",
-  "theme_color": "#000000",
-  "background_color": "#ffffff"
+  "orientation": "portrait-primary",
+  "theme_color": "#1a1a1a",
+  "background_color": "#ffffff",
+  "categories": ["shopping", "business"],
+  "screenshots": [
+    {
+      "src": "TheNileKart.jpeg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "form_factor": "wide"
+    },
+    {
+      "src": "TheNileKart.jpeg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "form_factor": "narrow"
+    }
+  ],
+  "prefer_related_applications": false
 }
