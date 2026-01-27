@@ -110,10 +110,23 @@ const ZiinaPayment: React.FC<ZiinaPaymentProps> = ({
             quantity: item.quantity
           };
           
-          // Only include size if it was explicitly selected by user
-          // (not a default or system-assigned value)
-          if (item.selectedSize) {
-            itemData.size = item.selectedSize;
+          // Handle size selection with proper defaulting logic
+          let itemSize = item.selectedSize;
+          
+          // If selectedSize is "One Size" but product has multiple sizes, use first available instead
+          if (itemSize === "One Size" && item.product?.sizes && Array.isArray(item.product.sizes) && item.product.sizes.length > 0) {
+            itemSize = item.product.sizes[0].size;
+            console.log(`⚠️ Correcting "One Size" to actual size for product ${item.product.id}: ${itemSize}`);
+          }
+          
+          // Only include size if it's not "One Size" for legacy products
+          if (itemSize && itemSize !== "One Size") {
+            itemData.size = itemSize;
+          } else if (itemSize === "One Size") {
+            // Only include "One Size" for products that actually don't have a sizes array
+            if (!item.product?.sizes || !Array.isArray(item.product.sizes)) {
+              itemData.size = "One Size";
+            }
           }
           
           return itemData;

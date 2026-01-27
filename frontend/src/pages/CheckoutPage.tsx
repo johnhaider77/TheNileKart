@@ -83,6 +83,47 @@ const CheckoutPage: React.FC = () => {
     setToasts(prev => prev.filter(toast => toast.id !== id));
   };
 
+  // Helper function to properly format order items with correct size/colour handling
+  const formatOrderItems = (cartItems: typeof items): any[] => {
+    return cartItems.map(item => {
+      const itemData: any = {
+        product_id: item.product.id,
+        quantity: item.quantity
+      };
+      
+      let itemSize = item.selectedSize;
+      let itemColour = item.selectedColour || 'Default';
+      
+      // Fix incorrect "One Size" selections
+      // If selectedSize is "One Size" but product has real sizes, use first available
+      if (itemSize === "One Size" && item.product?.sizes && Array.isArray(item.product.sizes) && item.product.sizes.length > 0) {
+        itemSize = item.product.sizes[0].size;
+        console.log(`⚠️ Correcting "One Size" to actual size for product ${item.product.id}: ${itemSize}`);
+      }
+      
+      // Only include size if it's a real size (not "One Size" for products with sizes array)
+      if (itemSize && itemSize !== "One Size") {
+        itemData.size = itemSize;
+        itemData.colour = itemColour;
+      } else if (itemSize === "One Size") {
+        // Only include "One Size" for products without a sizes array
+        if (!item.product?.sizes || !Array.isArray(item.product.sizes)) {
+          itemData.size = "One Size";
+          itemData.colour = "Default";
+        }
+      } else if (!itemSize && item.product?.sizes && Array.isArray(item.product.sizes) && item.product.sizes.length > 0) {
+        // Fallback: no size selected but product has sizes - use first available
+        itemSize = item.product.sizes[0].size;
+        itemColour = item.product.sizes[0].colour || 'Default';
+        itemData.size = itemSize;
+        itemData.colour = itemColour;
+        console.log(`⚠️ No size selected for product ${item.product.id}, using first available: ${itemSize}`);
+      }
+      
+      return itemData;
+    });
+  };
+
   // Helper function to calculate shipping fee based on cart contents
   const calculateLocalShippingFee = (cartTotal: number, cartItems: any[]): number => {
     console.log('🚚 Calculating shipping fee for cart:', {
@@ -659,18 +700,7 @@ const CheckoutPage: React.FC = () => {
 
       // Store order data for payment processing (DO NOT CREATE ORDER YET)
       const orderData = {
-        items: items.map(item => {
-          const itemData: any = {
-            product_id: item.product.id,
-            quantity: item.quantity
-          };
-          // Only include size if explicitly selected
-          if (item.selectedSize) {
-            itemData.size = item.selectedSize;
-            itemData.colour = item.selectedColour || 'Default';
-          }
-          return itemData;
-        }),
+        items: formatOrderItems(items),
         shipping_address: shippingAddress
       };
 
@@ -772,21 +802,7 @@ const CheckoutPage: React.FC = () => {
       if (!checkoutDataStr) {
         console.warn('⚠️ checkoutData not in sessionStorage, creating it now...');
         const orderData = {
-          items: items.map(item => {
-            // Only send selectedSize if it was explicitly selected by user
-            // Let backend handle size defaulting for products without explicit selection
-            const itemData: any = {
-              product_id: item.product.id,
-              quantity: item.quantity
-            };
-            
-            // Only include size if it was explicitly selected by user
-            if (item.selectedSize) {
-              itemData.size = item.selectedSize;
-            }
-            
-            return itemData;
-          }),
+          items: formatOrderItems(items),
           shipping_address: shippingAddress
         };
         sessionStorage.setItem('checkoutData', JSON.stringify(orderData));
@@ -796,55 +812,7 @@ const CheckoutPage: React.FC = () => {
 
       // Always use fresh items from current cart state, not stale sessionStorage
       // This ensures we have the correct product IDs and avoid issues with corrupted cached data
-      const validatedItems = items.map(item => {
-        // Ensure size is properly extracted - don't default to 'One Size' unless that's the actual product size
-        let itemSize = item.selectedSize;
-        let itemColour = item.selectedColour || 'Default';
-        
-        // If no selectedSize but product has sizes array, find the first available size+colour combination
-        if (!itemSize && item.product?.sizes && Array.isArray(item.product.sizes) && item.product.sizes.length > 0) {
-          // First, try to find a size+colour combo that matches the selected colour
-          let availableSize = item.product.sizes.find((s: any) => 
-            s.quantity > 0 && (s.colour || 'Default') === itemColour
-          );
-          
-          // If not found, find any available size
-          if (!availableSize) {
-            availableSize = item.product.sizes.find((s: any) => s.quantity > 0);
-          }
-          
-          if (availableSize) {
-            itemSize = availableSize.size;
-            itemColour = availableSize.colour || 'Default';
-            console.warn(`⚠️ Item ${item.product.id} had no selectedSize, using: size=${itemSize}, colour=${itemColour}`);
-          }
-        }
-        
-        // Use the selectedSize from cart - it should already be properly set by QuickViewModal
-        // Only fallback to first available size if not set AND product has sizes array
-        if (!itemSize && item.product?.sizes && Array.isArray(item.product.sizes) && item.product.sizes.length > 0) {
-          itemSize = item.product.sizes[0].size;
-          console.log(`⚠️ No size in cart for product ${item.product.id}, using first available: ${itemSize}`);
-        } else if (!itemSize) {
-          // Product has no sizes array - use 'One Size' only for legacy products
-          itemSize = 'One Size';
-        }
-        
-        // Only include size and colour if size was explicitly selected
-        // Let backend handle defaulting for unselected sizes
-        const itemData: any = {
-          product_id: item.product.id,
-          quantity: item.quantity
-        };
-        
-        // Only include size/colour if size was explicitly selected
-        if (itemSize) {
-          itemData.size = itemSize;
-          itemData.colour = itemColour;
-        }
-        
-        return itemData;
-      });
+      const validatedItems = formatOrderItems(items);
 
       console.log('📝 Creating COD order with fresh cart data');
       console.log('📋 Validated items:', validatedItems);
