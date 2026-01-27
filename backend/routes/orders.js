@@ -127,14 +127,16 @@ router.post('/calculate-shipping', [
 
       const productData = product.rows[0];
       let itemPrice = productData.price;
-      let codEligible = productData.cod_eligible; // Fallback to product-level
+      // CRITICAL: Treat NULL/undefined cod_eligible as FALSE (not COD eligible)
+      let codEligible = productData.cod_eligible === true; // Converts to boolean, defaults to false
       
       // Check if product has sizes and find size-specific pricing and COD eligibility
       if (productData.sizes && Array.isArray(productData.sizes) && item.selectedSize) {
         const sizeData = productData.sizes.find(size => size.size === item.selectedSize);
         if (sizeData) {
           itemPrice = sizeData.price || productData.price || 0;
-          codEligible = sizeData.cod_eligible !== undefined ? sizeData.cod_eligible : productData.cod_eligible;
+          // CRITICAL: Use size-specific cod_eligible if available, ensure boolean
+          codEligible = sizeData.cod_eligible === true ? true : (productData.cod_eligible === true ? true : false);
         }
       }
 
@@ -143,14 +145,14 @@ router.post('/calculate-shipping', [
           id: productData.id,
           name: productData.name,
           sizes: productData.sizes,
-          cod_eligible: productData.cod_eligible
+          cod_eligible: productData.cod_eligible === true // Ensure boolean
         },
         product_id: item.product_id,
         name: productData.name,
         price: itemPrice,
         quantity: item.quantity,
         selectedSize: item.selectedSize,
-        cod_eligible: codEligible
+        cod_eligible: codEligible // Now guaranteed to be boolean
       });
     }
 
