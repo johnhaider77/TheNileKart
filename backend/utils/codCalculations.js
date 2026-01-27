@@ -108,16 +108,34 @@ const calculateOrderWithCOD = (items, shippingFee = 0) => {
 };
 
 /**
- * Calculate shipping fee for online (pre-paid) payments
- * Rule: Flat 10 AED for orders <= 100 AED, else free
+ * Calculate shipping fee based on cart contents and COD eligibility
+ * Rules:
+ * - If all items are COD eligible:
+ *   - Free if >= 150 AED
+ *   - 10% fee (min 10 AED, max 15 AED) if < 150 AED
+ * - If any item is non-COD eligible (mixed/online payment):
+ *   - 10 AED flat if <= 100 AED
+ *   - Free if > 100 AED
  * @param {number} orderValue - Total order value in AED
+ * @param {boolean} allCODEligible - Whether all items are COD eligible
  * @returns {number} Shipping fee in AED
  */
-const calculateOnlineShippingFee = (orderValue) => {
-  if (orderValue <= 100) {
-    return 10; // Flat 10 AED fee for orders <= 100 AED
+const calculateOnlineShippingFee = (orderValue, allCODEligible = true) => {
+  if (allCODEligible) {
+    // All items are COD eligible
+    if (orderValue >= 150) {
+      return 0; // Free delivery for COD cart >= 150 AED
+    }
+    // 10% fee (min 10 AED, max 15 AED) for COD cart < 150 AED
+    const calculatedFee = orderValue * 0.10;
+    return Math.max(10, Math.min(calculatedFee, 15));
+  } else {
+    // Mixed or non-COD items
+    if (orderValue <= 100) {
+      return 10; // 10 AED flat for mixed/non-COD cart <= 100 AED
+    }
+    return 0; // Free delivery for mixed/non-COD cart > 100 AED
   }
-  return 0; // Free shipping for orders > 100 AED
 };
 
 /**
@@ -138,7 +156,9 @@ const calculateOrderWithOnlineShipping = (items) => {
     return total + (item.price * item.quantity);
   }, 0);
   
-  const shippingFee = calculateOnlineShippingFee(subtotal);
+  // Check if all items are COD eligible
+  const allCODEligible = areAllItemsCODEligible(items);
+  const shippingFee = calculateOnlineShippingFee(subtotal, allCODEligible);
   const total = subtotal + shippingFee;
   
   return {
