@@ -1516,6 +1516,9 @@ const CheckoutPage: React.FC = () => {
                       return;
                     }
                     
+                    // Set loading to prevent interaction during calculation
+                    setLoading(true);
+                    
                     // Save address to sessionStorage for recovery if payment is cancelled
                     sessionStorage.setItem('checkoutShippingAddress', JSON.stringify(shippingAddress));
                     console.log('💾 Address saved to sessionStorage:', shippingAddress);
@@ -1525,9 +1528,7 @@ const CheckoutPage: React.FC = () => {
                       await handleSaveAddressToProfile(shippingAddress);
                     }
                     
-                    setStep('payment');
-                    
-                    // Calculate shipping fee and COD details before proceeding to payment
+                    // Calculate shipping fee and COD details BEFORE proceeding to payment
                     try {
                       const cartItems = items.map(item => ({
                         product_id: item.product.id,
@@ -1595,14 +1596,20 @@ const CheckoutPage: React.FC = () => {
                       setCodDetails(defaultCodDetails);
                     }
                     
+                    // NOW proceed to payment step AFTER calculations are complete
+                    setStep('payment');
+                    
                     // Track payment page visit and payment start
                     trackPaymentPage();
                     trackPaymentStart();
+                    
+                    // Clear loading state
+                    setLoading(false);
                   }} 
                   className="btn btn-primary"
-                  disabled={!validateAddress()}
+                  disabled={!validateAddress() || loading}
                 >
-                  Proceed to Payment
+                  {loading ? 'Calculating...' : 'Proceed to Payment'}
                 </button>
               </div>
             </div>
