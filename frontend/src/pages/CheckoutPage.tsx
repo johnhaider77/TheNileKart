@@ -330,6 +330,8 @@ const CheckoutPage: React.FC = () => {
 
   useEffect(() => {
     if (step === 'payment' && items.length > 0) {
+      // Clear any cached shipping fee data and recalculate fresh from API
+      setShippingFeeDetails(undefined);
       // Calculate shipping fee for online payments when entering payment step
       calculateShippingFee();
     }

@@ -197,7 +197,9 @@ router.post('/calculate-shipping', [
       shippingFee: shippingCalculation.shippingFee,
       total: shippingCalculation.total,
       message: reasonMessage,
-      allCODEligible
+      allCODEligible,
+      _timestamp: new Date().toISOString(),
+      _codeVersion: 'v2.1-fixed-cod-eligibility'
     });
 
   } catch (error) {
