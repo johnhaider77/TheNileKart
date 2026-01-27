@@ -24,7 +24,7 @@ if (fs.existsSync(envPath)) {
 module.exports = {
   apps: [
     {
-      name: 'server',
+      name: 'thenilekart-backend',
       script: './backend/server.js',
       cwd: process.env.APP_ROOT || '/home/ubuntu/var/www/thenilekart/TheNileKart',
       instances: 1,
