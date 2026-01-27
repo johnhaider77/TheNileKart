@@ -49,21 +49,7 @@ export const CartProvider: React.FC<CartProviderProps> = ({ children }) => {
       const guestCart = localStorage.getItem('guestCart');
       if (guestCart) {
         const parsedCart = JSON.parse(guestCart);
-        // Clean up old cart items - remove defaulted "One Size" values
-        // Items should only have selectedSize if user explicitly selected it
-        const cleanedCart = parsedCart.map((item: any) => {
-          // If selectedSize is "One Size" and it might be a wrongly defaulted value,
-          // check if this is actually correct for the product
-          // For now, clear any "One Size" that doesn't make sense
-          if (item.selectedSize === "One Size") {
-            // Remove the selectedSize - let it be undefined
-            // Backend will handle it correctly during checkout
-            const { selectedSize, ...rest } = item;
-            return rest;
-          }
-          return item;
-        });
-        setItems(cleanedCart);
+        setItems(parsedCart);
       }
     } catch (error) {
       console.error('Error loading guest cart:', error);

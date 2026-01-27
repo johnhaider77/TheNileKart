@@ -148,7 +148,9 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
           }
         }
       } else {
-        // Fallback to single size for backward compatibility
+        // Product has no sizes array - this is a legacy product without size/colour attributes
+        // Only set 'One Size' if it's actually in the sizes array OR if product truly has no sizes at all
+        console.log('⚠️ Product has no sizes array:', { productId: product.id, name: product.name });
         setAvailableSizes([{ size: 'One Size', quantity: product.stock_quantity || 0 }]);
         setSelectedSize('One Size');
         setSelectedColour('Default');

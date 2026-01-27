@@ -820,10 +820,14 @@ const CheckoutPage: React.FC = () => {
           }
         }
         
-        // Only use 'One Size' if that's actually in the product's sizes array
-        if (!itemSize) {
-          const hasOneSize = item.product?.sizes?.some((s: any) => s.size === 'One Size');
-          itemSize = hasOneSize ? 'One Size' : (item.product?.sizes?.[0]?.size || 'One Size');
+        // Use the selectedSize from cart - it should already be properly set by QuickViewModal
+        // Only fallback to first available size if not set AND product has sizes array
+        if (!itemSize && item.product?.sizes && Array.isArray(item.product.sizes) && item.product.sizes.length > 0) {
+          itemSize = item.product.sizes[0].size;
+          console.log(`⚠️ No size in cart for product ${item.product.id}, using first available: ${itemSize}`);
+        } else if (!itemSize) {
+          // Product has no sizes array - use 'One Size' only for legacy products
+          itemSize = 'One Size';
         }
         
         // Only include size and colour if size was explicitly selected
