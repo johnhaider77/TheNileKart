@@ -221,6 +221,14 @@ const CheckoutPage: React.FC = () => {
       return;
     }
 
+    // Log current state for debugging
+    console.log('📊 Payment callback state:', {
+      paymentStatus,
+      orderId,
+      itemsCount: items.length,
+      itemsInCart: items.map(i => ({ productId: i.product.id, quantity: i.quantity }))
+    });
+
     if (paymentStatus === 'success') {
       console.log('✅ Payment callback received - Success for orderId:', orderId);
       sessionStorage.setItem('paymentStatusProcessed', paymentStatus + '_' + orderId);
@@ -322,6 +330,24 @@ const CheckoutPage: React.FC = () => {
       // Do NOT clear cart - let user see what they were ordering
       // Keep on checkout page to allow retry
       setStep('payment');
+      
+      // Log warning if items are empty after payment failure
+      if (items.length === 0) {
+        console.warn('⚠️ WARNING: Cart is empty after payment failure! This should not happen.');
+        console.log('📦 Checking localStorage for cart data...');
+        try {
+          const savedCart = localStorage.getItem('guestCart');
+          if (savedCart) {
+            console.log('✅ Found cart in localStorage:', JSON.parse(savedCart));
+          } else {
+            console.warn('⚠️ No cart found in localStorage either!');
+          }
+        } catch (err) {
+          console.warn('⚠️ Error checking localStorage:', err);
+        }
+        addToast('Cart appears to be empty. This might be a browser issue. Try refreshing the page.', 'warning');
+      }
+      
       setTimeout(() => {
         const paymentSection = document.querySelector('.payment-method-card');
         paymentSection?.scrollIntoView({ behavior: 'smooth' });
@@ -404,6 +430,24 @@ const CheckoutPage: React.FC = () => {
       // Do NOT clear cart - let user see what they were ordering
       // Set step back to payment so user can retry
       setStep('payment');
+      
+      // Log warning if items are empty after payment cancellation
+      if (items.length === 0) {
+        console.warn('⚠️ WARNING: Cart is empty after payment cancellation! This should not happen.');
+        console.log('📦 Checking localStorage for cart data...');
+        try {
+          const savedCart = localStorage.getItem('guestCart');
+          if (savedCart) {
+            console.log('✅ Found cart in localStorage:', JSON.parse(savedCart));
+          } else {
+            console.warn('⚠️ No cart found in localStorage either!');
+          }
+        } catch (err) {
+          console.warn('⚠️ Error checking localStorage:', err);
+        }
+        addToast('Cart appears to be empty. This might be a browser issue. Try refreshing the page.', 'warning');
+      }
+      
       setTimeout(() => {
         const paymentSection = document.querySelector('.payment-method-card');
         paymentSection?.scrollIntoView({ behavior: 'smooth' });
