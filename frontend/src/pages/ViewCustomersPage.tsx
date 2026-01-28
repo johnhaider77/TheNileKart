@@ -109,17 +109,16 @@ const ViewCustomersPage: React.FC = () => {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    const dateStr = date.toLocaleDateString('en-US', {
+    const options: Intl.DateTimeFormatOptions = {
       year: 'numeric',
       month: 'short',
-      day: 'numeric'
-    });
-    const timeStr = date.toLocaleTimeString('en-US', {
+      day: 'numeric',
       hour: '2-digit',
       minute: '2-digit',
-      hour12: true
-    });
-    return `${dateStr} ${timeStr}`;
+      hour12: true,
+      timeZone: 'Asia/Dubai'
+    };
+    return date.toLocaleDateString('en-US', options);
   };
 
   const SortIcon = ({ column }: { column: string }) => {
