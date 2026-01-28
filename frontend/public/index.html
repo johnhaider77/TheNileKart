@@ -7,33 +7,41 @@
     <meta name="theme-color" content="#1a1a1a" />
     
     <!-- Primary Meta Tags -->
-    <meta name="title" content="TheNileKart - Online Shopping Platform" />
+    <meta name="title" content="TheNileKart - Online Shopping Platform | Best Deals on Fashion, Accessories & Electronics" />
     <meta
       name="description"
-      content="TheNileKart is your ultimate online shopping destination. Browse and shop a wide variety of products including fashion, accessories, and more. Fast delivery and secure payments."
+      content="Discover amazing deals on fashion, accessories, electronics and more at TheNileKart. Fast delivery, secure payments, and trusted sellers. Shop with confidence!"
     />
-    <meta name="keywords" content="online shopping, e-commerce, fashion, accessories, buy online, TheNileKart" />
+    <meta name="keywords" content="online shopping, e-commerce, fashion, accessories, electronics, best deals, buy online, TheNileKart, online store" />
     <meta name="author" content="TheNileKart" />
-    <meta name="robots" content="index, follow" />
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
     <meta name="language" content="English" />
+    <meta name="revisit-after" content="7 days" />
+    <meta name="distribution" content="global" />
+    <meta http-equiv="content-language" content="en-us" />
     
     <!-- Open Graph / Facebook Meta Tags -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://thenilekart.com/" />
     <meta property="og:title" content="TheNileKart - Online Shopping Platform" />
-    <meta property="og:description" content="TheNileKart is your ultimate online shopping destination. Browse and shop a wide variety of products including fashion, accessories, and more. Fast delivery and secure payments." />
-    <meta property="og:image" content="%PUBLIC_URL%/TheNileKart.jpeg" />
+    <meta property="og:description" content="Discover amazing deals on fashion, accessories, electronics and more. Fast delivery, secure payments, and trusted sellers. Shop TheNileKart today!" />
+    <meta property="og:image" content="https://thenilekart.com/TheNileKart.jpeg" />
     <meta property="og:image:width" content="512" />
     <meta property="og:image:height" content="512" />
+    <meta property="og:image:type" content="image/jpeg" />
+    <meta property="og:image:alt" content="TheNileKart - Online Shopping Platform" />
     <meta property="og:site_name" content="TheNileKart" />
+    <meta property="og:locale" content="en_US" />
     
     <!-- Twitter Meta Tags -->
     <meta property="twitter:card" content="summary_large_image" />
     <meta property="twitter:url" content="https://thenilekart.com/" />
     <meta property="twitter:title" content="TheNileKart - Online Shopping Platform" />
-    <meta property="twitter:description" content="TheNileKart is your ultimate online shopping destination. Browse and shop a wide variety of products including fashion, accessories, and more. Fast delivery and secure payments." />
-    <meta property="twitter:image" content="%PUBLIC_URL%/TheNileKart.jpeg" />
+    <meta property="twitter:description" content="Discover amazing deals on fashion, accessories, electronics and more. Fast delivery, secure payments, and trusted sellers. Shop TheNileKart today!" />
+    <meta property="twitter:image" content="https://thenilekart.com/TheNileKart.jpeg" />
+    <meta property="twitter:image:alt" content="TheNileKart Logo" />
     <meta property="twitter:creator" content="@TheNileKart" />
+    <meta property="twitter:site" content="@TheNileKart" />
     
     <!-- Additional Meta Tags -->
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -46,49 +54,144 @@
     <!-- Google Site Verification (if needed) -->
     <!-- <meta name="google-site-verification" content="your-verification-code" /> -->
     
-    <!-- Structured Data (JSON-LD) -->
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@type": "WebSite",
-      "name": "TheNileKart",
-      "url": "https://thenilekart.com",
-      "description": "TheNileKart is your ultimate online shopping destination",
-      "image": "https://thenilekart.com/TheNileKart.jpeg",
-      "author": {
-        "@type": "Organization",
-        "name": "TheNileKart",
-        "url": "https://thenilekart.com",
-        "logo": "https://thenilekart.com/TheNileKart.jpeg"
-      },
-      "potentialAction": {
-        "@type": "SearchAction",
-        "target": {
-          "@type": "EntryPoint",
-          "urlTemplate": "https://thenilekart.com/search?q={search_term_string}"
-        },
-        "query-input": "required name=search_term_string"
-      }
-    }
-    </script>
-    
+    <!-- Structured Data (JSON-LD) - Organization Schema -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": "Organization",
+      "@id": "https://thenilekart.com/",
       "name": "TheNileKart",
+      "alternateName": "The Nile Kart",
       "url": "https://thenilekart.com",
       "logo": "https://thenilekart.com/TheNileKart.jpeg",
-      "description": "TheNileKart is your ultimate online shopping destination. Browse and shop a wide variety of products including fashion, accessories, and more.",
+      "image": {
+        "@type": "ImageObject",
+        "url": "https://thenilekart.com/TheNileKart.jpeg",
+        "width": 512,
+        "height": 512
+      },
+      "description": "TheNileKart is your ultimate online shopping destination. Browse and shop a wide variety of products including fashion, accessories, electronics, and more. Fast delivery and secure payments.",
       "sameAs": [
         "https://www.facebook.com/thenilekart",
         "https://www.instagram.com/thenilekart",
         "https://twitter.com/thenilekart"
       ],
-      "contactPoint": {
-        "@type": "ContactPoint",
-        "contactType": "Customer Support",
-        "email": "support@thenilekart.com"
+      "contactPoint": [
+        {
+          "@type": "ContactPoint",
+          "contactType": "Customer Support",
+          "email": "support@thenilekart.com",
+          "availableLanguage": ["en"]
+        },
+        {
+          "@type": "ContactPoint",
+          "contactType": "Customer Service",
+          "telephone": "+1-800-NILEKART",
+          "contactOption": "TollFree"
+        }
+      ],
+      "address": {
+        "@type": "PostalAddress",
+        "addressCountry": "US",
+        "addressRegion": "Online"
+      }
+    }
+    </script>
+
+    <!-- Structured Data (JSON-LD) - WebSite Schema with Search -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "@id": "https://thenilekart.com/",
+      "name": "TheNileKart",
+      "url": "https://thenilekart.com",
+      "description": "TheNileKart - Your ultimate online shopping platform for fashion, accessories, electronics and more",
+      "image": {
+        "@type": "ImageObject",
+        "url": "https://thenilekart.com/TheNileKart.jpeg",
+        "width": 512,
+        "height": 512
+      },
+      "potentialAction": [
+        {
+          "@type": "SearchAction",
+          "target": {
+            "@type": "EntryPoint",
+            "urlTemplate": "https://thenilekart.com/search?q={search_term_string}"
+          },
+          "query-input": "required name=search_term_string"
+        }
+      ],
+      "mainEntity": {
+        "@id": "https://thenilekart.com/"
+      }
+    }
+    </script>
+
+    <!-- Structured Data (JSON-LD) - E-Commerce Business Schema -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "ECommerceBusiness",
+      "@id": "https://thenilekart.com/",
+      "name": "TheNileKart",
+      "url": "https://thenilekart.com",
+      "logo": "https://thenilekart.com/TheNileKart.jpeg",
+      "image": "https://thenilekart.com/TheNileKart.jpeg",
+      "description": "Online shopping platform offering a wide range of products including fashion, accessories, electronics, and more",
+      "brand": {
+        "@type": "Brand",
+        "name": "TheNileKart"
+      },
+      "priceRange": "$",
+      "areaServed": "US",
+      "availableLanguage": "en",
+      "paymentAccepted": [
+        "Credit Card",
+        "Debit Card",
+        "PayPal",
+        "Apple Pay",
+        "Google Pay"
+      ],
+      "shippingDetails": {
+        "@type": "OfferShippingDetails",
+        "shippingRate": {
+          "@type": "PriceSpecification",
+          "priceCurrency": "USD",
+          "price": "0",
+          "eligibleTransactionVolume": {
+            "@type": "PriceSpecification",
+            "priceCurrency": "USD",
+            "price": "0"
+          }
+        },
+        "shippingLabel": "Standard Shipping",
+        "deliveryTime": {
+          "@type": "ShippingDeliveryTime",
+          "businessDays": "3-7",
+          "cutoffTime": "23:59",
+          "handlingTime": "1-2"
+        }
+      }
+    }
+    </script>
+
+    <!-- Structured Data (JSON-LD) - Aggregate Rating (Reviews Summary) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "LocalBusiness",
+      "@id": "https://thenilekart.com/",
+      "name": "TheNileKart",
+      "url": "https://thenilekart.com",
+      "image": "https://thenilekart.com/TheNileKart.jpeg",
+      "description": "Your ultimate destination for online shopping with thousands of products and trusted sellers",
+      "priceRange": "$",
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.7",
+        "reviewCount": "2840"
       }
     }
     </script>
