@@ -2234,49 +2234,48 @@ router.get('/customers', [authenticateToken, requireSeller], async (req, res) =>
     
     console.log(`📋 [GET-CUSTOMERS] Seller ${seller_id} requesting customer list`);
 
-    // First get all customers
+    // Get all customers with their default address in a single efficient query
     const customersResult = await db.query(
       `SELECT 
         u.id,
         u.full_name,
         u.email,
         u.phone,
-        u.created_at
+        u.created_at,
+        CASE 
+          WHEN a.id IS NOT NULL THEN row_to_json(a)
+          ELSE NULL
+        END as default_address
       FROM users u
+      LEFT JOIN addresses a ON u.id = a.user_id AND a.is_default = true
       WHERE u.user_type = 'customer'
       ORDER BY u.created_at DESC`
     );
 
     console.log(`✅ [GET-CUSTOMERS] Found ${customersResult.rows.length} customers`);
 
-    // Get addresses for all customers
-    const customersWithAddresses = [];
-    for (const customer of customersResult.rows) {
-      const addressResult = await db.query(
-        `SELECT * FROM addresses WHERE user_id = $1 AND is_default = true LIMIT 1`,
-        [customer.id]
-      );
-      
-      const address = addressResult.rows.length > 0 ? {
-        address_line1: addressResult.rows[0].address_line1,
-        address_line2: addressResult.rows[0].address_line2,
-        city: addressResult.rows[0].city,
-        state: addressResult.rows[0].state,
-        postal_code: addressResult.rows[0].postal_code,
-        country: addressResult.rows[0].country,
-        is_default: addressResult.rows[0].is_default
-      } : null;
-      
-      customersWithAddresses.push({
-        ...customer,
-        default_address: address
-      });
-    }
+    // Clean up addresses - only keep relevant fields
+    const cleanedCustomers = customersResult.rows.map(customer => ({
+      id: customer.id,
+      full_name: customer.full_name,
+      email: customer.email,
+      phone: customer.phone,
+      created_at: customer.created_at,
+      default_address: customer.default_address ? {
+        address_line1: customer.default_address.address_line1,
+        address_line2: customer.default_address.address_line2,
+        city: customer.default_address.city,
+        state: customer.default_address.state,
+        postal_code: customer.default_address.postal_code,
+        country: customer.default_address.country,
+        is_default: customer.default_address.is_default
+      } : null
+    }));
 
     res.json({
       success: true,
-      customers: customersWithAddresses,
-      count: customersWithAddresses.length
+      customers: cleanedCustomers,
+      count: cleanedCustomers.length
     });
 
   } catch (error) {
