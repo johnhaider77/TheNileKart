@@ -497,21 +497,15 @@
   line-height: 1;
 }
 
-/* Mobile Menu Button */
+/* Mobile Menu Button - shown on all screen sizes */
 .navbar .mobile-menu-btn {
-  display: none;
+  display: block;
   background: none;
   border: none;
   cursor: pointer;
   padding: 0.5rem;
   z-index: 1001;
   position: relative;
-}
-
-@media (max-width: 768px) {
-  .navbar .mobile-menu-btn {
-    display: block;
-  }
 }
 
 .navbar .hamburger {
