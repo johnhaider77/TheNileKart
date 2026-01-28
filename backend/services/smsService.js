@@ -135,10 +135,31 @@ class SMSService {
         console.error('Full error:', JSON.stringify(error, null, 2));
       }
       
-      // Use fallback for development/testing or Twilio errors
+      // CRITICAL: Return error instead of success for actual SMS failures
+      // This prevents UI from showing success when SMS wasn't sent
       const formattedPhone = this.formatUAEPhoneNumber(phoneNumber);
-      console.warn(`⚠️  Falling back to console: ${error.message}`);
-      return this.consoleFallback(formattedPhone, code, `SMS failed: ${error.message}`);
+      
+      // Handle specific Twilio errors
+      if (error.code === 21612) {
+        const errorMsg = 'SMS service: Trial account cannot send to international numbers. Please verify the phone number in Twilio Console or upgrade your account to paid.';
+        console.error('📍 ' + errorMsg);
+        return {
+          success: false,
+          error: errorMsg,
+          errorCode: error.code,
+          to: formattedPhone
+        };
+      }
+      
+      // For any other error, return failure (not success)
+      console.warn(`❌ SMS sending failed, NOT returning success`);
+      return {
+        success: false,
+        error: error.message,
+        errorCode: error.code,
+        errorStatus: error.status,
+        to: formattedPhone
+      };
     }
   }
 

@@ -710,9 +710,21 @@ router.post('/forgot-password-mobile', async (req, res) => {
     try {
       smsResult = await smsService.sendOTP(formattedPhone, otpCode);
       console.log(`📱 SMS result:`, smsResult);
+      
+      // Check if SMS actually sent (not just returned success from console fallback)
+      if (!smsResult.success) {
+        console.error('❌ SMS failed:', smsResult.error);
+        return res.status(500).json({
+          success: false,
+          message: 'Failed to send OTP: ' + smsResult.error
+        });
+      }
     } catch (smsError) {
       console.error('❌ SMS error:', smsError);
-      throw smsError;
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to send OTP: ' + smsError.message
+      });
     }
     
     if (smsResult.fallback) {
