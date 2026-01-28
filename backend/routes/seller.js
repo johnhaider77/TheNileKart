@@ -2234,23 +2234,43 @@ router.get('/customers', [authenticateToken, requireSeller], async (req, res) =>
     
     console.log(`📋 [GET-CUSTOMERS] Seller ${seller_id} requesting customer list`);
 
-    // Get all customers with their default address in a single efficient query
-    const customersResult = await db.query(
-      `SELECT 
-        u.id,
-        u.full_name,
-        u.email,
-        u.phone,
-        u.created_at,
-        CASE 
-          WHEN a.id IS NOT NULL THEN row_to_json(a)
-          ELSE NULL
-        END as default_address
-      FROM users u
-      LEFT JOIN addresses a ON u.id = a.user_id AND a.is_default = true
-      WHERE u.user_type = 'customer'
-      ORDER BY u.created_at DESC`
-    );
+    // Get all customers - try with addresses table if it exists, otherwise just get users
+    let customersResult;
+    
+    try {
+      // Try to get customers with addresses (if addresses table exists)
+      customersResult = await db.query(
+        `SELECT 
+          u.id,
+          u.full_name,
+          u.email,
+          u.phone,
+          u.created_at,
+          CASE 
+            WHEN a.id IS NOT NULL THEN row_to_json(a)
+            ELSE NULL
+          END as default_address
+        FROM users u
+        LEFT JOIN addresses a ON u.id = a.user_id AND a.is_default = true
+        WHERE u.user_type = 'customer'
+        ORDER BY u.created_at DESC`
+      );
+    } catch (joinError) {
+      // If addresses table doesn't exist, just get customers without addresses
+      console.warn('⚠️  [GET-CUSTOMERS] Addresses table not found, fetching customers without addresses');
+      customersResult = await db.query(
+        `SELECT 
+          u.id,
+          u.full_name,
+          u.email,
+          u.phone,
+          u.created_at,
+          NULL as default_address
+        FROM users u
+        WHERE u.user_type = 'customer'
+        ORDER BY u.created_at DESC`
+      );
+    }
 
     console.log(`✅ [GET-CUSTOMERS] Found ${customersResult.rows.length} customers`);
 
