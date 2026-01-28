@@ -4,39 +4,39 @@
   "description": "TheNileKart is your ultimate online shopping destination. Browse and shop a wide variety of products including fashion, accessories, and more. Fast delivery and secure payments.",
   "icons": [
     {
-      "src": "favicon.ico",
+      "src": "logo.svg?v=20250128c",
+      "type": "image/svg+xml",
+      "sizes": "any",
+      "purpose": "any"
+    },
+    {
+      "src": "favicon.ico?v=20250128c",
       "type": "image/x-icon",
       "sizes": "16x16 32x32 48x48"
     },
     {
-      "src": "logo192.png",
+      "src": "logo192.png?v=20250128c",
       "type": "image/png",
       "sizes": "192x192",
       "purpose": "any"
     },
     {
-      "src": "logo192.png",
+      "src": "logo192.png?v=20250128c",
       "type": "image/png",
       "sizes": "192x192",
       "purpose": "maskable"
     },
     {
-      "src": "logo512.png",
+      "src": "logo512.png?v=20250128c",
       "type": "image/png",
       "sizes": "512x512",
       "purpose": "any"
     },
     {
-      "src": "logo512.png",
+      "src": "logo512.png?v=20250128c",
       "type": "image/png",
       "sizes": "512x512",
       "purpose": "maskable"
-    },
-    {
-      "src": "TheNileKart.svg",
-      "type": "image/svg+xml",
-      "sizes": "512x512",
-      "purpose": "any"
     }
   ],
   "start_url": "/",
