@@ -686,12 +686,17 @@ router.post('/forgot-password-mobile', async (req, res) => {
 
     // Store OTP in database
     try {
+      // First delete any existing code for this phone
       await db.query(
-        `INSERT INTO password_reset_codes (phone, code, expires_at, reset_type) 
-         VALUES ($1, $2, $3, 'phone')
-         ON CONFLICT (phone, reset_type) 
-         DO UPDATE SET code = EXCLUDED.code, expires_at = EXCLUDED.expires_at, created_at = CURRENT_TIMESTAMP`,
-        [formattedPhone, otpCode, expiresAt]
+        'DELETE FROM password_reset_codes WHERE phone = $1 AND reset_type = $2',
+        [formattedPhone, 'phone']
+      );
+      
+      // Then insert the new code
+      await db.query(
+        `INSERT INTO password_reset_codes (phone, code, expires_at, reset_type, created_at) 
+         VALUES ($1, $2, $3, $4, CURRENT_TIMESTAMP)`,
+        [formattedPhone, otpCode, expiresAt, 'phone']
       );
       console.log(`✅ OTP stored in database for ${formattedPhone}`);
     } catch (dbError) {
