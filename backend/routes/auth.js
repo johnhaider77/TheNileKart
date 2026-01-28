@@ -682,17 +682,33 @@ router.post('/forgot-password-mobile', async (req, res) => {
     const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes from now
 
+    console.log(`📝 Storing OTP in database for ${formattedPhone}`);
+
     // Store OTP in database
-    await db.query(
-      `INSERT INTO password_reset_codes (phone, code, expires_at, reset_type) 
-       VALUES ($1, $2, $3, 'phone')
-       ON CONFLICT (phone, reset_type) 
-       DO UPDATE SET code = EXCLUDED.code, expires_at = EXCLUDED.expires_at, created_at = CURRENT_TIMESTAMP`,
-      [formattedPhone, otpCode, expiresAt]
-    );
+    try {
+      await db.query(
+        `INSERT INTO password_reset_codes (phone, code, expires_at, reset_type) 
+         VALUES ($1, $2, $3, 'phone')
+         ON CONFLICT (phone, reset_type) 
+         DO UPDATE SET code = EXCLUDED.code, expires_at = EXCLUDED.expires_at, created_at = CURRENT_TIMESTAMP`,
+        [formattedPhone, otpCode, expiresAt]
+      );
+      console.log(`✅ OTP stored in database for ${formattedPhone}`);
+    } catch (dbError) {
+      console.error('❌ Database error storing OTP:', dbError);
+      throw dbError;
+    }
 
     // Send SMS with OTP
-    const smsResult = await smsService.sendOTP(formattedPhone, otpCode);
+    console.log(`📱 Sending SMS with OTP to ${formattedPhone}`);
+    let smsResult;
+    try {
+      smsResult = await smsService.sendOTP(formattedPhone, otpCode);
+      console.log(`📱 SMS result:`, smsResult);
+    } catch (smsError) {
+      console.error('❌ SMS error:', smsError);
+      throw smsError;
+    }
     
     if (smsResult.fallback) {
       console.log(`📱 SMS fallback used: ${smsResult.reason}`);
@@ -705,7 +721,9 @@ router.post('/forgot-password-mobile', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Forgot password mobile error:', error);
+    console.error('❌ Forgot password mobile error:', error);
+    console.error('Error message:', error.message);
+    console.error('Error stack:', error.stack);
     res.status(500).json({
       success: false,
       message: 'Server error sending OTP'

@@ -12,16 +12,20 @@ class SMSService {
   async initialize() {
     try {
       // Check if Twilio credentials are configured
-      if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN) {
+      if (process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_PHONE_NUMBER) {
         this.client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
         console.log('📱 SMS service initialized with Twilio credentials');
+        console.log(`📱 Twilio Account SID: ${process.env.TWILIO_ACCOUNT_SID.substring(0, 8)}...`);
+        console.log(`📱 Twilio Phone Number: ${process.env.TWILIO_PHONE_NUMBER}`);
         this.isInitialized = true;
         return;
       }
 
       // For development, use console fallback with clear instructions
-      console.log('📱 SMS service running in development mode');
-      console.log('📱 To enable real SMS sending, set TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, and TWILIO_PHONE_NUMBER in .env file');
+      console.log('📱 SMS service running in development/fallback mode');
+      if (!process.env.TWILIO_ACCOUNT_SID) console.log('⚠️  Missing: TWILIO_ACCOUNT_SID');
+      if (!process.env.TWILIO_AUTH_TOKEN) console.log('⚠️  Missing: TWILIO_AUTH_TOKEN');
+      if (!process.env.TWILIO_PHONE_NUMBER) console.log('⚠️  Missing: TWILIO_PHONE_NUMBER');
       console.log('📱 OTP codes will be displayed in console');
       
       this.client = null;
@@ -90,14 +94,19 @@ class SMSService {
       const formattedPhone = this.formatUAEPhoneNumber(phoneNumber);
 
       if (!this.client) {
-        return this.consoleFallback(formattedPhone, code, 'Development mode - SMS displayed in console');
+        console.warn('⚠️  SMS service not initialized - using console fallback');
+        return this.consoleFallback(formattedPhone, code, 'SMS service not configured - using console fallback');
       }
 
       if (!process.env.TWILIO_PHONE_NUMBER) {
+        console.warn('⚠️  TWILIO_PHONE_NUMBER not configured - using console fallback');
         return this.consoleFallback(formattedPhone, code, 'TWILIO_PHONE_NUMBER not configured');
       }
 
       const message = `Your TheNileKart password reset code is: ${code}. This code expires in 15 minutes. Do not share this code with anyone.`;
+
+      console.log(`📱 Attempting to send SMS to ${formattedPhone}...`);
+      console.log(`📱 From number: ${process.env.TWILIO_PHONE_NUMBER}`);
 
       const result = await this.client.messages.create({
         body: message,
@@ -105,7 +114,7 @@ class SMSService {
         to: formattedPhone
       });
 
-      console.log(`📱 OTP SMS sent to ${formattedPhone}`);
+      console.log(`✅ OTP SMS sent successfully to ${formattedPhone}`);
       console.log(`📱 Message SID: ${result.sid}`);
       console.log(`📱 Status: ${result.status}`);
 
@@ -117,11 +126,19 @@ class SMSService {
       };
 
     } catch (error) {
-      console.error('Failed to send OTP SMS:', error.message);
+      console.error('❌ Failed to send OTP SMS:', error.message);
+      console.error('Error Code:', error.code);
+      console.error('Error Status:', error.status);
       
-      // Still provide fallback for development
+      // Log full error for debugging in production
+      if (process.env.NODE_ENV === 'production') {
+        console.error('Full error:', JSON.stringify(error, null, 2));
+      }
+      
+      // Use fallback for development/testing or Twilio errors
       const formattedPhone = this.formatUAEPhoneNumber(phoneNumber);
-      return this.consoleFallback(formattedPhone, code, `SMS sending failed: ${error.message}`);
+      console.warn(`⚠️  Falling back to console: ${error.message}`);
+      return this.consoleFallback(formattedPhone, code, `SMS failed: ${error.message}`);
     }
   }
 
