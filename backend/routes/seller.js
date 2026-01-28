@@ -2242,15 +2242,18 @@ router.get('/customers', [authenticateToken, requireSeller], async (req, res) =>
         u.email,
         u.phone,
         u.created_at,
-        json_build_object(
-          'address_line1', a.address_line1,
-          'address_line2', a.address_line2,
-          'city', a.city,
-          'state', a.state,
-          'postal_code', a.postal_code,
-          'country', a.country,
-          'is_default', a.is_default
-        ) as default_address
+        CASE 
+          WHEN a.id IS NOT NULL THEN json_build_object(
+            'address_line1', a.address_line1,
+            'address_line2', a.address_line2,
+            'city', a.city,
+            'state', a.state,
+            'postal_code', a.postal_code,
+            'country', a.country,
+            'is_default', a.is_default
+          )
+          ELSE NULL
+        END as default_address
       FROM users u
       LEFT JOIN addresses a ON u.id = a.user_id AND a.is_default = true
       WHERE u.user_type = 'customer'
