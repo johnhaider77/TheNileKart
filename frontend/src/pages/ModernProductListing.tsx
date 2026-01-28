@@ -161,7 +161,7 @@ const Footer: React.FC = () => {
           <div className="footer-content">
             <div className="footer-section">
               <div className="footer-logo">
-                <img src="/TheNileKart.jpeg" alt="TheNileKart" className="footer-logo-img" />
+                <img src="/TheNileKart.svg" alt="TheNileKart" className="footer-logo-img" />
                 <h3>TheNileKart</h3>
               </div>
               <p>Your trusted marketplace for quality products from around the world.</p>

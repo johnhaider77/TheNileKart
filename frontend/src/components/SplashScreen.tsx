@@ -42,7 +42,7 @@ const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete, duration = 1000
       {/* Logo container with shadow effect */}
       <div className={`splash-logo-container ${isAnimating ? 'hide' : ''}`}>
         <img
-          src="/TheNileKart.jpeg"
+          src="/TheNileKart.svg"
           alt="TheNileKart Splash"
           className={`splash-image ${isAnimating ? 'zoom-out-image' : ''}`}
         />

@@ -58,7 +58,7 @@ const Navbar: React.FC = () => {
           <Link to="/" className="brand-link" onClick={closeMobileMenu}>
             <div className="header-logo">
               <img 
-                src="/TheNileKart.jpeg" 
+                src="/TheNileKart.svg" 
                 alt="TheNileKart" 
                 className="header-logo-img"
               />
