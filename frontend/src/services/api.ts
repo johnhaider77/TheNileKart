@@ -353,6 +353,9 @@ export const sellerAPI = {
   getProductOffers: (productId: string) => api.get(`/seller/products/${productId}/offers`),
   updateProductOffers: (productId: string, offers: string[]) => 
     api.put(`/seller/products/${productId}/offers`, { offers }),
+
+  // Customers
+  getCustomers: () => api.get('/seller/customers'),
 };
 
 export default api;

@@ -2223,5 +2223,57 @@ router.patch('/products/:productId/sizes/:size/:colour/colour', [
   }
 });
 
+/**
+ * GET /seller/customers
+ * Get all signed up customers with their details
+ * Requires: Seller authentication
+ */
+router.get('/customers', [authenticateToken, requireSeller], async (req, res) => {
+  try {
+    const seller_id = req.user.id;
+    
+    console.log(`📋 [GET-CUSTOMERS] Seller ${seller_id} requesting customer list`);
+
+    // Get all customers with their default address
+    const customersResult = await db.query(
+      `SELECT 
+        u.id,
+        u.full_name,
+        u.email,
+        u.phone,
+        u.created_at,
+        json_build_object(
+          'address_line1', a.address_line1,
+          'address_line2', a.address_line2,
+          'city', a.city,
+          'state', a.state,
+          'postal_code', a.postal_code,
+          'country', a.country,
+          'is_default', a.is_default
+        ) as default_address
+      FROM users u
+      LEFT JOIN addresses a ON u.id = a.user_id AND a.is_default = true
+      WHERE u.user_type = 'customer'
+      ORDER BY u.created_at DESC`
+    );
+
+    console.log(`✅ [GET-CUSTOMERS] Found ${customersResult.rows.length} customers`);
+
+    res.json({
+      success: true,
+      customers: customersResult.rows,
+      count: customersResult.rows.length
+    });
+
+  } catch (error) {
+    console.error('❌ [GET-CUSTOMERS] Error fetching customers:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to fetch customer list',
+      error: error.message 
+    });
+  }
+});
+
 module.exports = router;
 

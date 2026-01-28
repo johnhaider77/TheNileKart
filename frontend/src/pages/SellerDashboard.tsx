@@ -1020,6 +1020,14 @@ const SellerDashboard: React.FC = () => {
                 <p>Check pending orders</p>
               </div>
             </Link>
+
+            <Link to="/seller/customers" className="action-card card">
+              <div className="card-body text-center">
+                <div className="action-icon">👥</div>
+                <h3>View Customers</h3>
+                <p>See all signed up customers</p>
+              </div>
+            </Link>
           </div>
         </div>
 
