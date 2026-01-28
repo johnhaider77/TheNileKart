@@ -4,16 +4,39 @@
   "description": "TheNileKart is your ultimate online shopping destination. Browse and shop a wide variety of products including fashion, accessories, and more. Fast delivery and secure payments.",
   "icons": [
     {
-      "src": "TheNileKart.jpeg",
-      "type": "image/jpeg",
+      "src": "favicon.ico",
+      "type": "image/x-icon",
+      "sizes": "16x16 32x32 48x48"
+    },
+    {
+      "src": "logo192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any"
+    },
+    {
+      "src": "logo192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "maskable"
+    },
+    {
+      "src": "logo512.png",
+      "type": "image/png",
       "sizes": "512x512",
       "purpose": "any"
+    },
+    {
+      "src": "logo512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "maskable"
     },
     {
       "src": "TheNileKart.jpeg",
       "type": "image/jpeg",
       "sizes": "512x512",
-      "purpose": "maskable"
+      "purpose": "any"
     }
   ],
   "start_url": "/",
@@ -25,15 +48,15 @@
   "categories": ["shopping", "business"],
   "screenshots": [
     {
-      "src": "TheNileKart.jpeg",
+      "src": "logo512.png",
       "sizes": "512x512",
-      "type": "image/jpeg",
+      "type": "image/png",
       "form_factor": "wide"
     },
     {
-      "src": "TheNileKart.jpeg",
-      "sizes": "512x512",
-      "type": "image/jpeg",
+      "src": "logo192.png",
+      "sizes": "192x192",
+      "type": "image/png",
       "form_factor": "narrow"
     }
   ],
