@@ -2234,38 +2234,49 @@ router.get('/customers', [authenticateToken, requireSeller], async (req, res) =>
     
     console.log(`📋 [GET-CUSTOMERS] Seller ${seller_id} requesting customer list`);
 
-    // Get all customers with their default address
+    // First get all customers
     const customersResult = await db.query(
       `SELECT 
         u.id,
         u.full_name,
         u.email,
         u.phone,
-        u.created_at,
-        CASE 
-          WHEN a.id IS NOT NULL THEN json_build_object(
-            'address_line1', a.address_line1,
-            'address_line2', a.address_line2,
-            'city', a.city,
-            'state', a.state,
-            'postal_code', a.postal_code,
-            'country', a.country,
-            'is_default', a.is_default
-          )
-          ELSE NULL
-        END as default_address
+        u.created_at
       FROM users u
-      LEFT JOIN addresses a ON u.id = a.user_id AND a.is_default = true
       WHERE u.user_type = 'customer'
       ORDER BY u.created_at DESC`
     );
 
     console.log(`✅ [GET-CUSTOMERS] Found ${customersResult.rows.length} customers`);
 
+    // Get addresses for all customers
+    const customersWithAddresses = [];
+    for (const customer of customersResult.rows) {
+      const addressResult = await db.query(
+        `SELECT * FROM addresses WHERE user_id = $1 AND is_default = true LIMIT 1`,
+        [customer.id]
+      );
+      
+      const address = addressResult.rows.length > 0 ? {
+        address_line1: addressResult.rows[0].address_line1,
+        address_line2: addressResult.rows[0].address_line2,
+        city: addressResult.rows[0].city,
+        state: addressResult.rows[0].state,
+        postal_code: addressResult.rows[0].postal_code,
+        country: addressResult.rows[0].country,
+        is_default: addressResult.rows[0].is_default
+      } : null;
+      
+      customersWithAddresses.push({
+        ...customer,
+        default_address: address
+      });
+    }
+
     res.json({
       success: true,
-      customers: customersResult.rows,
-      count: customersResult.rows.length
+      customers: customersWithAddresses,
+      count: customersWithAddresses.length
     });
 
   } catch (error) {
