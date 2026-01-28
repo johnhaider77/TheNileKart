@@ -149,6 +149,10 @@ const OfferProductsPage: React.FC = () => {
   const [animatingProduct, setAnimatingProduct] = useState<number | null>(null);
   const [showSizeSelectionPopup, setShowSizeSelectionPopup] = useState(false);
   const [popupProduct, setPopupProduct] = useState<Product | null>(null);
+  // Pagination state for infinite scroll
+  const [offerPage, setOfferPage] = useState(1);
+  const [offerHasMore, setOfferHasMore] = useState(true);
+  const [offerLoading, setOfferLoading] = useState(true);
 
   // Initialize metrics tracking for offer page
   const { trackOfferPage } = useMetrics({ 
@@ -169,48 +173,86 @@ const OfferProductsPage: React.FC = () => {
   };
   const navigate = useNavigate();
 
+  // Fetch offer products on component mount
   useEffect(() => {
     if (offerCode) {
-      fetchOfferProducts();
+      fetchOfferProducts(1);
     }
   }, [offerCode]);
 
-  const fetchOfferProducts = async () => {
+  // Infinite scroll effect for offer products
+  useEffect(() => {
+    const handleScroll = () => {
+      if (
+        window.innerHeight + document.documentElement.scrollTop >=
+        document.documentElement.offsetHeight - 800 && // Trigger 800px before bottom
+        offerHasMore &&
+        !offerLoading
+      ) {
+        fetchOfferProducts(offerPage + 1);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [offerHasMore, offerLoading, offerPage]);
+
+  const fetchOfferProducts = async (pageNum: number = 1) => {
     if (!offerCode) return;
     
     try {
-      setLoading(true);
+      // Always set loading state for first page
+      if (pageNum === 1) {
+        setLoading(true);
+      } else {
+        setOfferLoading(true);
+      }
       setError('');
 
-      console.log('🔍 Fetching products for offer:', { offerCode });
+      console.log('🔍 Fetching products for offer:', { offerCode, pageNum });
 
-      // Get offer products
-      const response = await api.get(`/offers/${offerCode}/products`);
+      // Get offer products with pagination
+      const limit = pageNum === 1 ? 10 : 4; // 10 for initial load, 4 for subsequent loads
+      const response = await api.get(`/offers/${offerCode}/products?page=${pageNum}&limit=${limit}`);
       
       console.log('📥 Offer products response:', {
         success: response.data.success,
         productCount: response.data.products?.length || 0,
+        pageNum,
+        limit,
         products: response.data.products
       });
       
       if (response.data.success) {
-        setProducts(response.data.products);
+        // For first page, replace products; for subsequent pages, append
+        if (pageNum === 1) {
+          setProducts(response.data.products);
+        } else {
+          setProducts(prev => [...prev, ...(response.data.products || [])]);
+        }
         
         // Get offer info from first product if available
-        if (response.data.products.length > 0) {
+        if (response.data.products.length > 0 && pageNum === 1) {
           // You might want to add offer info to the API response
           setOfferInfo({
             name: `${offerCode?.toUpperCase()} Offer`,
             description: `Special products available under ${offerCode} offer`
           });
           console.log('✅ Found', response.data.products.length, 'products for offer', offerCode);
-        } else {
+        } else if (pageNum === 1) {
           setOfferInfo({
             name: `${offerCode?.toUpperCase()} Offer`,
             description: 'No products currently available for this offer'
           });
           console.warn('⚠️ No products found for offer:', offerCode);
         }
+
+        // Check if there are more products to load
+        const totalProducts = response.data.pagination?.totalProducts || 0;
+        const hasMore = response.data.pagination?.hasNextPage || false;
+        console.log('Total offer products:', totalProducts, 'Has more:', hasMore);
+        setOfferHasMore(hasMore);
+        setOfferPage(pageNum);
       } else {
         setError('Failed to load offer products');
         console.error('❌ API returned success: false');
@@ -224,6 +266,7 @@ const OfferProductsPage: React.FC = () => {
       }
     } finally {
       setLoading(false);
+      setOfferLoading(false);
     }
   };
 

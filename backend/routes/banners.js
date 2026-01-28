@@ -370,20 +370,31 @@ router.delete('/banners/:id', authenticateToken, async (req, res) => {
 router.get('/offers/:offerCode/products', async (req, res) => {
   try {
     const { offerCode } = req.params;
+    const { page = 1, limit = 10 } = req.query;
     
+    const pageNum = parseInt(page) || 1;
+    const limitNum = parseInt(limit) || 10;
+    const offset = (pageNum - 1) * limitNum;
+
     console.log('🔍 Fetching products for offer:', {
       offerCode,
+      page: pageNum,
+      limit: limitNum,
+      offset,
       timestamp: new Date().toISOString()
     });
 
-    // First, get all products linked to this offer (regardless of active status)
-    const allLinkedResult = await db.query(`
-      SELECT COUNT(*) as total_linked
-      FROM product_offers po
-      WHERE po.offer_code = $1
+    // First, get total count of active products for this offer
+    const countResult = await db.query(`
+      SELECT COUNT(*) as total
+      FROM products p
+      JOIN product_offers po ON p.id = po.product_id
+      WHERE po.offer_code = $1 AND p.is_active = true
     `, [offerCode]);
 
-    // Then get only active products
+    const totalProducts = parseInt(countResult.rows[0]?.total || 0);
+    
+    // Then get paginated active products
     const result = await db.query(`
       SELECT p.*, u.full_name as seller_name
       FROM products p
@@ -391,17 +402,21 @@ router.get('/offers/:offerCode/products', async (req, res) => {
       JOIN product_offers po ON p.id = po.product_id
       WHERE po.offer_code = $1 AND p.is_active = true
       ORDER BY p.created_at DESC
-    `, [offerCode]);
+      LIMIT $2 OFFSET $3
+    `, [offerCode, limitNum, offset]);
 
     console.log('📦 Products found for offer:', {
       offerCode,
-      totalLinked: allLinkedResult.rows[0]?.total_linked || 0,
-      activeCount: result.rows.length,
-      activeProductIds: result.rows.map(p => p.id),
-      inactiveCount: (allLinkedResult.rows[0]?.total_linked || 0) - result.rows.length
+      pageNum,
+      totalProducts,
+      currentPageCount: result.rows.length,
+      offset,
+      limit: limitNum,
+      hasNextPage: offset + limitNum < totalProducts,
+      totalPages: Math.ceil(totalProducts / limitNum)
     });
 
-    if (result.rows.length === 0) {
+    if (result.rows.length === 0 && pageNum === 1) {
       console.log('⚠️ No active products found for this offer. Checking product_offers table:');
       
       // Debug query to see what's in product_offers
@@ -416,7 +431,18 @@ router.get('/offers/:offerCode/products', async (req, res) => {
       console.log('🐛 Debug - product_offers entries:', debugResult.rows);
     }
 
-    res.json({ success: true, products: result.rows });
+    res.json({ 
+      success: true, 
+      products: result.rows,
+      pagination: {
+        currentPage: pageNum,
+        totalPages: Math.ceil(totalProducts / limitNum),
+        totalProducts: totalProducts,
+        hasNextPage: offset + limitNum < totalProducts,
+        hasPrevPage: pageNum > 1,
+        limit: limitNum
+      }
+    });
   } catch (error) {
     console.error('Error fetching products by offer:', error);
     res.status(500).json({ success: false, message: 'Failed to fetch products' });
