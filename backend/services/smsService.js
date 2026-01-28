@@ -141,8 +141,8 @@ class SMSService {
       
       // Handle specific Twilio errors
       if (error.code === 21612) {
-        const errorMsg = 'SMS service: Trial account cannot send to international numbers. Please verify the phone number in Twilio Console or upgrade your account to paid.';
-        console.error('📍 ' + errorMsg);
+        const errorMsg = 'Mobile OTP service is currently down, use your Email to reset password';
+        console.error('📍 Twilio Error 21612: ' + error.message);
         return {
           success: false,
           error: errorMsg,
