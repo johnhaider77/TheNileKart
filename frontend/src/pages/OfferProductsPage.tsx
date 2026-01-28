@@ -213,7 +213,9 @@ const OfferProductsPage: React.FC = () => {
 
       // Get offer products with pagination
       const limit = pageNum === 1 ? 10 : 4; // 10 for initial load, 4 for subsequent loads
-      const response = await api.get(`/offers/${offerCode}/products?page=${pageNum}&limit=${limit}`);
+      const response = await api.get(`/offers/${offerCode}/products`, { 
+        params: { page: pageNum, limit }
+      });
       
       console.log('📥 Offer products response:', {
         success: response.data.success,
