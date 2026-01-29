@@ -8,8 +8,8 @@ export const getImageUrl = (imagePath: string | undefined): string => {
     return 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=300&h=200&fit=crop';
   }
 
-  // Use CloudFront CDN for images if environment variable is set
-  const cdnUrl = process.env.REACT_APP_CDN_IMAGES_URL;
+  // Use CloudFront CDN for images - always use CDN URL
+  const cdnUrl = process.env.REACT_APP_CDN_IMAGES_URL || 'https://dmfx2utixco0d.cloudfront.net';
   
   // Check if it's an S3 URL (direct from API)
   if (imagePath.includes('thenilekart-images-prod.s3')) {
@@ -66,21 +66,11 @@ export const getBannerImageUrl = (imagePath: string | undefined): string => {
     return imagePath;
   }
 
-  // Use CloudFront CDN if available
-  const cdnUrl = process.env.REACT_APP_CDN_IMAGES_URL;
-  if (cdnUrl) {
-    if (imagePath.startsWith('/')) {
-      return `${cdnUrl}${imagePath}`;
-    } else {
-      return `${cdnUrl}/${imagePath}`;
-    }
-  }
-
-  // Fallback to API
-  const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+  // Use CloudFront CDN - always use CDN URL
+  const cdnUrl = process.env.REACT_APP_CDN_IMAGES_URL || 'https://dmfx2utixco0d.cloudfront.net';
   if (imagePath.startsWith('/')) {
-    return `${apiUrl}${imagePath}`;
+    return `${cdnUrl}${imagePath}`;
   } else {
-    return `${apiUrl}/${imagePath}`;
+    return `${cdnUrl}/${imagePath}`;
   }
 };
