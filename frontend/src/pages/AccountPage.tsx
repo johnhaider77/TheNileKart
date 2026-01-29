@@ -311,7 +311,7 @@ const AccountPage: React.FC = () => {
     try {
       if (editingAddress?.id) {
         // Update existing address
-        const response = await api.put(`/api/auth/addresses/${editingAddress.id}`, newAddress);
+        const response = await api.put(`/auth/addresses/${editingAddress.id}`, newAddress);
         if (response.data.success) {
           fetchAddresses();
           setShowAddressForm(false);
@@ -346,7 +346,7 @@ const AccountPage: React.FC = () => {
   const handleDeleteAddress = async (addressId: number) => {
     if (window.confirm('Are you sure you want to delete this address?')) {
       try {
-        const response = await api.delete(`/api/auth/addresses/${addressId}`);
+        const response = await api.delete(`/auth/addresses/${addressId}`);
         if (response.data.success) {
           fetchAddresses();
         }
