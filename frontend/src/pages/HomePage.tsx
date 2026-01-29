@@ -9,6 +9,7 @@ import QuickViewModal from '../components/QuickViewModal';
 import ImageCarousel from '../components/ImageCarousel';
 import SplashScreen from '../components/SplashScreen';
 import { Product } from '../utils/types';
+import { getImageUrl } from '../utils/imageUrl';
 // Categories moved to Hamburger menu
 import { useMetrics } from '../hooks/useMetrics';
 import '../styles/HomePage.css';
@@ -757,9 +758,8 @@ const HomePage: React.FC = () => {
                             return img;
                           }
                           if (img.url) {
-                            // Add localhost prefix if URL doesn't start with http
-                            const fullUrl = img.url.startsWith('http') ? img.url : `http://localhost:5000${img.url}`;
-                            return fullUrl;
+                            // Use CDN for images
+                            return getImageUrl(img.url);
                           }
                           return img;
                         });
@@ -767,8 +767,7 @@ const HomePage: React.FC = () => {
                       }
                       // Handle database products with single image_url
                       if (product.image_url) {
-                        const imageUrl = product.image_url.startsWith('http') ? product.image_url : `http://localhost:5000${product.image_url}`;
-                        return [imageUrl];
+                        return [getImageUrl(product.image_url)];
                       }
                       // Fallback image
                       return ['https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=300&h=200&fit=crop'];
@@ -895,9 +894,8 @@ const HomePage: React.FC = () => {
                             return img;
                           }
                           if (img.url) {
-                            // Add localhost prefix if URL doesn't start with http
-                            const fullUrl = img.url.startsWith('http') ? img.url : `http://localhost:5000${img.url}`;
-                            return fullUrl;
+                            // Use CDN for images
+                            return getImageUrl(img.url);
                           }
                           return img;
                         });
@@ -905,8 +903,7 @@ const HomePage: React.FC = () => {
                       }
                       // Handle database products with single image_url
                       if (product.image_url) {
-                        const imageUrl = product.image_url.startsWith('http') ? product.image_url : `http://localhost:5000${product.image_url}`;
-                        return [imageUrl];
+                        return [getImageUrl(product.image_url)];
                       }
                       // Fallback image
                       return ['https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=300&h=200&fit=crop'];
@@ -1039,8 +1036,7 @@ const HomePage: React.FC = () => {
                         }
                         // Handle database products with single image_url
                         if (product.image_url) {
-                          const imageUrl = product.image_url.startsWith('http') ? product.image_url : `http://localhost:5000${product.image_url}`;
-                          return [imageUrl];
+                          return [getImageUrl(product.image_url)];
                         }
                         // Fallback image
                         return ['https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=300&h=200&fit=crop'];

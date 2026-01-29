@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import { getBannerImageUrl } from '../utils/imageUrl';
 import '../styles/components.css';
 
 interface Banner {
@@ -95,19 +96,7 @@ const BannerCarousel: React.FC = () => {
               backgroundImageUrl = banner.background_image;
             }
             
-            if (backgroundImageUrl.startsWith('http')) {
-              // Full URL (S3 or external)
-              imageUrl = backgroundImageUrl;
-            } else if (backgroundImageUrl.startsWith('/uploads')) {
-              // Path already includes /uploads
-              imageUrl = `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}${backgroundImageUrl}`;
-            } else if (backgroundImageUrl.startsWith('uploads')) {
-              // Path without leading slash
-              imageUrl = `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/${backgroundImageUrl}`;
-            } else {
-              // Just filename
-              imageUrl = `${process.env.REACT_APP_API_URL || 'http://localhost:5000'}/uploads/banners/${backgroundImageUrl}`;
-            }
+            imageUrl = getBannerImageUrl(backgroundImageUrl);
           }
 
           return (

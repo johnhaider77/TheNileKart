@@ -8,6 +8,7 @@ import { useMetrics } from '../hooks/useMetrics';
 import QuickViewModal from '../components/QuickViewModal';
 import ImageCarousel from '../components/ImageCarousel';
 import BannerCarousel from '../components/BannerCarousel';
+import { getImageUrl } from '../utils/imageUrl';
 import '../styles/global.css';
 
 // Utility function to calculate actual available stock for products with sizes
@@ -701,7 +702,7 @@ const ModernProductListing: React.FC = () => {
                       }
                       // Handle database products with single image_url
                       if (product.image_url) {
-                        const imageUrl = product.image_url.startsWith('http') ? product.image_url : `http://localhost:5000${product.image_url}`;
+                        const imageUrl = getImageUrl(product.image_url);
                         console.log('Single image URL for', product.name, ':', imageUrl);
                         return [imageUrl];
                       }

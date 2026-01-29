@@ -4,6 +4,7 @@ import { productsAPI } from '../services/api';
 import { useCart } from '../context/CartContext';
 import { Product } from '../utils/types';
 import QuickViewModal from '../components/QuickViewModal';
+import { getImageUrl } from '../utils/imageUrl';
 
 // Utility function to calculate actual available stock for products with sizes
 const getActualStock = (product: Product): number => {
@@ -308,7 +309,7 @@ const ProductListing: React.FC = () => {
                   {product.image_url && (
                     <div className="product-image">
                       <img 
-                        src={`http://localhost:5000${product.image_url}`}
+                        src={getImageUrl(product.image_url)}
                         alt={product.name}
                         onError={(e) => {
                           e.currentTarget.style.display = 'none';

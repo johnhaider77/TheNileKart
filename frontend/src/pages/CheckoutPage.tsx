@@ -8,6 +8,7 @@ import PaymentOptions from '../components/PaymentOptions';
 import PromoCodeCheckout from '../components/PromoCodeCheckout';
 import Toast from '../components/Toast';
 import { useMetrics } from '../hooks/useMetrics';
+import { getImageUrl } from '../utils/imageUrl';
 import '../styles/CheckoutPage.css';
 
 interface SavedAddress {
@@ -1156,15 +1157,15 @@ const CheckoutPage: React.FC = () => {
                             if (item.product.images && Array.isArray(item.product.images) && item.product.images.length > 0) {
                               const firstImage = item.product.images[0];
                               if (typeof firstImage === 'string') {
-                                return firstImage.startsWith('http') ? firstImage : `http://localhost:5000${firstImage}`;
+                                return getImageUrl(firstImage);
                               }
                               if (firstImage.url) {
-                                return firstImage.url.startsWith('http') ? firstImage.url : `http://localhost:5000${firstImage.url}`;
+                                return getImageUrl(firstImage.url);
                               }
                             }
                             // Handle products with single image_url field
                             if (item.product.image_url && typeof item.product.image_url === 'string') {
-                              return item.product.image_url.startsWith('http') ? item.product.image_url : `http://localhost:5000${item.product.image_url}`;
+                              return getImageUrl(item.product.image_url);
                             }
                             // Fallback placeholder
                             return 'https://via.placeholder.com/150';
