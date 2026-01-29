@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { CartProvider } from './context/CartContext';
@@ -21,6 +21,7 @@ import OfferProductsPage from './pages/OfferProductsPage';
 import SearchPage from './pages/SearchPage';
 import SellerPromoCode from './components/SellerPromoCode';
 import ViewCustomersPage from './pages/ViewCustomersPage';
+import MaintenancePage from './components/MaintenancePage';
 
 // Import components
 import Navbar from './components/Navbar';
@@ -36,6 +37,58 @@ import './App.css';
 function AppRoutes() {
   const { isAuthenticated, isSeller, isCustomer } = useAuth();
   const { showNotification, hideNotification } = useCart();
+  const [portalStatus, setPortalStatus] = useState<{
+    customer_portal_available: boolean;
+    seller_portal_available: boolean;
+    maintenance_message: string;
+  } | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchPortalStatus = async () => {
+      try {
+        const response = await fetch('/api/auth/portal-status');
+        if (response.ok) {
+          const data = await response.json();
+          setPortalStatus(data);
+        }
+      } catch (error) {
+        console.error('Error fetching portal status:', error);
+        // Default to portals being available
+        setPortalStatus({
+          customer_portal_available: true,
+          seller_portal_available: true,
+          maintenance_message: 'The site is currently under maintenance.'
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPortalStatus();
+    // Refresh portal status every 30 seconds
+    const interval = setInterval(fetchPortalStatus, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  if (loading || !portalStatus) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <span className="loading loading-spinner loading-lg"></span>
+      </div>
+    );
+  }
+
+  // Check if customer portal is down and user is trying to access it
+  if (isCustomer && !portalStatus.customer_portal_available) {
+    return <MaintenancePage portalType="customer" message={portalStatus.maintenance_message} />;
+  }
+
+  // Check if seller portal is down (but allow maryam.zaidi2904@gmail.com)
+  if (isSeller && !portalStatus.seller_portal_available) {
+    // Note: We can't check email here in AppRoutes, so we'll handle this in SellerDashboard
+    return <MaintenancePage portalType="seller" message={portalStatus.maintenance_message} />;
+  }
 
   return (
     <div className="App">

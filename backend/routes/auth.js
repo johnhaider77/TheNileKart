@@ -1187,4 +1187,112 @@ router.post('/register-with-otp', [
   }
 });
 
+// Get portal status (accessible to everyone)
+router.get('/portal-status', async (req, res) => {
+  try {
+    const result = await db.query(
+      `SELECT customer_portal_available, seller_portal_available, maintenance_message, updated_at 
+       FROM portal_status ORDER BY id DESC LIMIT 1`
+    );
+    
+    if (result.rows.length === 0) {
+      // Default: both portals are available
+      return res.json({
+        customer_portal_available: true,
+        seller_portal_available: true,
+        maintenance_message: null,
+        updated_at: null
+      });
+    }
+    
+    res.json(result.rows[0]);
+  } catch (error) {
+    console.error('Get portal status error:', error);
+    res.status(500).json({ message: 'Server error fetching portal status' });
+  }
+});
+
+// Update portal status (only maryam.zaidi2904@gmail.com)
+router.put('/portal-status', [authenticateToken, body('customer_portal_available').optional().isBoolean(), body('seller_portal_available').optional().isBoolean(), body('maintenance_message').optional().trim()], async (req, res) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    // Check if user is maryam.zaidi2904@gmail.com
+    const ALLOWED_EMAIL = 'maryam.zaidi2904@gmail.com';
+    const userResult = await db.query(
+      'SELECT email FROM users WHERE id = $1',
+      [req.user.id]
+    );
+    
+    if (!userResult.rows || userResult.rows.length === 0 || userResult.rows[0].email.toLowerCase() !== ALLOWED_EMAIL.toLowerCase()) {
+      return res.status(403).json({ message: 'Only maryam.zaidi2904@gmail.com can update portal status' });
+    }
+
+    const { customer_portal_available, seller_portal_available, maintenance_message } = req.body;
+
+    // Get current status
+    const currentResult = await db.query(
+      `SELECT id, customer_portal_available, seller_portal_available FROM portal_status ORDER BY id DESC LIMIT 1`
+    );
+
+    let updateQuery = `UPDATE portal_status SET updated_at = CURRENT_TIMESTAMP, last_updated_by = $1`;
+    const params = [userResult.rows[0].email];
+    let paramCount = 1;
+
+    if (customer_portal_available !== undefined) {
+      paramCount++;
+      updateQuery += `, customer_portal_available = $${paramCount}`;
+      params.push(customer_portal_available);
+    }
+
+    if (seller_portal_available !== undefined) {
+      paramCount++;
+      updateQuery += `, seller_portal_available = $${paramCount}`;
+      params.push(seller_portal_available);
+    }
+
+    if (maintenance_message !== undefined) {
+      paramCount++;
+      updateQuery += `, maintenance_message = $${paramCount}`;
+      params.push(maintenance_message);
+    }
+
+    if (currentResult.rows.length > 0) {
+      updateQuery += ` WHERE id = $${paramCount + 1}`;
+      params.push(currentResult.rows[0].id);
+      await db.query(updateQuery, params);
+    } else {
+      // Insert if doesn't exist
+      await db.query(
+        `INSERT INTO portal_status (customer_portal_available, seller_portal_available, maintenance_message, last_updated_by)
+         VALUES ($1, $2, $3, $4)`,
+        [
+          customer_portal_available !== undefined ? customer_portal_available : true,
+          seller_portal_available !== undefined ? seller_portal_available : true,
+          maintenance_message || 'The site is currently under maintenance. Please check back soon.',
+          userResult.rows[0].email
+        ]
+      );
+    }
+
+    // Get updated status
+    const updatedResult = await db.query(
+      `SELECT customer_portal_available, seller_portal_available, maintenance_message, updated_at 
+       FROM portal_status ORDER BY id DESC LIMIT 1`
+    );
+
+    res.json({
+      message: 'Portal status updated successfully',
+      status: updatedResult.rows[0]
+    });
+
+  } catch (error) {
+    console.error('Update portal status error:', error);
+    res.status(500).json({ message: 'Server error updating portal status' });
+  }
+});
+
 module.exports = router;

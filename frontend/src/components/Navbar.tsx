@@ -11,6 +11,65 @@ const Navbar: React.FC = () => {
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isCartOpen, setIsCartOpen] = useState(false);
+  const [portalStatus, setPortalStatus] = useState<{
+    customer_portal_available: boolean;
+    seller_portal_available: boolean;
+    maintenance_message: string;
+  } | null>(null);
+
+  useEffect(() => {
+    const fetchPortalStatus = async () => {
+      try {
+        const response = await fetch('/api/auth/portal-status');
+        if (response.ok) {
+          const data = await response.json();
+          setPortalStatus(data);
+        }
+      } catch (error) {
+        console.error('Error fetching portal status:', error);
+      }
+    };
+
+    if (isSeller) {
+      fetchPortalStatus();
+      const interval = setInterval(fetchPortalStatus, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [isSeller]);
+
+  const togglePortalStatus = async (portalType: 'customer' | 'seller') => {
+    if (!user) return;
+
+    try {
+      const updateData: any = {};
+      
+      if (portalType === 'customer') {
+        updateData.customer_portal_available = !portalStatus?.customer_portal_available;
+      } else {
+        updateData.seller_portal_available = !portalStatus?.seller_portal_available;
+      }
+
+      const response = await fetch('/api/auth/portal-status', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(updateData)
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setPortalStatus(data.status);
+        alert(`${portalType} portal is now ${updateData[portalType === 'customer' ? 'customer_portal_available' : 'seller_portal_available'] ? 'AVAILABLE' : 'UNDER MAINTENANCE'}`);
+      } else {
+        alert('You do not have permission to update portal status');
+      }
+    } catch (error) {
+      console.error('Error updating portal status:', error);
+      alert('Failed to update portal status');
+    }
+  };
 
   const handleLogout = async () => {
     try {
@@ -236,6 +295,52 @@ const Navbar: React.FC = () => {
                         <Link to="/seller/create-product" className="mobile-nav-link" onClick={closeMobileMenu} style={{ display: 'block', padding: '12px 0', fontSize: '16px', color: '#333', textDecoration: 'none', borderBottom: '1px solid #f0f0f0' }}>Add Product</Link>
                         <Link to="/seller/inventory" className="mobile-nav-link" onClick={closeMobileMenu} style={{ display: 'block', padding: '12px 0', fontSize: '16px', color: '#333', textDecoration: 'none', borderBottom: '1px solid #f0f0f0' }}>Inventory</Link>
                         <Link to="/seller/orders" className="mobile-nav-link" onClick={closeMobileMenu} style={{ display: 'block', padding: '12px 0', fontSize: '16px', color: '#333', textDecoration: 'none', borderBottom: '1px solid #f0f0f0' }}>Orders</Link>
+                        
+                        {/* Maintenance Mode Controls - Only for authorized users */}
+                        {portalStatus && (
+                          <div style={{ marginTop: '20px', paddingTop: '20px', borderTop: '2px solid #ff6b6b' }}>
+                            <h3 style={{ fontSize: '14px', fontWeight: 'bold', color: '#ff6b6b', marginBottom: '15px', textTransform: 'uppercase' }}>🔧 Maintenance Controls</h3>
+                            
+                            {/* Customer Portal Toggle */}
+                            <div style={{ marginBottom: '15px', padding: '12px', backgroundColor: '#fff3cd', borderRadius: '6px', border: '1px solid #ffc107' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                <label style={{ fontSize: '14px', fontWeight: '500', color: '#333', margin: '0', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  <span>🛒 Customer Portal</span>
+                                </label>
+                                <input 
+                                  type="checkbox" 
+                                  checked={portalStatus.customer_portal_available}
+                                  onChange={() => togglePortalStatus('customer')}
+                                  className="toggle toggle-sm"
+                                  style={{ marginLeft: 'auto', cursor: 'pointer' }}
+                                />
+                              </div>
+                              <p style={{ fontSize: '12px', color: '#666', margin: '5px 0 0 0' }}>
+                                {portalStatus.customer_portal_available ? '✅ Available' : '⛔ Under Maintenance'}
+                              </p>
+                            </div>
+
+                            {/* Seller Portal Toggle */}
+                            <div style={{ padding: '12px', backgroundColor: '#e7f3ff', borderRadius: '6px', border: '1px solid #0066cc' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                                <label style={{ fontSize: '14px', fontWeight: '500', color: '#333', margin: '0', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                  <span>🏪 Seller Portal</span>
+                                </label>
+                                <input 
+                                  type="checkbox" 
+                                  checked={portalStatus.seller_portal_available}
+                                  onChange={() => togglePortalStatus('seller')}
+                                  className="toggle toggle-sm"
+                                  style={{ marginLeft: 'auto', cursor: 'pointer' }}
+                                />
+                              </div>
+                              <p style={{ fontSize: '12px', color: '#666', margin: '5px 0 0 0' }}>
+                                {portalStatus.seller_portal_available ? '✅ Available' : '⛔ Under Maintenance'}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                        
                         <button 
                           onClick={handleLogout} 
                           style={{ 
