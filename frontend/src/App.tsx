@@ -35,7 +35,7 @@ import './styles/global.css';
 import './App.css';
 
 function AppRoutes() {
-  const { isAuthenticated, isSeller, isCustomer } = useAuth();
+  const { isAuthenticated, isSeller, isCustomer, user } = useAuth();
   const { showNotification, hideNotification } = useCart();
   const [portalStatus, setPortalStatus] = useState<{
     customer_portal_available: boolean;
@@ -86,8 +86,11 @@ function AppRoutes() {
 
   // Check if seller portal is down (but allow maryam.zaidi2904@gmail.com)
   if (isSeller && !portalStatus.seller_portal_available) {
-    // Note: We can't check email here in AppRoutes, so we'll handle this in SellerDashboard
-    return <MaintenancePage portalType="seller" message={portalStatus.maintenance_message} />;
+    const ALLOWED_SELLER_EMAIL = 'maryam.zaidi2904@gmail.com';
+    // Only show maintenance page if user is NOT the allowed seller
+    if (!user || user.email.toLowerCase() !== ALLOWED_SELLER_EMAIL.toLowerCase()) {
+      return <MaintenancePage portalType="seller" message={portalStatus.maintenance_message} />;
+    }
   }
 
   return (
