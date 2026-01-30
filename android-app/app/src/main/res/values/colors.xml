@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="purple_200">#F76D9D</color>
+    <color name="purple_500">#E94A7D</color>
+    <color name="purple_700">#D63969</color>
+    <color name="teal_200">#03DAC5</color>
+    <color name="teal_700">#018786</color>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    <color name="thenilekart_primary">#F76D9D</color>
+    <color name="thenilekart_primary_dark">#E94A7D</color>
+    <color name="thenilekart_accent">#FF6B9D</color>
+</resources>
