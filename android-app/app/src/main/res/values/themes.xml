@@ -8,8 +8,6 @@
         <item name="colorPrimaryDark">@color/thenilekart_primary_dark</item>
         <!-- Accent color for buttons and highlights -->
         <item name="colorAccent">@color/thenilekart_accent</item>
-        <!-- Action bar color -->
-        <item name="colorActionBar">@color/thenilekart_primary</item>
         <!-- Status bar color -->
         <item name="android:statusBarColor">@color/thenilekart_primary_dark</item>
     </style>
