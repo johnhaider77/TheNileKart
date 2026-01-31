@@ -14,11 +14,11 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		A1234567890123458 /* TheNileKartApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TheNileKartApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A1234567890123451 /* TheNileKartApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TheNileKartApp.swift; sourceTree = "<group>"; };
 		A1234567890123453 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		A1234567890123455 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A1234567890123457 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
+		A1234567890123458 /* TheNileKartApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TheNileKartApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -272,6 +272,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"TheNileKartApp/Preview Content\"";
+				DEVELOPMENT_TEAM = 32997TPV73;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = TheNileKartApp/Info.plist;
@@ -301,6 +302,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_ASSET_PATHS = "\"TheNileKartApp/Preview Content\"";
+				DEVELOPMENT_TEAM = 32997TPV73;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = TheNileKartApp/Info.plist;
@@ -325,20 +327,20 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		A1234567890123463 /* Build configuration list for PBXProject "TheNileKartApp" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				A1234567890123464 /* Debug */,
-				A1234567890123465 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
 		A123456789012345F /* Build configuration list for PBXNativeTarget "TheNileKartApp" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				A1234567890123466 /* Debug */,
 				A1234567890123467 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		A1234567890123463 /* Build configuration list for PBXProject "TheNileKartApp" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1234567890123464 /* Debug */,
+				A1234567890123465 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
