@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<full-backup-content>
+    <!-- For more information on backup rules, see https://developer.android.com/guide/topics/data/autobackup
+    <include domain="file" path="dd"/>
+    <exclude domain="file" path="dd"/>
+    -->
+</full-backup-content>

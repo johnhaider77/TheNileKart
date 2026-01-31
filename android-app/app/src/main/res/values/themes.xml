@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- Base application theme -->
-    <style name="Base.Theme.TheNileKart" parent="Theme.AppCompat.Light.DarkActionBar">
+    <!-- Base application theme - No ActionBar for full WebView experience -->
+    <style name="Base.Theme.TheNileKart" parent="Theme.AppCompat.Light.NoActionBar">
         <!-- Primary brand color -->
         <item name="colorPrimary">@color/thenilekart_primary</item>
         <!-- Primary dark color for status bar -->
@@ -10,6 +10,9 @@
         <item name="colorAccent">@color/thenilekart_accent</item>
         <!-- Status bar color -->
         <item name="android:statusBarColor">@color/thenilekart_primary_dark</item>
+        <!-- Hide the ActionBar completely -->
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
     </style>
 
     <style name="Theme.TheNileKart" parent="Base.Theme.TheNileKart" />
