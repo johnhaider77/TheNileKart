@@ -518,6 +518,12 @@ const ModernLogin: React.FC = () => {
                     {isLogin ? 'Create Account' : 'Sign In'}
                   </button>
                 </div>
+                <div className="auth-switch" style={{ marginTop: '12px', borderTop: '1px solid #e0e0e0', paddingTop: '12px' }}>
+                  <span>Are you a seller?</span>
+                  <Link to="/seller/login" className="auth-switch-btn" style={{ textDecoration: 'none' }}>
+                    Seller Login
+                  </Link>
+                </div>
               </div>
             )}
 
