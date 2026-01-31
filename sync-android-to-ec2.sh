@@ -13,7 +13,7 @@ echo ""
 # Configuration
 EC2_USER=${EC2_USER:-ubuntu}
 EC2_IP=${EC2_IP:-$1}
-EC2_KEY=${EC2_KEY:-~/.ssh/ec2-key.pem}
+EC2_KEY=${EC2_KEY:-~/.ssh/thenilekart-key2.pem}
 EC2_PATH="/home/ubuntu/var/www/thenilekartAndroid/TheNileKart"
 
 if [ -z "$EC2_IP" ]; then
