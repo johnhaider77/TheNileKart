@@ -4,7 +4,7 @@ import WebKit
 struct ContentView: View {
     var body: some View {
         NavigationView {
-            WebViewWrapper(url: "http://192.168.1.137:3000")
+            WebViewWrapper(url: "https://www.thenilekart.com")
                 .navigationBarTitle("TheNileKart", displayMode: .inline)
                 .navigationBarItems(
                     trailing: Button("Refresh") {
