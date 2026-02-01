@@ -70,8 +70,11 @@ class MainActivity : AppCompatActivity() {
 
     // Custom WebViewClient to handle URL loading within app
     private class CustomWebViewClient : WebViewClient() {
+        @Suppress("OVERRIDE_DEPRECATION")
         override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
-            view.loadUrl(url)
+            if (url.startsWith("http://") || url.startsWith("https://")) {
+                view.loadUrl(url)
+            }
             return true
         }
     }

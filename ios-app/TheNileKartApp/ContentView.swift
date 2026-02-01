@@ -11,26 +11,28 @@ struct WebViewWrapper: UIViewRepresentable {
     let url: String
     
     func makeUIView(context: Context) -> WKWebView {
-        let webView = WKWebView()
-        webView.navigationDelegate = context.coordinator
+        // Configure WebView with zoom disabled
+        let config = WKWebViewConfiguration()
+        config.defaultWebpagePreferences.allowsContentJavaScript = true
+        config.allowsInlineMediaPlayback = true
+        config.mediaTypesRequiringUserActionForPlayback = []
         
-        // Configure WebView settings
-        webView.configuration.defaultWebpagePreferences.allowsContentJavaScript = true
-        webView.configuration.allowsInlineMediaPlayback = true
-        webView.configuration.mediaTypesRequiringUserActionForPlayback = []
+        // Disable zoom at configuration level
+        config.preferences.setValue(false, forKey: "webkitZoomControlsEnabled")
         
         // Allow local network access
-        webView.configuration.preferences.setValue(true, forKey: "allowFileAccessFromFileURLs")
-        webView.configuration.setValue(true, forKey: "allowUniversalAccessFromFileURLs")
+        config.preferences.setValue(true, forKey: "allowFileAccessFromFileURLs")
+        config.setValue(true, forKey: "allowUniversalAccessFromFileURLs")
         
-        // Disable zoom and fit content to screen
-        webView.configuration.preferences.setValue(false, forKey: "webkitZoomControlsEnabled")
-        webView.configuration.preferences.setValue(false, forKey: "webkitMinimumLogicalFontSize")
+        let webView = WKWebView(frame: .zero, configuration: config)
+        webView.navigationDelegate = context.coordinator
+        
+        // Configure scroll view for proper scaling
         webView.scrollView.minimumZoomScale = 1.0
         webView.scrollView.maximumZoomScale = 1.0
-        webView.scrollView.zoomScale = 1.0
+        webView.scrollView.delegate = context.coordinator
         
-        // Disable scrolling bounce and only scroll vertically
+        // Disable bounce effects
         webView.scrollView.bounces = false
         webView.scrollView.bouncesZoom = false
         webView.scrollView.alwaysBounceVertical = false
@@ -53,7 +55,7 @@ struct WebViewWrapper: UIViewRepresentable {
         Coordinator()
     }
     
-    class Coordinator: NSObject, WKNavigationDelegate {
+    class Coordinator: NSObject, WKNavigationDelegate, UIScrollViewDelegate {
         func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
             // Show loading indicator if needed
         }
@@ -64,6 +66,15 @@ struct WebViewWrapper: UIViewRepresentable {
         
         func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
             print("WebView navigation failed: \(error.localizedDescription)")
+        }
+        
+        // Prevent pinch zoom
+        func scrollViewWillBeginZooming(_ scrollView: UIScrollView, with view: UIView?) {
+            scrollView.pinchGestureRecognizer?.isEnabled = false
+        }
+        
+        func scrollViewDidEndZooming(_ scrollView: UIScrollView, with view: UIView?, atScale scale: CGFloat) {
+            scrollView.zoomScale = 1.0
         }
         
         func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
