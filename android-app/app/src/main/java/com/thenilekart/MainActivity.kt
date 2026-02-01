@@ -28,17 +28,15 @@ class MainActivity : AppCompatActivity() {
         webSettings.useWideViewPort = true
         webSettings.loadWithOverviewMode = true
         webSettings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW)
-        
-        // Disable zoom and fit content to screen
-        webSettings.builtInZoomControls = false
-        webSettings.displayZoomControls = false
-        webSettings.setSupportZoom(false)
-        
-        // Set initial scale to fit screen
         webSettings.defaultTextEncodingName = "utf-8"
         
         // Set user agent for Android identification
         webSettings.userAgentString = webSettings.userAgentString + " TheNileKartAndroid"
+        
+        // Disable zoom - rely on viewport meta tag in frontend
+        webSettings.builtInZoomControls = false
+        webSettings.displayZoomControls = false
+        webSettings.setSupportZoom(false)
         
         // Set WebViewClient to keep navigation within app
         webView.webViewClient = CustomWebViewClient()

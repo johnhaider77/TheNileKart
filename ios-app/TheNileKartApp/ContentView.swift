@@ -11,14 +11,10 @@ struct WebViewWrapper: UIViewRepresentable {
     let url: String
     
     func makeUIView(context: Context) -> WKWebView {
-        // Configure WebView with zoom disabled
         let config = WKWebViewConfiguration()
         config.defaultWebpagePreferences.allowsContentJavaScript = true
         config.allowsInlineMediaPlayback = true
         config.mediaTypesRequiringUserActionForPlayback = []
-        
-        // Disable zoom at configuration level
-        config.preferences.setValue(false, forKey: "webkitZoomControlsEnabled")
         
         // Allow local network access
         config.preferences.setValue(true, forKey: "allowFileAccessFromFileURLs")
@@ -27,16 +23,16 @@ struct WebViewWrapper: UIViewRepresentable {
         let webView = WKWebView(frame: .zero, configuration: config)
         webView.navigationDelegate = context.coordinator
         
-        // Configure scroll view for proper scaling
-        webView.scrollView.minimumZoomScale = 1.0
-        webView.scrollView.maximumZoomScale = 1.0
-        webView.scrollView.delegate = context.coordinator
-        
         // Disable bounce effects
         webView.scrollView.bounces = false
         webView.scrollView.bouncesZoom = false
         webView.scrollView.alwaysBounceVertical = false
         webView.scrollView.alwaysBounceHorizontal = false
+        
+        // Disable pinch zoom gesture recognizer
+        if let scrollView = webView.scrollView as UIScrollView? {
+            scrollView.pinchGestureRecognizer?.isEnabled = false
+        }
         
         // Load the website
         if let url = URL(string: url) {
@@ -55,27 +51,41 @@ struct WebViewWrapper: UIViewRepresentable {
         Coordinator()
     }
     
-    class Coordinator: NSObject, WKNavigationDelegate, UIScrollViewDelegate {
+    class Coordinator: NSObject, WKNavigationDelegate {
         func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
             // Show loading indicator if needed
         }
         
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-            // Hide loading indicator if needed
+            // Inject JavaScript to disable zoom and pinch
+            let zoomDisableScript = """
+                var meta = document.createElement('meta');
+                meta.name = 'viewport';
+                meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover';
+                document.head.appendChild(meta);
+                
+                document.addEventListener('touchmove', function(e) {
+                    if (e.touches.length > 1) {
+                        e.preventDefault();
+                    }
+                }, false);
+            """
+            
+            webView.evaluateJavaScript(zoomDisableScript) { _, error in
+                if let error = error {
+                    print("Error injecting zoom disable script: \(error.localizedDescription)")
+                }
+            }
         }
         
         func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
             print("WebView navigation failed: \(error.localizedDescription)")
         }
         
-        // Prevent pinch zoom
-        func scrollViewWillBeginZooming(_ scrollView: UIScrollView, with view: UIView?) {
-            scrollView.pinchGestureRecognizer?.isEnabled = false
+        func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+            decisionHandler(.allow)
         }
-        
-        func scrollViewDidEndZooming(_ scrollView: UIScrollView, with view: UIView?, atScale scale: CGFloat) {
-            scrollView.zoomScale = 1.0
-        }
+    }
         
         func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
             // Allow all navigation for now
