@@ -23,6 +23,19 @@ struct WebViewWrapper: UIViewRepresentable {
         webView.configuration.preferences.setValue(true, forKey: "allowFileAccessFromFileURLs")
         webView.configuration.setValue(true, forKey: "allowUniversalAccessFromFileURLs")
         
+        // Disable zoom and fit content to screen
+        webView.configuration.preferences.setValue(false, forKey: "webkitZoomControlsEnabled")
+        webView.configuration.preferences.setValue(false, forKey: "webkitMinimumLogicalFontSize")
+        webView.scrollView.minimumZoomScale = 1.0
+        webView.scrollView.maximumZoomScale = 1.0
+        webView.scrollView.zoomScale = 1.0
+        
+        // Disable scrolling bounce and only scroll vertically
+        webView.scrollView.bounces = false
+        webView.scrollView.bouncesZoom = false
+        webView.scrollView.alwaysBounceVertical = false
+        webView.scrollView.alwaysBounceHorizontal = false
+        
         // Load the website
         if let url = URL(string: url) {
             let request = URLRequest(url: url)

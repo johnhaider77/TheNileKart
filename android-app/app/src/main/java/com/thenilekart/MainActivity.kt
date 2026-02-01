@@ -29,10 +29,13 @@ class MainActivity : AppCompatActivity() {
         webSettings.loadWithOverviewMode = true
         webSettings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW)
         
-        // Enable additional features
-        webSettings.builtInZoomControls = true
+        // Disable zoom and fit content to screen
+        webSettings.builtInZoomControls = false
         webSettings.displayZoomControls = false
-        webSettings.setSupportZoom(true)
+        webSettings.setSupportZoom(false)
+        
+        // Set initial scale to fit screen
+        webSettings.defaultTextEncodingName = "utf-8"
         
         // Set user agent for Android identification
         webSettings.userAgentString = webSettings.userAgentString + " TheNileKartAndroid"
