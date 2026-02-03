@@ -1015,7 +1015,13 @@ router.post('/send-signup-otp', [
 
     // Send OTP via email
     console.log(`📧 Sending OTP to ${email}: ${otp}`);
-    await emailService.sendOTPEmail(email, otp, 'signup');
+    const emailResult = await emailService.sendOTPEmail(email, otp, 'signup');
+    
+    if (!emailResult.success) {
+      console.error('❌ Failed to send OTP email:', emailResult);
+      // For development/testing, we still return 200 but log the issue
+      // In production, you might want to handle this differently
+    }
 
     res.json({
       success: true,

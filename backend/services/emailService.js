@@ -113,8 +113,15 @@ class EmailService {
 
   async sendOTPEmail(email, otp, type = 'signup') {
     try {
+      console.log(`\n📧 SENDING OTP EMAIL`);
+      console.log(`📧 Email: ${email}`);
+      console.log(`📧 OTP: ${otp}`);
+      console.log(`📧 Type: ${type}`);
+      console.log(`📧 Transporter initialized: ${this.transporter ? 'YES' : 'NO'}`);
+      
       if (!this.transporter) {
-        return this.consoleFallbackOTP(email, otp, type, 'Development mode - OTP displayed in console');
+        console.log('⚠️ Email transporter not initialized - using console fallback');
+        return this.consoleFallbackOTP(email, otp, type, 'Email service not initialized (production credentials missing)');
       }
 
       const subject = type === 'signup' ? 'Signup OTP - TheNileKart' : 'OTP Code - TheNileKart';
@@ -126,9 +133,10 @@ class EmailService {
         text: `Your OTP code is: ${otp}. This code will expire in 5 minutes.`
       };
 
+      console.log(`📧 Mail options: from=${mailOptions.from}, to=${mailOptions.to}, subject=${mailOptions.subject}`);
       const info = await this.transporter.sendMail(mailOptions);
       
-      console.log(`📧 OTP email sent to ${email}`);
+      console.log(`✅ OTP email sent successfully to ${email}`);
       console.log(`📧 Message ID: ${info.messageId}`);
 
       return {
@@ -138,8 +146,9 @@ class EmailService {
       };
 
     } catch (error) {
-      console.error('Failed to send OTP email:', error.message);
-      return this.consoleFallbackOTP(email, otp, type, error.message);
+      console.error('❌ Failed to send OTP email:', error.message);
+      console.error('❌ Full error:', error);
+      return this.consoleFallbackOTP(email, otp, type, `Error: ${error.message}`);
     }
   }
 
