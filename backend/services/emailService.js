@@ -1,10 +1,25 @@
 const nodemailer = require('nodemailer');
 const path = require('path');
 const dotenv = require('dotenv');
+const fs = require('fs');
 
-// Load environment variables from .env.production if NODE_ENV is production
-const envFile = process.env.NODE_ENV === 'production' ? '.env.production' : '.env';
-dotenv.config({ path: path.join(__dirname, '..', envFile) });
+// Determine environment
+const nodeEnv = process.env.NODE_ENV || 'development';
+
+// Try to load .env.production first (for production), then .env (for development)
+let envPath = path.join(__dirname, '..', '.env');
+if (nodeEnv === 'production') {
+  const prodEnvPath = path.join(__dirname, '..', '.env.production');
+  if (fs.existsSync(prodEnvPath)) {
+    envPath = prodEnvPath;
+    console.log('📧 Loading production environment from .env.production');
+  }
+} else {
+  console.log('📧 Loading development environment from .env');
+}
+
+dotenv.config({ path: envPath });
+console.log(`📧 NODE_ENV: ${nodeEnv}`);
 
 // Email service for sending password reset codes
 class EmailService {
