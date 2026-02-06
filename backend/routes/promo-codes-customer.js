@@ -29,6 +29,51 @@ router.post('/validate', [
 
     // Ensure tables exist and have correct schema
     try {
+      // First, check if the code exists at all (for debugging)
+      const debugResult = await db.query(
+        `SELECT id, code, is_active, start_date_time, expiry_date_time, created_at
+         FROM promo_codes 
+         WHERE UPPER(code) = UPPER($1)`,
+        [code]
+      );
+
+      if (debugResult.rows.length === 0) {
+        console.log('❌ Promo code not found in database:', code);
+        return res.status(404).json({ message: 'Promo code not found or expired' });
+      }
+
+      const debugCode = debugResult.rows[0];
+      console.log('📋 Promo code found:', {
+        id: debugCode.id,
+        code: debugCode.code,
+        isActive: debugCode.is_active,
+        startDate: debugCode.start_date_time,
+        expiryDate: debugCode.expiry_date_time,
+        createdAt: debugCode.created_at,
+        nowTime: new Date().toISOString()
+      });
+
+      // Check if code is active
+      if (!debugCode.is_active) {
+        console.log('❌ Promo code is inactive:', code);
+        return res.status(404).json({ message: 'Promo code not found or expired' });
+      }
+
+      // Check dates
+      const now = new Date();
+      const startDate = new Date(debugCode.start_date_time);
+      const expiryDate = new Date(debugCode.expiry_date_time);
+
+      if (now < startDate) {
+        console.log('❌ Promo code not started yet:', { now, startDate });
+        return res.status(404).json({ message: 'Promo code not found or expired' });
+      }
+
+      if (now > expiryDate) {
+        console.log('❌ Promo code has expired:', { now, expiryDate });
+        return res.status(404).json({ message: 'Promo code not found or expired' });
+      }
+
       // Get promo code details - using CAST to ensure proper type handling
       const promoResult = await db.query(
         `SELECT id, code, description, start_date_time, expiry_date_time, 
@@ -40,14 +85,14 @@ router.post('/validate', [
                 max_uses_per_user,
                 is_active
          FROM promo_codes 
-         WHERE code = $1 AND is_active = true 
+         WHERE UPPER(code) = UPPER($1) AND is_active = true 
          AND start_date_time <= NOW() 
          AND expiry_date_time > NOW()`,
         [code]
       );
 
       if (promoResult.rows.length === 0) {
-        console.log('❌ Promo code not found or expired:', code);
+        console.log('❌ Promo code validation failed (should not happen if debug check passed):', code);
         return res.status(404).json({ message: 'Promo code not found or expired' });
       }
 
