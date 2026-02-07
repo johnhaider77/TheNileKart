@@ -356,6 +356,10 @@ export const sellerAPI = {
 
   // Customers
   getCustomers: () => api.get('/seller/customers'),
+  
+  // Promo Code Usage
+  getPromoCodeUsage: (page?: number, limit?: number) => 
+    api.get('/seller/promo-usage', { params: { page: page || 1, limit: limit || 50 } }),
 };
 
 export default api;

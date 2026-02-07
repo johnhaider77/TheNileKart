@@ -1049,6 +1049,8 @@ router.get('/orders', [
       SELECT 
         o.id as order_id, o.total_amount, o.status, o.shipping_address::text as shipping_address, o.created_at,
         u.full_name as customer_name, u.email as customer_email,
+        o.promo_code_id, o.promo_discount_amount,
+        pc.code as promo_code,
         json_agg(
           json_build_object(
             'product_id', p.product_id,
@@ -1072,8 +1074,9 @@ router.get('/orders', [
       JOIN order_items oi ON o.id = oi.order_id
       JOIN products p ON oi.product_id = p.id
       JOIN users u ON o.customer_id = u.id
+      LEFT JOIN promo_codes pc ON o.promo_code_id = pc.id
       ${whereClause}
-      GROUP BY o.id, o.total_amount, o.status, o.shipping_address, o.created_at, u.full_name, u.email
+      GROUP BY o.id, o.total_amount, o.status, o.shipping_address, o.created_at, u.full_name, u.email, o.promo_code_id, o.promo_discount_amount, pc.code
       ORDER BY o.created_at DESC
       LIMIT $${paramCount + 1} OFFSET $${paramCount + 2}
     `;
@@ -2303,6 +2306,98 @@ router.get('/customers', [authenticateToken, requireSeller], async (req, res) =>
     res.status(500).json({ 
       success: false, 
       message: 'Failed to fetch customer list',
+      error: error.message 
+    });
+  }
+});
+
+/**
+ * GET /seller/promo-usage
+ * Get list of customers who used promo codes to purchase products (successful orders only)
+ * Displays: customer name, email, contact, promo code used, order id, date, total value, amount saved
+ * Requires: Seller authentication
+ */
+router.get('/promo-usage', [authenticateToken, requireSeller], async (req, res) => {
+  try {
+    const seller_id = req.user.id;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+    const offset = (page - 1) * limit;
+
+    console.log(`📊 [PROMO-USAGE] Seller ${seller_id} requesting promo code usage report`);
+
+    // Query to get orders with promo codes for successful orders only
+    // Only include orders that have been successfully placed (not cancelled)
+    const query = `
+      SELECT 
+        o.id as order_id,
+        u.full_name as customer_name,
+        u.email as customer_email,
+        u.phone as customer_phone,
+        pc.code as promo_code,
+        o.total_amount as order_total,
+        pcu.discount_amount as amount_saved,
+        o.created_at as order_date,
+        o.status,
+        COUNT(*) OVER() as total_count
+      FROM orders o
+      JOIN order_items oi ON o.id = oi.order_id
+      JOIN products p ON oi.product_id = p.id
+      JOIN users u ON o.customer_id = u.id
+      JOIN promo_code_usage pcu ON o.id = pcu.order_id
+      JOIN promo_codes pc ON pcu.promo_code_id = pc.id
+      WHERE p.seller_id = $1 
+      AND o.status IN ('pending', 'processing', 'shipped', 'delivered')
+      AND pcu.discount_amount > 0
+      GROUP BY o.id, u.id, u.full_name, u.email, u.phone, pc.code, pcu.discount_amount, o.status
+      ORDER BY o.created_at DESC
+      LIMIT $2 OFFSET $3
+    `;
+
+    const result = await db.query(query, [seller_id, limit, offset]);
+
+    // Remove duplicate rows and calculate total count properly
+    const uniqueOrders = [];
+    const seenOrderIds = new Set();
+
+    result.rows.forEach(row => {
+      if (!seenOrderIds.has(row.order_id)) {
+        seenOrderIds.add(row.order_id);
+        uniqueOrders.push({
+          order_id: row.order_id,
+          customer_name: row.customer_name,
+          customer_email: row.customer_email,
+          customer_phone: row.customer_phone,
+          promo_code: row.promo_code,
+          order_total: parseFloat(row.order_total),
+          amount_saved: parseFloat(row.amount_saved),
+          order_date: row.order_date,
+          status: row.status
+        });
+      }
+    });
+
+    const totalCount = result.rows.length > 0 ? parseInt(result.rows[0].total_count) : 0;
+    const totalPages = Math.ceil(totalCount / limit);
+
+    console.log(`✅ [PROMO-USAGE] Found ${uniqueOrders.length} orders with promo codes (total: ${totalCount})`);
+
+    res.json({
+      success: true,
+      data: uniqueOrders,
+      pagination: {
+        currentPage: page,
+        totalPages: totalPages,
+        totalRecords: totalCount,
+        limit: limit
+      }
+    });
+
+  } catch (error) {
+    console.error('❌ [PROMO-USAGE] Error fetching promo code usage:', error);
+    res.status(500).json({ 
+      success: false, 
+      message: 'Failed to fetch promo code usage report',
       error: error.message 
     });
   }

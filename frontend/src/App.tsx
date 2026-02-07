@@ -21,6 +21,7 @@ import OfferProductsPage from './pages/OfferProductsPage';
 import SearchPage from './pages/SearchPage';
 import SellerPromoCode from './components/SellerPromoCode';
 import ViewCustomersPage from './pages/ViewCustomersPage';
+import PromoCodeUsagePage from './pages/PromoCodeUsagePage';
 import MaintenancePage from './components/MaintenancePage';
 
 // Import components
@@ -292,6 +293,19 @@ function AppRoutes() {
               ) : (
                 <ProtectedRoute requireSeller>
                   <ViewCustomersPage />
+                </ProtectedRoute>
+              )
+            }
+          />
+
+          <Route
+            path="/seller/promo-usage"
+            element={
+              isCustomer ? (
+                <Navigate to="/" replace />
+              ) : (
+                <ProtectedRoute requireSeller>
+                  <PromoCodeUsagePage />
                 </ProtectedRoute>
               )
             }

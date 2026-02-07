@@ -1028,6 +1028,14 @@ const SellerDashboard: React.FC = () => {
                 <p>See all signed up customers</p>
               </div>
             </Link>
+
+            <Link to="/seller/promo-usage" className="action-card card">
+              <div className="card-body text-center">
+                <div className="action-icon">🎁</div>
+                <h3>Promo Usage Report</h3>
+                <p>View customers using promo codes</p>
+              </div>
+            </Link>
           </div>
         </div>
 

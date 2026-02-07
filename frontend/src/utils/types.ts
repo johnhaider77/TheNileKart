@@ -84,6 +84,9 @@ export interface Order {
   items: OrderItem[];
   created_at: string;
   updated_at?: string;
+  promo_code_id?: number;
+  promo_code?: string;
+  promo_discount_amount?: number;
 }
 
 export interface ApiResponse<T> {

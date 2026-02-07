@@ -557,6 +557,18 @@ const OrdersManagement: React.FC = () => {
                         {selectedOrder.status.charAt(0).toUpperCase() + selectedOrder.status.slice(1)}
                       </span>
                     </p>
+                    {selectedOrder.promo_code && (
+                      <p><strong>Promo Code:</strong> 
+                        <span style={{ marginLeft: '0.5rem', background: '#d4edda', color: '#155724', padding: '0.3rem 0.6rem', borderRadius: '4px', fontWeight: 'bold' }}>
+                          {selectedOrder.promo_code}
+                        </span>
+                        {selectedOrder.promo_discount_amount && (
+                          <span style={{ marginLeft: '0.5rem', color: '#28a745' }}>
+                            (Saved: {formatCurrency(selectedOrder.promo_discount_amount)})
+                          </span>
+                        )}
+                      </p>
+                    )}
                   </div>
                 </div>
 

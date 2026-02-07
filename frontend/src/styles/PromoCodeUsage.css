@@ -1,0 +1,489 @@
+/* Promo Code Usage Report Page Styles */
+
+.promo-usage-page {
+  padding-top: 2rem;
+  padding-bottom: 3rem;
+  background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+  min-height: 100vh;
+}
+
+.promo-usage-page .page-header {
+  background: white;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  margin-bottom: 2rem;
+}
+
+.promo-usage-page .page-title {
+  margin: 0 0 0.5rem 0;
+  color: #333;
+  font-size: 2rem;
+  font-weight: 700;
+}
+
+.promo-usage-page .page-subtitle {
+  margin: 0;
+  color: #666;
+  font-size: 1.1rem;
+}
+
+/* Search Controls */
+.promo-controls {
+  display: flex;
+  gap: 1.5rem;
+  align-items: center;
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+
+.search-container {
+  flex: 1;
+  min-width: 300px;
+  position: relative;
+}
+
+.search-input {
+  width: 100%;
+  padding: 0.75rem 2.5rem 0.75rem 1rem;
+  font-size: 1rem;
+  border: 2px solid #e1e5e9;
+  border-radius: 8px;
+  transition: all 0.3s ease;
+  background: white;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.search-icon {
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1.2rem;
+  color: #999;
+  pointer-events: none;
+}
+
+.record-count {
+  padding: 0.75rem 1.25rem;
+  background: #f8f9fa;
+  border: 1px solid #e1e5e9;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  color: #666;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 4rem 2rem;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+.empty-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+}
+
+.empty-state h3 {
+  font-size: 1.5rem;
+  color: #333;
+  margin: 0 0 0.5rem 0;
+}
+
+.empty-state p {
+  font-size: 1rem;
+  color: #666;
+  margin: 0;
+}
+
+/* Promo Usage Table */
+.promo-table-container {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  overflow-x: auto;
+}
+
+.promo-usage-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 1200px;
+}
+
+.promo-usage-table thead {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  text-align: left;
+}
+
+.promo-usage-table th {
+  padding: 1rem;
+  font-weight: 600;
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+}
+
+.promo-usage-table th:hover {
+  background: linear-gradient(135deg, #5568d3 0%, #6b3f91 100%);
+}
+
+.sort-icon {
+  margin-left: 0.5rem;
+  font-size: 0.8rem;
+  opacity: 0.7;
+}
+
+.promo-usage-table tbody tr {
+  border-bottom: 1px solid #e1e5e9;
+  transition: all 0.3s ease;
+}
+
+.promo-usage-table tbody tr:hover {
+  background-color: #f8f9fa;
+  box-shadow: inset 0 0 0 1px rgba(102, 126, 234, 0.1);
+}
+
+.promo-usage-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.promo-usage-table td {
+  padding: 1rem;
+  font-size: 0.95rem;
+  color: #333;
+  vertical-align: middle;
+}
+
+.customer-name {
+  font-weight: 600;
+  color: #333;
+  width: 15%;
+}
+
+.customer-email {
+  width: 18%;
+}
+
+.customer-email a {
+  color: #667eea;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.customer-email a:hover {
+  color: #764ba2;
+  text-decoration: underline;
+}
+
+.customer-phone {
+  width: 12%;
+}
+
+.customer-phone a {
+  color: #667eea;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.customer-phone a:hover {
+  color: #764ba2;
+  text-decoration: underline;
+}
+
+.promo-code {
+  width: 12%;
+  text-align: center;
+}
+
+.promo-badge {
+  display: inline-block;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 0.4rem 0.8rem;
+  border-radius: 20px;
+  font-weight: 600;
+  font-size: 0.85rem;
+}
+
+.order-id {
+  width: 10%;
+  font-family: 'Courier New', monospace;
+  color: #666;
+}
+
+.order-date {
+  width: 15%;
+  white-space: nowrap;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.order-total {
+  width: 10%;
+  text-align: right;
+}
+
+.order-total .value {
+  color: #333;
+  font-weight: 600;
+}
+
+.amount-saved {
+  width: 10%;
+  text-align: right;
+}
+
+.amount-saved .savings {
+  background: #d4edda;
+  color: #155724;
+  padding: 0.3rem 0.6rem;
+  border-radius: 4px;
+  font-weight: 600;
+  display: inline-block;
+}
+
+.text-muted {
+  color: #999;
+  font-style: italic;
+}
+
+/* Stats Footer */
+.promo-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.5rem;
+  margin-top: 2rem;
+  padding: 2rem;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+.promo-stats .stat {
+  text-align: center;
+  padding: 1rem;
+  border-left: 4px solid #667eea;
+}
+
+.promo-stats .stat strong {
+  display: block;
+  color: #666;
+  font-size: 0.9rem;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.promo-stats .stat {
+  color: #333;
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.promo-stats .stat:nth-child(2) {
+  border-left-color: #4ade80;
+}
+
+.promo-stats .stat:nth-child(3) {
+  border-left-color: #f97316;
+}
+
+.promo-stats .stat:nth-child(4) {
+  border-left-color: #3b82f6;
+}
+
+/* Pagination */
+.pagination-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+}
+
+.pagination-btn {
+  padding: 0.6rem 1.2rem;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 0.95rem;
+}
+
+.pagination-btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+}
+
+.pagination-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.page-info {
+  color: #666;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+/* Alert Styles */
+.alert {
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 2rem;
+  font-size: 0.95rem;
+}
+
+.alert-danger {
+  background-color: #fee;
+  border: 1px solid #fcc;
+  color: #c33;
+}
+
+/* Loading State */
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #e1e5e9;
+  border-top-color: #667eea;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.my-5 {
+  margin-top: 3rem;
+  margin-bottom: 3rem;
+}
+
+.mx-auto {
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.text-center {
+  text-align: center;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .customer-name {
+    width: 12%;
+  }
+
+  .customer-email {
+    width: 15%;
+  }
+
+  .customer-phone {
+    width: 10%;
+  }
+
+  .promo-code {
+    width: 10%;
+  }
+
+  .order-id {
+    width: 9%;
+  }
+
+  .order-date {
+    width: 12%;
+  }
+
+  .order-total {
+    width: 9%;
+  }
+
+  .amount-saved {
+    width: 9%;
+  }
+}
+
+@media (max-width: 768px) {
+  .promo-controls {
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .search-container {
+    min-width: unset;
+  }
+
+  .promo-table-container {
+    overflow-x: auto;
+  }
+
+  .promo-usage-table {
+    min-width: 900px;
+  }
+
+  .promo-stats {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .promo-usage-page .page-header {
+    padding: 1rem;
+  }
+
+  .promo-usage-page .page-title {
+    font-size: 1.5rem;
+  }
+
+  .promo-usage-table th,
+  .promo-usage-table td {
+    padding: 0.75rem 0.5rem;
+    font-size: 0.85rem;
+  }
+
+  .promo-badge {
+    font-size: 0.75rem;
+    padding: 0.3rem 0.6rem;
+  }
+
+  .amount-saved .savings {
+    font-size: 0.85rem;
+    padding: 0.2rem 0.4rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .promo-stats {
+    grid-template-columns: 1fr;
+  }
+
+  .pagination-container {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .pagination-btn {
+    width: 100%;
+  }
+}
