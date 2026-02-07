@@ -242,6 +242,10 @@
 .order-total .value {
   color: #333;
   font-weight: 600;
+  background: transparent;
+  padding: 0;
+  border-radius: 0;
+  margin: 0;
 }
 
 .amount-saved {
