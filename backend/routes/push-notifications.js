@@ -2,30 +2,13 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
 const { sendNotification, sendMultipleNotifications, sendTopicNotification } = require('../services/pushNotificationService');
-const jwt = require('jsonwebtoken');
-
-// Middleware to verify JWT token
-const verifyToken = (req, res, next) => {
-  const token = req.headers.authorization?.split(' ')[1];
-
-  if (!token) {
-    return res.status(401).json({ error: 'No token provided' });
-  }
-
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key');
-    req.user = decoded;
-    next();
-  } catch (error) {
-    return res.status(401).json({ error: 'Invalid token' });
-  }
-};
+const { authenticateToken, requireSeller } = require('../middleware/auth');
 
 /**
  * Register device token for a user
  * POST /api/push-notifications/register-token
  */
-router.post('/register-token', verifyToken, async (req, res) => {
+router.post('/register-token', authenticateToken, async (req, res) => {
   try {
     const { deviceToken } = req.body;
     const userId = req.user.id;
@@ -69,18 +52,10 @@ router.post('/register-token', verifyToken, async (req, res) => {
  * POST /api/push-notifications/send
  * Only sellers can send notifications
  */
-router.post('/send', verifyToken, async (req, res) => {
+router.post('/send', authenticateToken, requireSeller, async (req, res) => {
   try {
     const { recipientUserId, heading, message, actionType = 'home', actionData = {} } = req.body;
     const sellerId = req.user.id;
-
-    // Verify sender is a seller
-    const sellerQuery = 'SELECT user_type FROM users WHERE id = $1';
-    const sellerResult = await db.query(sellerQuery, [sellerId]);
-
-    if (sellerResult.rows.length === 0 || sellerResult.rows[0].user_type !== 'seller') {
-      return res.status(403).json({ error: 'Only sellers can send notifications' });
-    }
 
     // Validate required fields
     if (!recipientUserId || !heading || !message) {
@@ -148,18 +123,10 @@ router.post('/send', verifyToken, async (req, res) => {
  * POST /api/push-notifications/send-bulk
  * Only sellers can send notifications
  */
-router.post('/send-bulk', verifyToken, async (req, res) => {
+router.post('/send-bulk', authenticateToken, requireSeller, async (req, res) => {
   try {
     const { recipientUserIds, heading, message, actionType = 'home', actionData = {} } = req.body;
     const sellerId = req.user.id;
-
-    // Verify sender is a seller
-    const sellerQuery = 'SELECT user_type FROM users WHERE id = $1';
-    const sellerResult = await db.query(sellerQuery, [sellerId]);
-
-    if (sellerResult.rows.length === 0 || sellerResult.rows[0].user_type !== 'seller') {
-      return res.status(403).json({ error: 'Only sellers can send notifications' });
-    }
 
     // Validate required fields
     if (!recipientUserIds || !Array.isArray(recipientUserIds) || recipientUserIds.length === 0) {
@@ -238,7 +205,7 @@ router.post('/send-bulk', verifyToken, async (req, res) => {
  * Get notification history for current user
  * GET /api/push-notifications/history
  */
-router.get('/history', verifyToken, async (req, res) => {
+router.get('/history', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
     const limit = req.query.limit || 20;
@@ -279,7 +246,7 @@ router.get('/history', verifyToken, async (req, res) => {
  * Mark notification as read
  * PUT /api/push-notifications/:notificationId/read
  */
-router.put('/:notificationId/read', verifyToken, async (req, res) => {
+router.put('/:notificationId/read', authenticateToken, async (req, res) => {
   try {
     const notificationId = req.params.notificationId;
     const userId = req.user.id;
@@ -318,7 +285,7 @@ router.put('/:notificationId/read', verifyToken, async (req, res) => {
  * Get unread notification count
  * GET /api/push-notifications/unread/count
  */
-router.get('/unread/count', verifyToken, async (req, res) => {
+router.get('/unread/count', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id;
 
