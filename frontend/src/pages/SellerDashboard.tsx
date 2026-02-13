@@ -1029,6 +1029,14 @@ const SellerDashboard: React.FC = () => {
               </div>
             </Link>
 
+            <Link to="/seller/send-notifications" className="action-card card">
+              <div className="card-body text-center">
+                <div className="action-icon">📱</div>
+                <h3>Send Notifications</h3>
+                <p>Send push notifications to customers</p>
+              </div>
+            </Link>
+
             <Link to="/seller/promo-usage" className="action-card card">
               <div className="card-body text-center">
                 <div className="action-icon">🎁</div>

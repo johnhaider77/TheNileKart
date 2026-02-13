@@ -22,6 +22,7 @@ import SearchPage from './pages/SearchPage';
 import SellerPromoCode from './components/SellerPromoCode';
 import ViewCustomersPage from './pages/ViewCustomersPage';
 import PromoCodeUsagePage from './pages/PromoCodeUsagePage';
+import SendNotificationsPage from './pages/SendNotificationsPage';
 import MaintenancePage from './components/MaintenancePage';
 
 // Import components
@@ -306,6 +307,19 @@ function AppRoutes() {
               ) : (
                 <ProtectedRoute requireSeller>
                   <PromoCodeUsagePage />
+                </ProtectedRoute>
+              )
+            }
+          />
+
+          <Route
+            path="/seller/send-notifications"
+            element={
+              isCustomer ? (
+                <Navigate to="/" replace />
+              ) : (
+                <ProtectedRoute requireSeller>
+                  <SendNotificationsPage />
                 </ProtectedRoute>
               )
             }
