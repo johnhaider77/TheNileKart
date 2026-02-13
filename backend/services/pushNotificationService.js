@@ -1,11 +1,33 @@
 const axios = require('axios');
 const path = require('path');
+const fs = require('fs');
 
 // Firebase Cloud Messaging Configuration
 const FCM_API_URL = 'https://fcm.googleapis.com/v1/projects';
-const SERVICE_ACCOUNT_KEY = process.env.FIREBASE_SERVICE_ACCOUNT_KEY 
-  ? JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY) 
-  : require(path.join(__dirname, '../../firebase-service-account-key.json')); // Fallback to local file
+
+// Lazy load SERVICE_ACCOUNT_KEY to avoid startup errors if file is missing
+let SERVICE_ACCOUNT_KEY = null;
+
+function getServiceAccountKey() {
+  if (SERVICE_ACCOUNT_KEY) {
+    return SERVICE_ACCOUNT_KEY;
+  }
+
+  if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
+    SERVICE_ACCOUNT_KEY = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+  } else {
+    const keyPath = path.join(__dirname, '../../firebase-service-account-key.json');
+    if (fs.existsSync(keyPath)) {
+      SERVICE_ACCOUNT_KEY = require(keyPath);
+    } else {
+      console.warn('⚠️  Firebase service account key not found. Push notifications will not work.');
+      console.warn('📝 Please set FIREBASE_SERVICE_ACCOUNT_KEY environment variable or add firebase-service-account-key.json');
+      SERVICE_ACCOUNT_KEY = null;
+    }
+  }
+
+  return SERVICE_ACCOUNT_KEY;
+}
 
 let accessToken = null;
 let tokenExpiry = null;
@@ -15,6 +37,12 @@ let tokenExpiry = null;
  */
 async function getAccessToken() {
   try {
+    const key = getServiceAccountKey();
+    
+    if (!key) {
+      throw new Error('Firebase service account key not configured');
+    }
+
     // Check if token is still valid
     if (accessToken && tokenExpiry && new Date() < tokenExpiry) {
       return accessToken;
@@ -26,14 +54,14 @@ async function getAccessToken() {
     const expiresAt = now + 3600; // 1 hour
 
     const payload = {
-      iss: SERVICE_ACCOUNT_KEY.client_email,
+      iss: key.client_email,
       scope: 'https://www.googleapis.com/auth/cloud-platform',
       aud: 'https://oauth2.googleapis.com/token',
       exp: expiresAt,
       iat: now
     };
 
-    const token = jwt.sign(payload, SERVICE_ACCOUNT_KEY.private_key, {
+    const token = jwt.sign(payload, key.private_key, {
       algorithm: 'RS256',
       header: {
         alg: 'RS256',
