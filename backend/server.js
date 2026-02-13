@@ -34,6 +34,7 @@ const ziinaRoutes = require('./routes/ziina');
 const metricsRoutes = require('./routes/metrics');
 const promoCodesSellerRoutes = require('./routes/promo-codes-seller');
 const promoCodesCustomerRoutes = require('./routes/promo-codes-customer');
+const pushNotificationRoutes = require('./routes/push-notifications');
 
 const app = express();
 const server = http.createServer(app);
@@ -155,6 +156,7 @@ app.use('/api/promo-codes', promoCodesCustomerRoutes);
 app.use('/api/seller', sellerRoutes);
 app.use('/api/ziina', ziinaRoutes);
 app.use('/api/metrics', metricsRoutes);
+app.use('/api/push-notifications', pushNotificationRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
