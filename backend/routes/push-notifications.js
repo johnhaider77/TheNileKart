@@ -52,10 +52,26 @@ router.post('/register-token', authenticateToken, async (req, res) => {
  * POST /api/push-notifications/send
  * Only sellers can send notifications
  */
-router.post('/send', authenticateToken, requireSeller, async (req, res) => {
+router.post('/send', authenticateToken, async (req, res) => {
   try {
     const { recipientUserId, heading, message, actionType = 'home', actionData = {} } = req.body;
     const sellerId = req.user.id;
+
+    // Verify sender is authenticated and has seller access
+    // Check both user_type and if they're accessing from seller routes
+    if (!req.user || !req.user.id) {
+      console.warn('⚠️ Push notification send: No authenticated user');
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    // Log user info for debugging
+    console.log(`📢 Push notification send requested by user ${sellerId}, user_type: ${req.user.user_type}, email: ${req.user.email}`);
+
+    // Check if user is seller (case-insensitive)
+    if (!req.user.user_type || req.user.user_type.toLowerCase() !== 'seller') {
+      console.warn(`⚠️ Non-seller user ${sellerId} attempted to send push notification. User type: ${req.user.user_type}`);
+      return res.status(403).json({ error: 'Seller access required to send notifications' });
+    }
 
     // Validate required fields
     if (!recipientUserId || !heading || !message) {
@@ -123,10 +139,25 @@ router.post('/send', authenticateToken, requireSeller, async (req, res) => {
  * POST /api/push-notifications/send-bulk
  * Only sellers can send notifications
  */
-router.post('/send-bulk', authenticateToken, requireSeller, async (req, res) => {
+router.post('/send-bulk', authenticateToken, async (req, res) => {
   try {
     const { recipientUserIds, heading, message, actionType = 'home', actionData = {} } = req.body;
     const sellerId = req.user.id;
+
+    // Verify sender is authenticated and has seller access
+    if (!req.user || !req.user.id) {
+      console.warn('⚠️ Push notification send-bulk: No authenticated user');
+      return res.status(401).json({ error: 'Authentication required' });
+    }
+
+    // Log user info for debugging
+    console.log(`📢 Bulk push notification send requested by user ${sellerId}, user_type: ${req.user.user_type}`);
+
+    // Check if user is seller (case-insensitive)
+    if (!req.user.user_type || req.user.user_type.toLowerCase() !== 'seller') {
+      console.warn(`⚠️ Non-seller user ${sellerId} attempted bulk push notification. User type: ${req.user.user_type}`);
+      return res.status(403).json({ error: 'Seller access required to send notifications' });
+    }
 
     // Validate required fields
     if (!recipientUserIds || !Array.isArray(recipientUserIds) || recipientUserIds.length === 0) {
