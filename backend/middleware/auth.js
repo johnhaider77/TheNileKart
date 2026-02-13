@@ -33,7 +33,8 @@ const authenticateToken = async (req, res, next) => {
 
 // Middleware to check if user is a seller
 const requireSeller = (req, res, next) => {
-  if (req.user.user_type !== 'seller') {
+  if (!req.user.user_type || req.user.user_type.toLowerCase() !== 'seller') {
+    console.warn(`⚠️ Seller access denied for user ${req.user.id}. User type: ${req.user.user_type}`);
     return res.status(403).json({ message: 'Seller access required' });
   }
   next();
@@ -41,7 +42,7 @@ const requireSeller = (req, res, next) => {
 
 // Middleware to check if user is a customer
 const requireCustomer = (req, res, next) => {
-  if (req.user.user_type !== 'customer') {
+  if (!req.user.user_type || req.user.user_type.toLowerCase() !== 'customer') {
     return res.status(403).json({ message: 'Customer access required' });
   }
   next();
