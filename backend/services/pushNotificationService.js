@@ -40,6 +40,8 @@ async function getAccessToken() {
     const key = getServiceAccountKey();
     
     if (!key) {
+      console.error('❌ Firebase service account key not configured');
+      console.error('📋 Required: FIREBASE_SERVICE_ACCOUNT_KEY env var or firebase-service-account-key.json file');
       throw new Error('Firebase service account key not configured');
     }
 
@@ -77,10 +79,14 @@ async function getAccessToken() {
     accessToken = response.data.access_token;
     tokenExpiry = new Date(Date.now() + (response.data.expires_in - 60) * 1000); // Refresh 60 seconds before expiry
 
+    console.log('✅ Firebase access token obtained successfully');
     return accessToken;
   } catch (error) {
-    console.error('Error getting Firebase access token:', error.message);
-    throw new Error('Failed to authenticate with Firebase Cloud Messaging');
+    console.error('❌ Error getting Firebase access token:', error.message);
+    if (error.response?.data) {
+      console.error('Firebase error details:', JSON.stringify(error.response.data, null, 2));
+    }
+    throw new Error('Failed to authenticate with Firebase Cloud Messaging: ' + error.message);
   }
 }
 
@@ -97,8 +103,17 @@ async function sendNotification(deviceToken, heading, message, data = {}) {
       throw new Error('Device token is required');
     }
 
+    // Warn if using test token
+    if (deviceToken === 'exampleToken123' || deviceToken.length < 50) {
+      console.warn('⚠️  Warning: Using invalid/test device token. Real FCM tokens are ~150+ characters.');
+      console.warn('📱 Device token received:', deviceToken);
+    }
+
     const accessToken = await getAccessToken();
-    const projectId = SERVICE_ACCOUNT_KEY.project_id;
+    const key = getServiceAccountKey();
+    const projectId = key.project_id;
+
+    console.log(`📤 Sending notification to device: ${deviceToken.substring(0, 20)}...`);
 
     const notificationPayload = {
       message: {
@@ -126,7 +141,8 @@ async function sendNotification(deviceToken, heading, message, data = {}) {
                 body: message
               },
               sound: 'default',
-              'content-available': 1
+              'content-available': 1,
+              badge: 1
             }
           }
         },
@@ -149,11 +165,12 @@ async function sendNotification(deviceToken, heading, message, data = {}) {
         headers: {
           'Authorization': `Bearer ${accessToken}`,
           'Content-Type': 'application/json'
-        }
+        },
+        timeout: 10000
       }
     );
 
-    console.log('✅ Push notification sent successfully:', response.data.name);
+    console.log('✅ Push notification sent successfully to FCM:', response.data.name);
     return {
       success: true,
       messageId: response.data.name,
@@ -161,9 +178,19 @@ async function sendNotification(deviceToken, heading, message, data = {}) {
     };
   } catch (error) {
     console.error('❌ Error sending push notification:', error.message);
+    if (error.response?.data) {
+      console.error('❌ FCM Error Details:', JSON.stringify(error.response.data, null, 2));
+    }
+    if (error.response?.status === 400) {
+      console.error('⚠️  Invalid device token or malformed request. Please check:');
+      console.error('   1. Device token is valid (150+ characters)');
+      console.error('   2. Device has registered for notifications');
+      console.error('   3. Firebase project ID is correct');
+    }
     return {
       success: false,
       error: error.message,
+      details: error.response?.data,
       timestamp: new Date()
     };
   }

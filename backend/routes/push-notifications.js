@@ -122,11 +122,25 @@ router.post('/send', authenticateToken, async (req, res) => {
 
     res.status(200).json({
       success: notificationResult.success,
-      message: 'Notification sent',
+      message: notificationResult.success ? 'Notification sent successfully' : 'Failed to send notification',
       notificationId: storeResult.rows[0].id,
       devicesSent: notificationResult.successfulSends,
       devicesFailed: notificationResult.failedSends,
-      details: notificationResult
+      totalDevices: notificationResult.totalTokens,
+      details: notificationResult.success 
+        ? { messageId: notificationResult.results?.[0]?.messageId }
+        : { 
+            errors: notificationResult.results?.map(r => ({
+              token: r.token?.substring(0, 20) + '...',
+              error: r.error,
+              fcmError: r.details
+            }))
+          },
+      debugInfo: {
+        recipientId: recipientUserId,
+        deviceTokensRegistered: deviceTokens.length,
+        deviceTokensSample: deviceTokens.length > 0 ? deviceTokens[0].substring(0, 30) + '...' : 'none'
+      }
     });
   } catch (error) {
     console.error('Error sending notification:', error.message);
@@ -335,6 +349,61 @@ router.get('/unread/count', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Error fetching unread count:', error.message);
     res.status(500).json({ error: 'Failed to fetch unread count' });
+  }
+});
+
+/**
+ * Diagnostic endpoint - Check device tokens and Firebase status
+ * GET /api/push-notifications/diagnostic
+ */
+router.get('/diagnostic', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // Get user's device tokens
+    const userQuery = 'SELECT id, email, device_tokens FROM users WHERE id = $1';
+    const userResult = await db.query(userQuery, [userId]);
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const user = userResult.rows[0];
+    const deviceTokens = user.device_tokens || [];
+
+    // Check Firebase config
+    const firebaseOk = process.env.FIREBASE_SERVICE_ACCOUNT_KEY ? 'via env var' : 'via file';
+    const firebaseConfigured = process.env.FIREBASE_SERVICE_ACCOUNT_KEY || require('fs').existsSync(require('path').join(__dirname, '../../firebase-service-account-key.json'));
+
+    res.status(200).json({
+      success: true,
+      user: {
+        id: user.id,
+        email: user.email
+      },
+      deviceTokens: {
+        count: deviceTokens.length,
+        tokens: deviceTokens.map((token, idx) => ({
+          index: idx + 1,
+          token: token?.substring(0, 50) + '...',
+          length: token?.length,
+          isValid: token && token.length > 100 ? '✅ Likely valid' : '⚠️ Might be invalid'
+        }))
+      },
+      firebase: {
+        configured: firebaseConfigured ? 'Yes' : 'No',
+        loadMethod: firebaseConfigured ? firebaseOk : 'Not configured',
+        status: firebaseConfigured ? '✅ Ready' : '❌ NOT CONFIGURED - Notifications will fail!'
+      },
+      troubleshooting: {
+        noDevices: deviceTokens.length === 0 ? '❌ User has no registered devices. App needs to register device token.' : '✅ Devices registered',
+        invalidTokens: deviceTokens.some(t => !t || t.length < 100) ? '⚠️ Some tokens appear invalid' : '✅ All tokens look valid',
+        firebaseKey: !firebaseConfigured ? '❌ Firebase service account key missing' : '✅ Firebase configured'
+      }
+    });
+  } catch (error) {
+    console.error('Diagnostic error:', error.message);
+    res.status(500).json({ error: 'Diagnostic check failed', details: error.message });
   }
 });
 
