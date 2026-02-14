@@ -71,13 +71,20 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
                 do {
                     // Only configure if not already configured
                     if FirebaseApp.app() == nil {
-                        print("🔧 Configuring Firebase with GoogleService-Info.plist...")
-                        do {
-                            FirebaseApp.configure()
-                            print("🔥 Firebase configured successfully")
-                        } catch {
-                            print("⚠️  Firebase configuration error (non-critical): \(error)")
-                            // App should still work without Firebase - continue anyway
+                        // Check if GoogleService-Info.plist exists first
+                        if let googleServicePath = Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist") {
+                            print("✅ GoogleService-Info.plist found at: \(googleServicePath)")
+                            print("🔧 Configuring Firebase...")
+                            do {
+                                FirebaseApp.configure()
+                                print("🔥 Firebase configured successfully")
+                            } catch {
+                                print("⚠️  Firebase configuration error (non-critical): \(error)")
+                                // App should still work without Firebase - continue anyway
+                            }
+                        } else {
+                            print("⚠️  GoogleService-Info.plist not found - Firebase initialization skipped")
+                            print("ℹ️  App will continue without Firebase (push notifications won't work)")
                         }
                     } else {
                         print("ℹ️  Firebase already configured")
@@ -87,7 +94,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                         do {
                             guard FirebaseApp.app() != nil else {
-                                print("⚠️  Firebase app not available")
+                                print("ℹ️  Firebase not configured - skipping messaging delegate setup")
+                                // Still initialize push manager without Firebase
+                                PushNotificationManager.shared.ensureInitialized()
                                 return
                             }
                             Messaging.messaging().delegate = PushNotificationManager.shared
