@@ -167,7 +167,10 @@ router.post('/send', authenticateToken, async (req, res) => {
 
     res.status(200).json({
       success: notificationResult.success,
-      message: notificationResult.success ? 'Notification sent successfully' : 'Failed to send notification',
+      notificationsSent: notificationResult.successfulSends > 0,
+      message: notificationResult.successfulSends > 0 
+        ? `Notification sent successfully to ${notificationResult.successfulSends} device(s)`
+        : `Failed to send notification: ${notificationResult.failedSends} device(s) failed`,
       notificationId: storeResult.rows[0].id,
       devicesSent: notificationResult.successfulSends,
       devicesFailed: notificationResult.failedSends,
@@ -177,7 +180,9 @@ router.post('/send', authenticateToken, async (req, res) => {
         : { 
             errors: notificationResult.results?.map(r => ({
               token: r.token?.substring(0, 20) + '...',
+              tokenLength: r.token?.length,
               error: r.error,
+              isProbablyInvalidToken: (r.token?.length || 0) < 100 ? '⚠️ Token too short' : undefined,
               fcmError: r.details
             }))
           },
@@ -276,9 +281,15 @@ router.post('/send-bulk', authenticateToken, async (req, res) => {
 
     await Promise.all(insertPromises);
 
+    const allNotificationsSent = notificationResult.successfulSends > 0 && notificationResult.failedSends === 0;
+    const hasFailures = notificationResult.failedSends > 0;
+
     res.status(200).json({
       success: notificationResult.success,
-      message: 'Bulk notification sent',
+      notificationsSent: allNotificationsSent,
+      message: hasFailures 
+        ? `Notification sending partially failed: ${notificationResult.successfulSends} sent, ${notificationResult.failedSends} failed. Check errors below.`
+        : `Successfully sent notifications to ${notificationResult.successfulSends} device(s)`,
       recipientsCount: recipientUserIds.length,
       totalDevices: allDeviceTokens.length,
       devicesSent: notificationResult.successfulSends,
