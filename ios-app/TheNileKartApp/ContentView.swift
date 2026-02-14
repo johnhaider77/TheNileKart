@@ -3,7 +3,29 @@ import WebKit
 
 struct ContentView: View {
     var body: some View {
-        WebViewWrapper(url: "https://www.thenilekart.com")
+        ZStack {
+            WebViewWrapper(url: getFrontendURL())
+            
+            // Show loading indicator while page loads
+            ProgressView()
+                .scaleEffect(1.5)
+                .opacity(0.7)
+        }
+    }
+    
+    private func getFrontendURL() -> String {
+        #if DEBUG
+        #if targetEnvironment(simulator)
+        // Simulator development
+        return "http://localhost:3000"
+        #else
+        // Physical device - use EC2 frontend
+        return "http://40.172.190.250"
+        #endif
+        #else
+        // Production
+        return "https://thenilekart.com"
+        #endif
     }
 }
 
@@ -41,6 +63,8 @@ struct WebViewWrapper: UIViewRepresentable {
         if let url = URL(string: url) {
             let request = URLRequest(url: url)
             webView.load(request)
+        } else {
+            print("❌ Invalid URL: \(url)")
         }
         
         return webView
