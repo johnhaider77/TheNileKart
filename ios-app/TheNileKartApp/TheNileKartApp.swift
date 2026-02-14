@@ -28,31 +28,43 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         print("🚀 AppDelegate initializing...")
         
-        // Initialize Firebase in background to avoid blocking main thread
-        DispatchQueue.global(qos: .background).asyncAfter(deadline: .now() + 1.0) { [weak self] in
-            do {
-                // Configure Firebase safely - don't crash if it fails
-                if FirebaseApp.app() == nil {
-                    print("🔧 Configuring Firebase...")
-                    FirebaseApp.configure()
-                    print("🔥 Firebase configured successfully")
-                    
-                    // Set Messaging delegate safely
-                    DispatchQueue.main.async {
-                        Messaging.messaging().delegate = PushNotificationManager.shared
-                        print("✅ Messaging delegate set")
+        // Schedule Firebase initialization on a background thread with a long delay
+        // This ensures the UI renders first before any Firebase initialization
+        DispatchQueue.global(qos: .background).asyncAfter(deadline: .now() + 3.0) {
+            print("🔧 Attempting Firebase initialization...")
+            autoreleasepool {
+                do {
+                    // Only configure if not already configured
+                    if FirebaseApp.app() == nil {
+                        print("🔧 Configuring Firebase with GoogleService-Info.plist...")
+                        FirebaseApp.configure()
+                        print("🔥 Firebase configured successfully")
+                        
+                        // Set Messaging delegate after Firebase is configured
+                        DispatchQueue.main.async {
+                            do {
+                                Messaging.messaging().delegate = PushNotificationManager.shared
+                                print("✅ Messaging delegate set")
+                                // Now initialize push notifications
+                                PushNotificationManager.shared.ensureInitialized()
+                            } catch {
+                                print("⚠️  Error setting messaging delegate: \(error)")
+                            }
+                        }
+                    } else {
+                        print("ℹ️  Firebase already configured")
+                        DispatchQueue.main.async {
+                            PushNotificationManager.shared.ensureInitialized()
+                        }
                     }
-                } else {
-                    print("ℹ️  Firebase already configured")
+                } catch let error as NSError {
+                    print("⚠️  Firebase error (non-critical): \(error.localizedDescription)")
+                    print("⚠️  Error domain: \(error.domain), code: \(error.code)")
+                    // Continue without Firebase
+                    DispatchQueue.main.async {
+                        PushNotificationManager.shared.ensureInitialized()
+                    }
                 }
-                
-                // Initialize push notifications after Firebase is ready
-                PushNotificationManager.shared.ensureInitialized()
-            } catch {
-                print("⚠️  Firebase configuration error (non-critical): \(error)")
-                // App continues even if Firebase setup fails
-                // Still initialize push notifications
-                PushNotificationManager.shared.ensureInitialized()
             }
         }
         
@@ -90,11 +102,16 @@ struct TheNileKartApp: App {
     
     init() {
         print("🚀 TheNileKart App initializing...")
+        // Ensure the app is ready regardless of Firebase
+        print("✅ App structure ready - UI will render now")
     }
     
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .onAppear {
+                    print("📱 ContentView appeared on screen")
+                }
         }
     }
 }
@@ -139,23 +156,31 @@ class PushNotificationManager: NSObject, UNUserNotificationCenterDelegate, Messa
     
     private func retrieveFCMToken() {
         print("📤 Fetching FCM token from Firebase...")
-        Messaging.messaging().token { [weak self] token, error in
-            if let error = error {
-                print("❌ Error getting FCM token: \(error.localizedDescription)")
+        do {
+            guard let messaging = try? Messaging.messaging() else {
+                print("⚠️  Firebase Messaging not available")
                 return
             }
             
-            guard let token = token else {
-                print("❌ FCM token is nil")
-                return
+            messaging.token { [weak self] token, error in
+                if let error = error {
+                    print("⚠️  Error getting FCM token (non-critical): \(error.localizedDescription)")
+                    return
+                }
+                
+                guard let token = token else {
+                    print("⚠️  FCM token is nil")
+                    return
+                }
+                
+                print("✅ FCM Token retrieved successfully!")
+                print("🔐 Token: \(token.prefix(50))...")
+                
+                UserDefaults.standard.set(token, forKey: "fcmToken")
+                self?.sendTokenToBackend(token: token)
             }
-            
-            print("✅ Real FCM Token retrieved successfully!")
-            print("🔐 Token: \(token.prefix(50))...")
-            print("📏 Token length: \(token.count) characters")
-            
-            UserDefaults.standard.set(token, forKey: "fcmToken")
-            self?.sendTokenToBackend(token: token)
+        } catch {
+            print("⚠️  Error accessing Firebase Messaging: \(error)")
         }
     }
     
