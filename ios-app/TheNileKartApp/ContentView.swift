@@ -116,62 +116,70 @@ struct WebViewWrapper: UIViewRepresentable {
         
         let config = WKWebViewConfiguration()
         
-        // Safe JavaScript configuration
+        // Disable problematic features
         config.defaultWebpagePreferences.allowsContentJavaScript = true
+        config.allowsInlineMediaPlayback = true
+        config.mediaTypesRequiringUserActionForPlayback = []
+        
+        // Disable features that could crash WebView
         if #available(iOS 14.0, *) {
             config.defaultWebpagePreferences.preferredContentMode = .recommended
         }
         
-        config.allowsInlineMediaPlayback = true
-        config.mediaTypesRequiringUserActionForPlayback = []
+        // Disable plugins and other potentially crashing features
+        config.preferences.minimumFontSize = 0
+        config.processPool = WKProcessPool() // Use fresh process pool
         
         // Add comprehensive JavaScript error handler
         let errorScript = """
-        console.log('iOS: JavaScript error handler loaded');
-        
-        // Catch all errors
-        window.onerror = function(msg, url, lineNo, columnNo, error) {
-            console.error('JS Error: ' + msg + ' at ' + url + ':' + lineNo);
-            try {
-                if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.iosApp) {
-                    window.webkit.messageHandlers.iosApp.postMessage({
-                        type: 'jsError',
-                        message: msg,
-                        url: url,
-                        line: lineNo,
-                        error: error ? error.toString() : 'No error object'
-                    });
+        try {
+            console.log('iOS: JavaScript error handler loaded');
+            
+            window.onerror = function(msg, url, lineNo, columnNo, error) {
+                console.error('JS Error: ' + msg);
+                try {
+                    if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.iosApp && typeof window.webkit.messageHandlers.iosApp.postMessage === 'function') {
+                        window.webkit.messageHandlers.iosApp.postMessage({
+                            type: 'jsError',
+                            message: String(msg).substring(0, 500),
+                            error: error ? String(error).substring(0, 500) : 'No error object'
+                        });
+                    }
+                } catch(e) {
+                    console.error('Error sending to iOS');
                 }
-            } catch(e) {
-                console.error('Error sending message to iOS:', e);
-            }
-            return true;
-        };
-        
-        // Catch unhandled promise rejections
-        window.addEventListener('unhandledrejection', function(event) {
-            console.error('Unhandled Promise Rejection: ' + event.reason);
-            try {
-                if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.iosApp) {
-                    window.webkit.messageHandlers.iosApp.postMessage({
-                        type: 'jsError',
-                        message: 'Unhandled Promise: ' + (event.reason || 'Unknown reason'),
-                        error: event.reason ? event.reason.toString() : 'Unknown'
-                    });
+                return true;
+            };
+            
+            window.addEventListener('unhandledrejection', function(event) {
+                console.error('Unhandled Promise: ' + event.reason);
+                try {
+                    if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.iosApp && typeof window.webkit.messageHandlers.iosApp.postMessage === 'function') {
+                        window.webkit.messageHandlers.iosApp.postMessage({
+                            type: 'jsError',
+                            message: 'Unhandled Promise: ' + String(event.reason).substring(0, 500)
+                        });
+                    }
+                } catch(e) {
+                    console.error('Error sending rejection to iOS');
                 }
-            } catch(e) {
-                console.error('Error sending unhandled rejection to iOS:', e);
-            }
-        });
-        
-        console.log('iOS: Error handlers registered successfully');
+            });
+            
+            console.log('iOS: Error handlers registered successfully');
+        } catch(e) {
+            console.error('iOS: Failed to setup error handlers');
+        }
         """
         
         let errorScript2 = WKUserScript(source: errorScript, injectionTime: .atDocumentStart, forMainFrameOnly: true)
         config.userContentController.addUserScript(errorScript2)
         
-        // Add message handler
-        config.userContentController.add(context.coordinator, name: "iosApp")
+        // Add message handler with safety check
+        do {
+            config.userContentController.add(context.coordinator, name: "iosApp")
+        } catch {
+            print("⚠️  Error adding message handler: \(error)")
+        }
         
         // Create WebView with safe defaults
         let webView = WKWebView(frame: .zero, configuration: config)

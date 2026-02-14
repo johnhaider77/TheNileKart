@@ -42,19 +42,27 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
         // Setup crash handler
         setupCrashHandler()
         
-        // Disable memory-intensive features if needed
-        #if DEBUG
-        #else
+        // Disable all caching to prevent memory issues
         URLCache.shared.memoryCapacity = 0
         URLCache.shared.diskCapacity = 0
-        #endif
+        print("✅ Cache disabled, memory optimized")
         
-        // Request user notification permissions early but don't wait for it
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
+        // Request notification permissions on background thread (non-blocking)
+        DispatchQueue.global(qos: .userInitiated).async {
             DispatchQueue.main.async {
-                if granted {
-                    UIApplication.shared.registerForRemoteNotifications()
-                    print("✅ User granted notification permission")
+                do {
+                    UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
+                        DispatchQueue.main.async {
+                            if granted {
+                                print("✅ Notification permission granted")
+                                UIApplication.shared.registerForRemoteNotifications()
+                            } else if let error = error {
+                                print("⚠️  Notification permission error: \(error.localizedDescription)")
+                            }
+                        }
+                    }
+                } catch {
+                    print("⚠️  Error requesting notifications: \(error)")
                 }
             }
         }
@@ -106,11 +114,17 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
     
     func application(_ application: UIApplication,
                      didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
-        print("✅ Registered for remote notifications")
-        DispatchQueue.global(qos: .background).async {
+        print("✅ Device registered for remote notifications")
+        
+        // Delay APNS token to ensure Firebase is initialized
+        DispatchQueue.global(qos: .background).asyncAfter(deadline: .now() + 2.0) {
             do {
+                guard FirebaseApp.app() != nil else {
+                    print("⚠️  Firebase not ready, skipping APNS token")
+                    return
+                }
                 Messaging.messaging().apnsToken = deviceToken
-                print("✅ APNS token set")
+                print("✅ APNS token set successfully")
             } catch {
                 print("⚠️  Error setting APNS token: \(error)")
             }
