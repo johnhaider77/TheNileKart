@@ -1,6 +1,8 @@
 import SwiftUI
 import UIKit
 import UserNotifications
+import Firebase
+import FirebaseMessaging
 
 // MARK: - API Configuration
 struct APIConfig {
@@ -17,10 +19,19 @@ struct APIConfig {
 }
 
 // MARK: - App Delegate
-class AppDelegate: UIResponder, UIApplicationDelegate {
+class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         print("🚀 AppDelegate initializing...")
+        
+        // Configure Firebase
+        FirebaseApp.configure()
+        print("🔥 Firebase configured successfully")
+        
+        // Set Messaging delegate for token refresh
+        Messaging.messaging().delegate = PushNotificationManager.shared
+        
+        // Initialize PushNotificationManager
         _ = PushNotificationManager.shared
         return true
     }
@@ -28,6 +39,8 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     func application(_ application: UIApplication,
                      didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
         print("✅ Registered for remote notifications")
+        // Set APNS token for Firebase
+        Messaging.messaging().apnsToken = deviceToken
     }
     
     func application(_ application: UIApplication,
@@ -60,7 +73,7 @@ struct TheNileKartApp: App {
 }
 
 // MARK: - Push Notification Manager
-class PushNotificationManager: NSObject, UNUserNotificationCenterDelegate {
+class PushNotificationManager: NSObject, UNUserNotificationCenterDelegate, MessagingDelegate {
     static let shared = PushNotificationManager()
     var onNotificationReceived: ((PushNotification) -> Void)?
     
@@ -87,12 +100,25 @@ class PushNotificationManager: NSObject, UNUserNotificationCenterDelegate {
     }
     
     private func retrieveFCMToken() {
-        print("📤 Fetching FCM token...")
-        let mockToken = UUID().uuidString.replacingOccurrences(of: "-", with: "") + UUID().uuidString.replacingOccurrences(of: "-", with: "")
-        print("✅ FCM Token retrieved: \(mockToken.prefix(50))...")
-        print("📏 Token length: \(mockToken.count) characters")
-        UserDefaults.standard.set(mockToken, forKey: "fcmToken")
-        sendTokenToBackend(token: mockToken)
+        print("📤 Fetching FCM token from Firebase...")
+        Messaging.messaging().token { [weak self] token, error in
+            if let error = error {
+                print("❌ Error getting FCM token: \(error.localizedDescription)")
+                return
+            }
+            
+            guard let token = token else {
+                print("❌ FCM token is nil")
+                return
+            }
+            
+            print("✅ Real FCM Token retrieved successfully!")
+            print("🔐 Token: \(token.prefix(50))...")
+            print("📏 Token length: \(token.count) characters")
+            
+            UserDefaults.standard.set(token, forKey: "fcmToken")
+            self?.sendTokenToBackend(token: token)
+        }
     }
     
     func userNotificationCenter(
@@ -200,6 +226,26 @@ class PushNotificationManager: NSObject, UNUserNotificationCenterDelegate {
     
     func getFCMToken() -> String? {
         return UserDefaults.standard.string(forKey: "fcmToken")
+    }
+    
+    // MARK: - Messaging Delegate Methods
+    
+    /// Called when FCM token is refreshed
+    func messaging(_ messaging: Messaging, didRefreshRegistrationToken fcmToken: String) {
+        print("🔄 FCM token refreshed!")
+        print("🔐 New token: \(fcmToken.prefix(50))...")
+        print("📏 Token length: \(fcmToken.count) characters")
+        
+        UserDefaults.standard.set(fcmToken, forKey: "fcmToken")
+        sendTokenToBackend(token: fcmToken)
+    }
+    
+    /// Called when a remote message is received
+    func messaging(_ messaging: Messaging, didReceive remoteMessage: RemoteMessage) {
+        print("📥 Remote message received!")
+        print("📦 Data: \(remoteMessage.appData)")
+        
+        handleRemoteNotification(userInfo: remoteMessage.appData)
     }
 }
 

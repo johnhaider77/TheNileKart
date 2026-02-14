@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		35EA957DD9B791A76094FCF4 /* libPods-TheNileKartApp.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 7BF71D7103B897F6776AF2CC /* libPods-TheNileKartApp.a */; };
 		A1234567890123450 /* TheNileKartApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1234567890123451 /* TheNileKartApp.swift */; };
 		A1234567890123452 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1234567890123453 /* ContentView.swift */; };
 		A1234567890123454 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A1234567890123455 /* Assets.xcassets */; };
@@ -14,11 +15,14 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		55ECFF2CB19E0BE2DD981B3A /* Pods-TheNileKartApp.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-TheNileKartApp.release.xcconfig"; path = "Target Support Files/Pods-TheNileKartApp/Pods-TheNileKartApp.release.xcconfig"; sourceTree = "<group>"; };
+		7BF71D7103B897F6776AF2CC /* libPods-TheNileKartApp.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = "libPods-TheNileKartApp.a"; sourceTree = BUILT_PRODUCTS_DIR; };
 		A1234567890123451 /* TheNileKartApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TheNileKartApp.swift; sourceTree = "<group>"; };
 		A1234567890123453 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		A1234567890123455 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A1234567890123457 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		A1234567890123458 /* TheNileKartApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TheNileKartApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A800E883BD49E6A745D8C35D /* Pods-TheNileKartApp.debug.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-TheNileKartApp.debug.xcconfig"; path = "Target Support Files/Pods-TheNileKartApp/Pods-TheNileKartApp.debug.xcconfig"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -26,12 +30,21 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				35EA957DD9B791A76094FCF4 /* libPods-TheNileKartApp.a in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		82E6919ACA2301B4D3DB3660 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				7BF71D7103B897F6776AF2CC /* libPods-TheNileKartApp.a */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		A123456789012345A /* TheNileKartApp */ = {
 			isa = PBXGroup;
 			children = (
@@ -56,6 +69,8 @@
 			children = (
 				A123456789012345A /* TheNileKartApp */,
 				A123456789012345D /* Products */,
+				BA156168E434A80621CECEA0 /* Pods */,
+				82E6919ACA2301B4D3DB3660 /* Frameworks */,
 			);
 			sourceTree = "<group>";
 		};
@@ -67,6 +82,16 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		BA156168E434A80621CECEA0 /* Pods */ = {
+			isa = PBXGroup;
+			children = (
+				A800E883BD49E6A745D8C35D /* Pods-TheNileKartApp.debug.xcconfig */,
+				55ECFF2CB19E0BE2DD981B3A /* Pods-TheNileKartApp.release.xcconfig */,
+			);
+			name = Pods;
+			path = Pods;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -74,9 +99,11 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = A123456789012345F /* Build configuration list for PBXNativeTarget "TheNileKartApp" */;
 			buildPhases = (
+				FB8E13C80105E11486FF2EC4 /* [CP] Check Pods Manifest.lock */,
 				A1234567890123460 /* Sources */,
 				A1234567890123459 /* Frameworks */,
 				A1234567890123461 /* Resources */,
+				E7BD4ABD88B10F0E73BD08FA /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
 			);
@@ -131,6 +158,48 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		E7BD4ABD88B10F0E73BD08FA /* [CP] Copy Pods Resources */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-TheNileKartApp/Pods-TheNileKartApp-resources-${CONFIGURATION}-input-files.xcfilelist",
+			);
+			name = "[CP] Copy Pods Resources";
+			outputFileListPaths = (
+				"${PODS_ROOT}/Target Support Files/Pods-TheNileKartApp/Pods-TheNileKartApp-resources-${CONFIGURATION}-output-files.xcfilelist",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-TheNileKartApp/Pods-TheNileKartApp-resources.sh\"\n";
+			showEnvVarsInLog = 0;
+		};
+		FB8E13C80105E11486FF2EC4 /* [CP] Check Pods Manifest.lock */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"${PODS_PODFILE_DIR_PATH}/Podfile.lock",
+				"${PODS_ROOT}/Manifest.lock",
+			);
+			name = "[CP] Check Pods Manifest.lock";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(DERIVED_FILE_DIR)/Pods-TheNileKartApp-checkManifestLockResult.txt",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "diff \"${PODS_PODFILE_DIR_PATH}/Podfile.lock\" \"${PODS_ROOT}/Manifest.lock\" > /dev/null\nif [ $? != 0 ] ; then\n    # print error to STDERR\n    echo \"error: The sandbox is not in sync with the Podfile.lock. Run 'pod install' or update your CocoaPods installation.\" >&2\n    exit 1\nfi\n# This output is used by Xcode 'outputs' to avoid re-running this script phase.\necho \"SUCCESS\" > \"${SCRIPT_OUTPUT_FILE_0}\"\n";
+			showEnvVarsInLog = 0;
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		A1234567890123460 /* Sources */ = {
@@ -266,6 +335,7 @@
 		};
 		A1234567890123466 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = A800E883BD49E6A745D8C35D /* Pods-TheNileKartApp.debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -296,6 +366,7 @@
 		};
 		A1234567890123467 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = 55ECFF2CB19E0BE2DD981B3A /* Pods-TheNileKartApp.release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
