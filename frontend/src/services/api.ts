@@ -28,10 +28,12 @@ const getApiBaseUrl = () => {
 
 const API_BASE_URL = getApiBaseUrl();
 
+console.log('🔧 API Base URL configured as:', API_BASE_URL);
+
 // Create axios instance
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 5000, // Reduce to 5 seconds
+  timeout: 15000, // Increase to 15 seconds to avoid premature timeouts
   headers: {
     'Content-Type': 'application/json',
   },
@@ -40,13 +42,18 @@ const api = axios.create({
 // Request interceptor to add auth token
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    try {
+      const token = localStorage.getItem('token');
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+    } catch (e) {
+      console.error('Error setting auth token:', e);
     }
     return config;
   },
   (error) => {
+    console.error('Request error:', error);
     return Promise.reject(error);
   }
 );
@@ -55,45 +62,18 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      // Token expired or invalid - handle immediately and silently
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
-      localStorage.removeItem('guestCart');
-      
-      // Only redirect to login if not on public pages
-      const currentPath = window.location.pathname;
-      const publicPaths = ['/', '/products', '/login', '/forgot-password'];
-      const isOfferPath = currentPath.startsWith('/products/offers/');
-      
-      if (!publicPaths.includes(currentPath) && !isOfferPath) {
-        // Create redirect URL with context about where user came from
-        const from = currentPath.includes('checkout') ? 'checkout' : 
-                    currentPath.includes('cart') ? 'cart' : 'page';
-        const redirectUrl = `/login?from=${from}&returnTo=${encodeURIComponent(currentPath)}`;
+    try {
+      if (error.response?.status === 401) {
+        // Token expired or invalid - handle immediately and silently
+        try {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          localStorage.removeItem('guestCart');
+        } catch (e) {
+          console.error('Error clearing localStorage:', e);
+        }
         
-        // Redirect immediately without any delay
-        window.location.href = redirectUrl;
-        
-        // Return a rejected promise that will prevent further error handling
-        return new Promise(() => {}); // Never resolves, prevents error propagation
-      }
-      
-      // For public pages, just reject the error without redirecting
-      return Promise.reject(error);
-    }
-    
-    if (error.response?.status === 403) {
-      // Authorization error - user doesn't have required permissions
-      // Check if user is trying to access customer-only features without customer account
-      const errorMessage = error.response?.data?.message || '';
-      if (errorMessage.includes('Customer access required')) {
-        // User is logged in but not as a customer
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        localStorage.removeItem('guestCart');
-        
-        // Only redirect if not on public pages
+        // Only redirect to login if not on public pages
         const currentPath = window.location.pathname;
         const publicPaths = ['/', '/products', '/login', '/forgot-password'];
         const isOfferPath = currentPath.startsWith('/products/offers/');
@@ -104,15 +84,56 @@ api.interceptors.response.use(
                       currentPath.includes('cart') ? 'cart' : 'page';
           const redirectUrl = `/login?from=${from}&returnTo=${encodeURIComponent(currentPath)}`;
           
+          // Redirect immediately without any delay
           window.location.href = redirectUrl;
+          
+          // Return a rejected promise that will prevent further error handling
           return new Promise(() => {}); // Never resolves, prevents error propagation
         }
         
+        // For public pages, just reject the error without redirecting
         return Promise.reject(error);
       }
+      
+      if (error.response?.status === 403) {
+        // Authorization error - user doesn't have required permissions
+        // Check if user is trying to access customer-only features without customer account
+        const errorMessage = error.response?.data?.message || '';
+        if (errorMessage.includes('Customer access required')) {
+          // User is logged in but not as a customer
+          try {
+            localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            localStorage.removeItem('guestCart');
+          } catch (e) {
+            console.error('Error clearing localStorage:', e);
+          }
+        
+          // Only redirect if not on public pages
+          const currentPath = window.location.pathname;
+          const publicPaths = ['/', '/products', '/login', '/forgot-password'];
+          const isOfferPath = currentPath.startsWith('/products/offers/');
+          
+          if (!publicPaths.includes(currentPath) && !isOfferPath) {
+            // Create redirect URL with context about where user came from
+            const from = currentPath.includes('checkout') ? 'checkout' : 
+                        currentPath.includes('cart') ? 'cart' : 'page';
+            const redirectUrl = `/login?from=${from}&returnTo=${encodeURIComponent(currentPath)}`;
+            
+            window.location.href = redirectUrl;
+            return new Promise(() => {}); // Never resolves, prevents error propagation
+          }
+          
+          return Promise.reject(error);
+        }
+      }
+      
+      console.error('API Error:', error.response?.status, error.message);
+      return Promise.reject(error);
+    } catch (e) {
+      console.error('Error in response interceptor:', e);
+      return Promise.reject(error);
     }
-    
-    return Promise.reject(error);
   }
 );
 

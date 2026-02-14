@@ -119,6 +119,27 @@ struct WebViewWrapper: UIViewRepresentable {
         config.allowsInlineMediaPlayback = true
         config.mediaTypesRequiringUserActionForPlayback = []
         
+        // Add JavaScript error handler to catch all JS errors
+        let errorScript = """
+        window.onerror = function(msg, url, lineNo, columnNo, error) {
+            console.error('JS Error: ' + msg + ' at ' + url + ':' + lineNo);
+            try {
+                webkit.messageHandlers.iosApp.postMessage({type: 'jsError', message: msg, url: url, line: lineNo});
+            } catch(e) {}
+            return true;
+        };
+        
+        window.addEventListener('unhandledrejection', function(event) {
+            console.error('Unhandled Promise Rejection: ' + event.reason);
+            try {
+                webkit.messageHandlers.iosApp.postMessage({type: 'jsError', message: 'Unhandled Promise: ' + event.reason});
+            } catch(e) {}
+        });
+        """
+        
+        let errorScript2 = WKUserScript(source: errorScript, injectionTime: .atDocumentStart, forMainFrameOnly: true)
+        config.userContentController.addUserScript(errorScript2)
+        
         // Add message handler
         config.userContentController.add(context.coordinator, name: "iosApp")
         
@@ -154,6 +175,7 @@ struct WebViewWrapper: UIViewRepresentable {
     class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
         let onError: (String) -> Void
         let onLoadFinish: () -> Void
+        var hasReportedError = false
         
         init(onError: @escaping (String) -> Void, onLoadFinish: @escaping () -> Void) {
             self.onError = onError
@@ -166,6 +188,7 @@ struct WebViewWrapper: UIViewRepresentable {
         
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
             print("✅ WebView finished loading successfully")
+            hasReportedError = false
             DispatchQueue.main.async { [weak self] in
                 self?.onLoadFinish()
             }
@@ -174,7 +197,11 @@ struct WebViewWrapper: UIViewRepresentable {
         func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
             print("⚠️  WebView failed: \(error.localizedDescription)")
             DispatchQueue.main.async { [weak self] in
-                self?.onError("Failed to load page: \(error.localizedDescription)")
+                guard let self = self else { return }
+                if !self.hasReportedError {
+                    self.hasReportedError = true
+                    self.onError("Failed to load page: \(error.localizedDescription)")
+                }
             }
         }
         
@@ -182,15 +209,18 @@ struct WebViewWrapper: UIViewRepresentable {
             let errorDescription = error.localizedDescription
             print("⚠️  WebView provisional navigation failed: \(errorDescription)")
             DispatchQueue.main.async { [weak self] in
-                // Provide more detailed error message
-                if errorDescription.lowercased().contains("timeout") {
-                    self?.onError("Connection timeout. Please check your internet connection and try again.")
-                } else if errorDescription.lowercased().contains("refused") {
-                    self?.onError("Connection refused. The server may be offline. Please try again later.")
-                } else if errorDescription.lowercased().contains("not found") {
-                    self?.onError("Server not found. Please check the URL configuration.")
-                } else {
-                    self?.onError("Network connection issue: \(errorDescription)")
+                guard let self = self else { return }
+                if !self.hasReportedError {
+                    self.hasReportedError = true
+                    if errorDescription.lowercased().contains("timeout") {
+                        self.onError("Connection timeout. Please check your internet connection and try again.")
+                    } else if errorDescription.lowercased().contains("refused") {
+                        self.onError("Connection refused. The server may be offline. Please try again later.")
+                    } else if errorDescription.lowercased().contains("not found") {
+                        self.onError("Server not found. Please check the URL configuration.")
+                    } else {
+                        self.onError("Network connection issue: \(errorDescription)")
+                    }
                 }
             }
         }
@@ -202,6 +232,16 @@ struct WebViewWrapper: UIViewRepresentable {
         
         func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
             print("📨 Message from web app: \(message.body)")
+            
+            // Handle JS errors from the injected script
+            if let dict = message.body as? [String: Any] {
+                if let type = dict["type"] as? String, type == "jsError" {
+                    if let errorMsg = dict["message"] as? String {
+                        print("⚠️  JavaScript Error caught: \(errorMsg)")
+                        // Log but don't crash - JS errors are handled
+                    }
+                }
+            }
         }
     }
 }

@@ -6,6 +6,18 @@ import './index.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 
+// Global error handler
+window.addEventListener('error', (event) => {
+  console.error('Global error caught:', event.error);
+  event.preventDefault();
+});
+
+// Unhandled rejection handler
+window.addEventListener('unhandledrejection', (event) => {
+  console.error('Unhandled rejection caught:', event.reason);
+  event.preventDefault();
+});
+
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
 );
