@@ -194,13 +194,8 @@ struct WebViewWrapper: UIViewRepresentable {
         // Load the website
         if let url = URL(string: url) {
             print("📲 Loading URL: \(url)")
-            do {
-                let request = URLRequest(url: url)
-                webView.load(request)
-            } catch {
-                print("❌ Error creating request: \(error)")
-                context.coordinator.onError("Failed to create request: \(error.localizedDescription)")
-            }
+            let request = URLRequest(url: url)
+            webView.load(request)
         } else {
             print("❌ Invalid URL: \(url)")
             context.coordinator.onError("Invalid URL configuration: \(url)")

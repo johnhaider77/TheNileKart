@@ -50,61 +50,60 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
         // Request notification permissions on background thread (non-blocking)
         DispatchQueue.global(qos: .userInitiated).async {
             DispatchQueue.main.async {
-                do {
-                    UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
-                        DispatchQueue.main.async {
-                            if granted {
-                                print("✅ Notification permission granted")
-                                UIApplication.shared.registerForRemoteNotifications()
-                            } else if let error = error {
-                                print("⚠️  Notification permission error: \(error.localizedDescription)")
-                            }
+                UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
+                    DispatchQueue.main.async {
+                        if granted {
+                            print("✅ Notification permission granted")
+                            UIApplication.shared.registerForRemoteNotifications()
+                        } else if let error = error {
+                            print("⚠️  Notification permission error: \(error.localizedDescription)")
                         }
                     }
-                } catch {
-                    print("⚠️  Error requesting notifications: \(error)")
                 }
             }
         }
         
         // Schedule Firebase initialization on a background thread with a long delay
-        DispatchQueue.global(qos: .background).asyncAfter(deadline: .now() + 4.0) { [weak self] in
+        DispatchQueue.global(qos: .background).asyncAfter(deadline: .now() + 5.0) { [weak self] in
             print("🔧 Attempting Firebase initialization...")
-            do {
-                autoreleasepool {
+            
+            autoreleasepool {
+                do {
                     // Only configure if not already configured
                     if FirebaseApp.app() == nil {
                         print("🔧 Configuring Firebase with GoogleService-Info.plist...")
                         do {
                             FirebaseApp.configure()
                             print("🔥 Firebase configured successfully")
-                            
-                            // Set Messaging delegate after Firebase is configured
-                            DispatchQueue.main.async { [weak self] in
-                                do {
-                                    Messaging.messaging().delegate = PushNotificationManager.shared
-                                    print("✅ Messaging delegate set")
-                                    PushNotificationManager.shared.ensureInitialized()
-                                } catch {
-                                    print("⚠️  Error setting messaging delegate: \(error)")
-                                    // Continue anyway - push notifications are optional
-                                }
-                            }
                         } catch {
-                            print("⚠️  Firebase configuration error: \(error)")
-                            // App should still work without Firebase
+                            print("⚠️  Firebase configuration error (non-critical): \(error)")
+                            // App should still work without Firebase - continue anyway
                         }
                     } else {
                         print("ℹ️  Firebase already configured")
-                        DispatchQueue.main.async { [weak self] in
+                    }
+                    
+                    // Delay the delegate setup to avoid timing issues
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        do {
+                            guard FirebaseApp.app() != nil else {
+                                print("⚠️  Firebase app not available")
+                                return
+                            }
+                            Messaging.messaging().delegate = PushNotificationManager.shared
+                            print("✅ Messaging delegate set")
+                            PushNotificationManager.shared.ensureInitialized()
+                        } catch {
+                            print("⚠️  Error setting messaging delegate: \(error)")
+                            // Initialize anyway without Firebase
                             PushNotificationManager.shared.ensureInitialized()
                         }
                     }
-                }
-            } catch {
-                print("⚠️  Firebase initialization error (non-critical): \(error)")
-                DispatchQueue.main.async { [weak self] in
-                    PushNotificationManager.shared.ensureInitialized()
+                } catch {
+                    print("⚠️  Firebase initialization error (non-critical): \(error)")
+                    DispatchQueue.main.async {
+                        PushNotificationManager.shared.ensureInitialized()
+                    }
                 }
             }
         }
@@ -229,7 +228,7 @@ class PushNotificationManager: NSObject, UNUserNotificationCenterDelegate, Messa
     private func retrieveFCMToken() {
         print("📤 Fetching FCM token from Firebase...")
         
-        DispatchQueue.global(qos: .background).asyncAfter(deadline: .now() + 1.0) { [weak self] in
+        DispatchQueue.global(qos: .background).asyncAfter(deadline: .now() + 2.0) { [weak self] in
             do {
                 // Check if Firebase app is configured
                 guard FirebaseApp.app() != nil else {
@@ -240,7 +239,14 @@ class PushNotificationManager: NSObject, UNUserNotificationCenterDelegate, Messa
                 let messaging = Messaging.messaging()
                 print("✅ Firebase Messaging instance accessed")
                 
+                // Use a timeout for token retrieval to prevent hanging
+                var isCompleted = false
+                let timeoutDeadline = DispatchTime.now() + .seconds(5)
+                
                 messaging.token { [weak self] token, error in
+                    guard !isCompleted else { return }
+                    isCompleted = true
+                    
                     if let error = error {
                         print("⚠️  Error getting FCM token (non-critical): \(error.localizedDescription)")
                         return
@@ -257,6 +263,14 @@ class PushNotificationManager: NSObject, UNUserNotificationCenterDelegate, Messa
                     UserDefaults.standard.set(token, forKey: "fcmToken")
                     DispatchQueue.global(qos: .background).async {
                         self?.sendTokenToBackend(token: token)
+                    }
+                }
+                
+                // Force completion if timeout occurs
+                DispatchQueue.global(qos: .background).asyncAfter(deadline: timeoutDeadline) {
+                    if !isCompleted {
+                        isCompleted = true
+                        print("⏱️  FCM token request timed out after 5 seconds")
                     }
                 }
             } catch {
@@ -338,7 +352,7 @@ class PushNotificationManager: NSObject, UNUserNotificationCenterDelegate, Messa
             request.httpMethod = "POST"
             request.setValue("Bearer \(jwtToken)", forHTTPHeaderField: "Authorization")
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-            request.timeoutInterval = APIConfig.requestTimeout
+            request.timeoutInterval = 10.0 // 10 second timeout to prevent hanging
             
             let body = ["deviceToken": token]
             
@@ -349,22 +363,53 @@ class PushNotificationManager: NSObject, UNUserNotificationCenterDelegate, Messa
                 return
             }
             
-            URLSession.shared.dataTask(with: request) { data, response, error in
-                DispatchQueue.main.async {
+            // Create a session with more aggressive timeout
+            let config = URLSessionConfiguration.default
+            config.timeoutIntervalForRequest = 10
+            config.timeoutIntervalForResource = 15
+            config.waitsForConnectivity = false
+            let session = URLSession(configuration: config)
+            
+            let task = session.dataTask(with: request) { [weak self] data, response, error in
+                defer {
+                    session.invalidateAndCancel()
+                }
+                
+                do {
                     if let error = error {
-                        print("❌ Network error: \(error)")
+                        if (error as NSError).code == NSURLErrorTimedOut {
+                            print("⏱️  Network request timed out - continuing anyway")
+                        } else {
+                            print("⚠️  Network error: \(error.localizedDescription)")
+                        }
                         return
                     }
+                    
                     if let httpResponse = response as? HTTPURLResponse {
                         print("📊 Status: \(httpResponse.statusCode)")
                         if httpResponse.statusCode == 200 {
                             print("✅ Token registered!")
+                        } else {
+                            print("⚠️  Unexpected status: \(httpResponse.statusCode)")
                         }
                     }
+                } catch {
+                    print("⚠️  Error processing response: \(error)")
                 }
-            }.resume()
+            }
+            
+            // Set a timer to cancel the task if it takes too long
+            DispatchQueue.global().asyncAfter(deadline: .now() + 12.0) {
+                if task.state == .running {
+                    print("⏱️  Canceling token request - took too long")
+                    task.cancel()
+                    session.invalidateAndCancel()
+                }
+            }
+            
+            task.resume()
         } catch {
-            print("❌ Error in sendTokenToBackend: \(error)")
+            print("⚠️  Error in sendTokenToBackend: \(error)")
         }
     }
     
