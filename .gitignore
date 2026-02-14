@@ -6,6 +6,10 @@ yarn-debug.log*
 yarn-error.log*
 lerna-debug.log*
 
+# Firebase credentials (NEVER commit sensitive keys!)
+firebase-service-account-key.json
+backend/firebase-service-account-key.json
+
 # Runtime data
 pids
 *.pid
