@@ -29,29 +29,30 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
         print("🚀 AppDelegate initializing...")
         
         // Initialize Firebase in background to avoid blocking main thread
-        DispatchQueue.global(qos: .background).asyncAfter(deadline: .now() + 0.5) { [weak self] in
+        DispatchQueue.global(qos: .background).asyncAfter(deadline: .now() + 1.0) { [weak self] in
             do {
-                // Configure Firebase safely
+                // Configure Firebase safely - don't crash if it fails
                 if FirebaseApp.app() == nil {
                     print("🔧 Configuring Firebase...")
                     FirebaseApp.configure()
                     print("🔥 Firebase configured successfully")
+                    
+                    // Set Messaging delegate safely
+                    DispatchQueue.main.async {
+                        Messaging.messaging().delegate = PushNotificationManager.shared
+                        print("✅ Messaging delegate set")
+                    }
                 } else {
                     print("ℹ️  Firebase already configured")
                 }
                 
-                // Set Messaging delegate safely
-                DispatchQueue.main.async {
-                    Messaging.messaging().delegate = PushNotificationManager.shared
-                    print("✅ Messaging delegate set")
-                }
-                
-                // Initialize PushNotificationManager
-                _ = PushNotificationManager.shared
-                print("✅ PushNotificationManager initialized")
+                // Initialize push notifications after Firebase is ready
+                PushNotificationManager.shared.ensureInitialized()
             } catch {
                 print("⚠️  Firebase configuration error (non-critical): \(error)")
                 // App continues even if Firebase setup fails
+                // Still initialize push notifications
+                PushNotificationManager.shared.ensureInitialized()
             }
         }
         
@@ -61,8 +62,12 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
     func application(_ application: UIApplication,
                      didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
         print("✅ Registered for remote notifications")
-        // Set APNS token for Firebase
-        Messaging.messaging().apnsToken = deviceToken
+        // Set APNS token for Firebase (safely)
+        do {
+            Messaging.messaging().apnsToken = deviceToken
+        } catch {
+            print("⚠️  Error setting APNS token: \(error)")
+        }
     }
     
     func application(_ application: UIApplication,
@@ -98,10 +103,21 @@ struct TheNileKartApp: App {
 class PushNotificationManager: NSObject, UNUserNotificationCenterDelegate, MessagingDelegate {
     static let shared = PushNotificationManager()
     var onNotificationReceived: ((PushNotification) -> Void)?
+    private var isInitialized = false
     
     override init() {
         super.init()
-        setupPushNotifications()
+        // Don't setup here - do it later on background thread
+        print("✅ PushNotificationManager initialized (setup deferred)")
+    }
+    
+    func ensureInitialized() {
+        guard !isInitialized else { return }
+        isInitialized = true
+        
+        DispatchQueue.global(qos: .background).async { [weak self] in
+            self?.setupPushNotifications()
+        }
     }
     
     func setupPushNotifications() {
