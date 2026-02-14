@@ -115,26 +115,56 @@ struct WebViewWrapper: UIViewRepresentable {
         print("🔧 Creating WebView with URL: \(url)")
         
         let config = WKWebViewConfiguration()
+        
+        // Safe JavaScript configuration
         config.defaultWebpagePreferences.allowsContentJavaScript = true
+        if #available(iOS 14.0, *) {
+            config.defaultWebpagePreferences.preferredContentMode = .recommended
+        }
+        
         config.allowsInlineMediaPlayback = true
         config.mediaTypesRequiringUserActionForPlayback = []
         
-        // Add JavaScript error handler to catch all JS errors
+        // Add comprehensive JavaScript error handler
         let errorScript = """
+        console.log('iOS: JavaScript error handler loaded');
+        
+        // Catch all errors
         window.onerror = function(msg, url, lineNo, columnNo, error) {
             console.error('JS Error: ' + msg + ' at ' + url + ':' + lineNo);
             try {
-                webkit.messageHandlers.iosApp.postMessage({type: 'jsError', message: msg, url: url, line: lineNo});
-            } catch(e) {}
+                if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.iosApp) {
+                    window.webkit.messageHandlers.iosApp.postMessage({
+                        type: 'jsError',
+                        message: msg,
+                        url: url,
+                        line: lineNo,
+                        error: error ? error.toString() : 'No error object'
+                    });
+                }
+            } catch(e) {
+                console.error('Error sending message to iOS:', e);
+            }
             return true;
         };
         
+        // Catch unhandled promise rejections
         window.addEventListener('unhandledrejection', function(event) {
             console.error('Unhandled Promise Rejection: ' + event.reason);
             try {
-                webkit.messageHandlers.iosApp.postMessage({type: 'jsError', message: 'Unhandled Promise: ' + event.reason});
-            } catch(e) {}
+                if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.iosApp) {
+                    window.webkit.messageHandlers.iosApp.postMessage({
+                        type: 'jsError',
+                        message: 'Unhandled Promise: ' + (event.reason || 'Unknown reason'),
+                        error: event.reason ? event.reason.toString() : 'Unknown'
+                    });
+                }
+            } catch(e) {
+                console.error('Error sending unhandled rejection to iOS:', e);
+            }
         });
+        
+        console.log('iOS: Error handlers registered successfully');
         """
         
         let errorScript2 = WKUserScript(source: errorScript, injectionTime: .atDocumentStart, forMainFrameOnly: true)
@@ -143,9 +173,11 @@ struct WebViewWrapper: UIViewRepresentable {
         // Add message handler
         config.userContentController.add(context.coordinator, name: "iosApp")
         
+        // Create WebView with safe defaults
         let webView = WKWebView(frame: .zero, configuration: config)
         webView.navigationDelegate = context.coordinator
         webView.backgroundColor = .white
+        webView.isOpaque = true
         
         // Disable scroll bouncing
         webView.scrollView.bounces = false
@@ -154,11 +186,16 @@ struct WebViewWrapper: UIViewRepresentable {
         // Load the website
         if let url = URL(string: url) {
             print("📲 Loading URL: \(url)")
-            let request = URLRequest(url: url)
-            webView.load(request)
+            do {
+                let request = URLRequest(url: url)
+                webView.load(request)
+            } catch {
+                print("❌ Error creating request: \(error)")
+                context.coordinator.onError("Failed to create request: \(error.localizedDescription)")
+            }
         } else {
             print("❌ Invalid URL: \(url)")
-            onError("Invalid URL configuration: \(url)")
+            context.coordinator.onError("Invalid URL configuration: \(url)")
         }
         
         return webView

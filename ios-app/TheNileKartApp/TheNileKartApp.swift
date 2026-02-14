@@ -3,6 +3,17 @@ import UIKit
 import UserNotifications
 import Firebase
 import FirebaseMessaging
+import os.log
+
+// MARK: - Crash Handler
+func setupCrashHandler() {
+    // Set up NSSetUncaughtExceptionHandler
+    NSSetUncaughtExceptionHandler { exception in
+        print("🔥 UNCAUGHT EXCEPTION: \(exception.name)")
+        print("🔥 Reason: \(exception.reason ?? "Unknown")")
+        print("🔥 Stack trace: \(exception.callStackSymbols)")
+    }
+}
 
 // MARK: - API Configuration
 struct APIConfig {
@@ -28,12 +39,31 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         print("🚀 AppDelegate initializing...")
         
+        // Setup crash handler
+        setupCrashHandler()
+        
+        // Disable memory-intensive features if needed
+        #if DEBUG
+        #else
+        URLCache.shared.memoryCapacity = 0
+        URLCache.shared.diskCapacity = 0
+        #endif
+        
+        // Request user notification permissions early but don't wait for it
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
+            DispatchQueue.main.async {
+                if granted {
+                    UIApplication.shared.registerForRemoteNotifications()
+                    print("✅ User granted notification permission")
+                }
+            }
+        }
+        
         // Schedule Firebase initialization on a background thread with a long delay
-        // This ensures the UI renders first before any Firebase initialization
-        DispatchQueue.global(qos: .background).asyncAfter(deadline: .now() + 3.0) {
+        DispatchQueue.global(qos: .background).asyncAfter(deadline: .now() + 4.0) { [weak self] in
             print("🔧 Attempting Firebase initialization...")
-            autoreleasepool {
-                do {
+            do {
+                autoreleasepool {
                     // Only configure if not already configured
                     if FirebaseApp.app() == nil {
                         print("🔧 Configuring Firebase with GoogleService-Info.plist...")
@@ -41,11 +71,10 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
                         print("🔥 Firebase configured successfully")
                         
                         // Set Messaging delegate after Firebase is configured
-                        DispatchQueue.main.async {
+                        DispatchQueue.main.async { [weak self] in
                             do {
                                 Messaging.messaging().delegate = PushNotificationManager.shared
                                 print("✅ Messaging delegate set")
-                                // Now initialize push notifications
                                 PushNotificationManager.shared.ensureInitialized()
                             } catch {
                                 print("⚠️  Error setting messaging delegate: \(error)")
@@ -53,17 +82,15 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
                         }
                     } else {
                         print("ℹ️  Firebase already configured")
-                        DispatchQueue.main.async {
+                        DispatchQueue.main.async { [weak self] in
                             PushNotificationManager.shared.ensureInitialized()
                         }
                     }
-                } catch let error as NSError {
-                    print("⚠️  Firebase error (non-critical): \(error.localizedDescription)")
-                    print("⚠️  Error domain: \(error.domain), code: \(error.code)")
-                    // Continue without Firebase
-                    DispatchQueue.main.async {
-                        PushNotificationManager.shared.ensureInitialized()
-                    }
+                }
+            } catch {
+                print("⚠️  Firebase initialization error (non-critical): \(error)")
+                DispatchQueue.main.async { [weak self] in
+                    PushNotificationManager.shared.ensureInitialized()
                 }
             }
         }
@@ -74,24 +101,28 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
     func application(_ application: UIApplication,
                      didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
         print("✅ Registered for remote notifications")
-        // Set APNS token for Firebase (safely)
-        do {
-            Messaging.messaging().apnsToken = deviceToken
-        } catch {
-            print("⚠️  Error setting APNS token: \(error)")
+        DispatchQueue.global(qos: .background).async {
+            do {
+                Messaging.messaging().apnsToken = deviceToken
+                print("✅ APNS token set")
+            } catch {
+                print("⚠️  Error setting APNS token: \(error)")
+            }
         }
     }
     
     func application(_ application: UIApplication,
                      didFailToRegisterForRemoteNotificationsWithError error: Error) {
-        print("❌ Failed to register: \(error)")
+        print("⚠️  Failed to register for remote notifications: \(error)")
     }
     
     func application(_ application: UIApplication,
                      didReceiveRemoteNotification userInfo: [AnyHashable: Any],
                      fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
-        PushNotificationManager.shared.handleRemoteNotification(userInfo: userInfo)
-        completionHandler(.newData)
+        DispatchQueue.main.async {
+            PushNotificationManager.shared.handleRemoteNotification(userInfo: userInfo)
+            completionHandler(.newData)
+        }
     }
 }
 
