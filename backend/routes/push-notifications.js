@@ -238,7 +238,19 @@ router.post('/send-bulk', authenticateToken, async (req, res) => {
       totalDevices: allDeviceTokens.length,
       devicesSent: notificationResult.successfulSends,
       devicesFailed: notificationResult.failedSends,
-      details: notificationResult
+      details: notificationResult,
+      warning: notificationResult.failedSends > 0 ? 'Some notifications failed. Check error details.' : undefined,
+      failureAnalysis: notificationResult.failedSends > 0 ? {
+        totalFailed: notificationResult.failedSends,
+        errors: notificationResult.results?.filter(r => !r.success).map(r => ({
+          tokenPreview: r.token?.substring(0, 50) + '...',
+          tokenLength: r.token?.length,
+          error: r.error,
+          fcmStatus: r.details?.error?.status,
+          fcmMessage: r.details?.error?.message,
+          isProbablyInvalidToken: (r.token?.length || 0) < 100 ? '⚠️ Token too short - likely not a real FCM token' : undefined
+        }))
+      } : undefined
     });
   } catch (error) {
     console.error('Error sending bulk notification:', error.message);
@@ -387,7 +399,8 @@ router.get('/diagnostic', authenticateToken, async (req, res) => {
           index: idx + 1,
           token: token?.substring(0, 50) + '...',
           length: token?.length,
-          isValid: token && token.length > 100 ? '✅ Likely valid' : '⚠️ Might be invalid'
+          isValid: token && token.length > 100 ? '✅ Likely valid (150+ chars)' : '⚠️ Invalid - too short or test token',
+          isTestToken: token === 'exampleToken123' ? '🚫 THIS IS A TEST TOKEN - WILL NOT WORK!' : undefined
         }))
       },
       firebase: {

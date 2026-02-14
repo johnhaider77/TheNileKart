@@ -91,6 +91,23 @@ async function getAccessToken() {
 }
 
 /**
+ * Validate if a token appears to be a real FCM token
+ * Real FCM tokens are typically 150+ characters and alphanumeric with special chars
+ */
+function isValidFCMToken(token) {
+  if (!token) return false;
+  
+  // Test tokens or obviously fake tokens
+  const testTokens = ['exampleToken123', 'test', 'demo', 'example'];
+  if (testTokens.some(t => token.toLowerCase().includes(t.toLowerCase()))) {
+    return false;
+  }
+  
+  // Real FCM tokens are usually 150+ characters
+  return token.length > 100;
+}
+
+/**
  * Send push notification to a single device token
  * @param {string} deviceToken - The FCM device token
  * @param {string} heading - Notification heading
@@ -103,10 +120,15 @@ async function sendNotification(deviceToken, heading, message, data = {}) {
       throw new Error('Device token is required');
     }
 
-    // Warn if using test token
-    if (deviceToken === 'exampleToken123' || deviceToken.length < 50) {
-      console.warn('⚠️  Warning: Using invalid/test device token. Real FCM tokens are ~150+ characters.');
-      console.warn('📱 Device token received:', deviceToken);
+    // Validate token
+    const isValidToken = isValidFCMToken(deviceToken);
+    if (!isValidToken) {
+      console.error('❌ INVALID DEVICE TOKEN DETECTED');
+      console.error('Token:', deviceToken);
+      console.error('Length:', deviceToken.length);
+      console.error('Real FCM tokens are ~150+ characters, alphanumeric.');
+      console.error('This appears to be a test/example token that will NOT receive notifications.');
+      throw new Error(`Invalid device token format. Expected real FCM token (150+ chars), got: ${deviceToken.substring(0, 50)}...`);
     }
 
     const accessToken = await getAccessToken();
