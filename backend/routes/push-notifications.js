@@ -1,8 +1,53 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../config/database');
-const { sendNotification, sendMultipleNotifications, sendTopicNotification } = require('../services/pushNotificationService');
+const { sendNotification, sendMultipleNotifications, sendTopicNotification, isValidFCMToken } = require('../services/pushNotificationService');
 const { authenticateToken, requireSeller } = require('../middleware/auth');
+
+/**
+ * Check if a token is valid FCM format (public endpoint for debugging)
+ * GET /api/push-notifications/check-token?token=...
+ */
+router.get('/check-token', (req, res) => {
+  try {
+    const { token } = req.query;
+    
+    if (!token) {
+      return res.status(400).json({ 
+        error: 'token query parameter is required',
+        example: '/api/push-notifications/check-token?token=your_fcm_token_here'
+      });
+    }
+
+    const isValid = isValidFCMToken(token);
+    const tokenLength = token.length;
+    const testTokenIndicators = ['exampleToken123', 'test', 'demo', 'example'];
+    const isTestToken = testTokenIndicators.some(t => token.toLowerCase().includes(t.toLowerCase()));
+
+    res.json({
+      token: token.substring(0, 50) + (token.length > 50 ? '...' : ''),
+      tokenLength,
+      isValid,
+      isTestToken,
+      validation: {
+        lengthOk: tokenLength > 100,
+        expectedLength: '150+ characters',
+        notTestToken: !isTestToken
+      },
+      details: isValid 
+        ? '✅ This looks like a valid FCM token'
+        : isTestToken 
+          ? '🚫 THIS IS A TEST TOKEN - WILL NOT WORK! Use real FCM token from Firebase SDK'
+          : `⚠️ Token too short (${tokenLength} chars). Real FCM tokens should be 150+ chars.`,
+      recommendation: !isValid
+        ? 'iOS app must register real device token from Firebase Cloud Messaging SDK'
+        : 'Token looks good for push notifications'
+    });
+  } catch (error) {
+    console.error('Error checking token:', error);
+    res.status(500).json({ error: 'Failed to check token' });
+  }
+});
 
 /**
  * Register device token for a user

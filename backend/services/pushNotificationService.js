@@ -393,5 +393,6 @@ module.exports = {
   sendMultipleNotifications,
   subscribeToTopic,
   sendTopicNotification,
-  getAccessToken
+  getAccessToken,
+  isValidFCMToken
 };
