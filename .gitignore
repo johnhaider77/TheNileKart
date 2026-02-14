@@ -126,3 +126,4 @@ setup-domain-ssl.sh
 start-frontend-3000.sh
 test-db-ec2.sh
 backend/.env.production
+backend/firebase-service-account-key.json
