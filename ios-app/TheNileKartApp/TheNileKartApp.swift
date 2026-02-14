@@ -28,20 +28,21 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         print("🚀 AppDelegate initializing...")
         
-        do {
-            // Configure Firebase
-            FirebaseApp.configure()
-            print("🔥 Firebase configured successfully")
-            
-            // Set Messaging delegate for token refresh
-            Messaging.messaging().delegate = PushNotificationManager.shared
-            
-            // Initialize PushNotificationManager in background to avoid blocking UI
-            DispatchQueue.global(qos: .background).async {
+        // Initialize Firebase in background to avoid blocking main thread
+        DispatchQueue.global(qos: .background).async {
+            do {
+                // Configure Firebase
+                FirebaseApp.configure()
+                print("🔥 Firebase configured successfully")
+                
+                // Set Messaging delegate
+                Messaging.messaging().delegate = PushNotificationManager.shared
+                
+                // Initialize PushNotificationManager
                 _ = PushNotificationManager.shared
+            } catch {
+                print("❌ Error during Firebase setup: \(error)")
             }
-        } catch {
-            print("❌ Error during app initialization: \(error)")
         }
         
         return true
