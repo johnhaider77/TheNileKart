@@ -20,6 +20,9 @@ struct WebViewWrapper: UIViewRepresentable {
         config.preferences.setValue(true, forKey: "allowFileAccessFromFileURLs")
         config.setValue(true, forKey: "allowUniversalAccessFromFileURLs")
         
+        // Add message handler for communication with web app
+        config.userContentController.add(context.coordinator, name: "iosApp")
+        
         let webView = WKWebView(frame: .zero, configuration: config)
         webView.navigationDelegate = context.coordinator
         
@@ -51,12 +54,14 @@ struct WebViewWrapper: UIViewRepresentable {
         Coordinator()
     }
     
-    class Coordinator: NSObject, WKNavigationDelegate {
+    class Coordinator: NSObject, WKNavigationDelegate, WKScriptMessageHandler {
         func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
-            // Show loading indicator if needed
+            print("📱 WebView started loading")
         }
         
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+            print("✅ WebView finished loading")
+            
             // Inject JavaScript to disable zoom and pinch
             let zoomDisableScript = """
                 var meta = document.createElement('meta');
@@ -73,18 +78,38 @@ struct WebViewWrapper: UIViewRepresentable {
             
             webView.evaluateJavaScript(zoomDisableScript) { _, error in
                 if let error = error {
-                    print("Error injecting zoom disable script: \(error.localizedDescription)")
+                    print("Error injecting disable script: \(error.localizedDescription)")
                 }
             }
         }
         
         func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
-            print("WebView navigation failed: \(error.localizedDescription)")
+            print("❌ WebView navigation failed: \(error.localizedDescription)")
         }
         
         func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
             // Allow all navigation
             decisionHandler(.allow)
+        }
+        
+        // Handle messages from web app
+        func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+            guard let body = message.body as? [String: Any] else {
+                return
+            }
+            
+            if let type = body["type"] as? String {
+                print("📨 Received message from web app: \(type)")
+                
+                switch type {
+                case "userLoggedIn":
+                    print("🔐 User logged in detected, resending pending FCM token...")
+                    PushNotificationManager.shared.resendPendingTokenAfterLogin()
+                    
+                default:
+                    print("Unknown message type: \(type)")
+                }
+            }
         }
     }
 }

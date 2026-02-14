@@ -19,54 +19,57 @@ class PushNotificationManager: NSObject, UNUserNotificationCenterDelegate, Messa
     
     /**
      * Setup push notifications
+     * Called from AppDelegate after Firebase is configured
      */
     func setupPushNotifications() {
+        print("🔧 Setting up push notifications...")
+        
         // Set notification delegate
         UNUserNotificationCenter.current().delegate = self
         Messaging.messaging().delegate = self
         
         // Request user permission for notifications
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { [weak self] granted, error in
             DispatchQueue.main.async {
                 if granted {
                     UIApplication.shared.registerForRemoteNotifications()
-                    print("✅ User granted notification permission")
+                    print("✅ User granted notification permission, registering for remote notifications")
+                    
+                    // Get FCM token after permission is granted
+                    self?.retrieveFCMToken()
                 } else if let error = error {
                     print("❌ Error requesting notification permission: \(error.localizedDescription)")
+                } else {
+                    print("⚠️  User denied notification permission")
                 }
             }
         }
     }
     
     /**
-     * Handle successful device token registration
+     * Retrieve FCM token and send to backend
      */
-    func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Configure Firebase
-        FirebaseApp.configure()
-        
-        // Get FCM token
-        Messaging.messaging().token { token, error in
+    private func retrieveFCMToken() {
+        Messaging.messaging().token { [weak self] token, error in
             if let error = error {
                 print("❌ Error getting FCM token: \(error.localizedDescription)")
-            } else if let token = token {
-                print("✅ FCM Token: \(token)")
-                UserDefaults.standard.set(token, forKey: "fcmToken")
-                
-                // Send token to backend if user is logged in
-                self.sendTokenToBackend(token: token)
+                return
             }
+            
+            guard let token = token else {
+                print("❌ FCM token is nil")
+                return
+            }
+            
+            print("✅ FCM Token retrieved: \(token.prefix(50))...")
+            print("📏 Token length: \(token.count) characters")
+            
+            // Store token in UserDefaults
+            UserDefaults.standard.set(token, forKey: "fcmToken")
+            
+            // Send token to backend if user is logged in
+            self?.sendTokenToBackend(token: token)
         }
-        
-        return true
-    }
-    
-    /**
-     * Handle device token registration
-     */
-    func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
-        Messaging.messaging().apnsToken = deviceToken
-        print("✅ APNS device token registered")
     }
     
     /**
@@ -164,8 +167,10 @@ class PushNotificationManager: NSObject, UNUserNotificationCenterDelegate, Messa
     
     /**
      * Handle remote notification
+     * This is called from both foreground and background contexts
      */
-    private func handleRemoteNotification(userInfo: [AnyHashable: Any]) {
+    func handleRemoteNotification(userInfo: [AnyHashable: Any]) {
+        print("🔔 Processing remote notification...")
         let pushNotification = parsePushNotification(userInfo: userInfo)
         
         // Call callback if set
@@ -252,33 +257,84 @@ class PushNotificationManager: NSObject, UNUserNotificationCenterDelegate, Messa
      * Send FCM token to backend
      */
     private func sendTokenToBackend(token: String) {
+        print("📤 Attempting to send FCM token to backend...")
+        
         // Retrieve JWT token from UserDefaults or Keychain
         guard let jwtToken = UserDefaults.standard.string(forKey: "authToken") else {
-            print("⚠️  No JWT token found, skipping token registration")
+            print("⚠️  No JWT token found in UserDefaults, cannot register token yet")
+            print("   User must login first. Token will be sent after login.")
+            
+            // Store token for later sending after login
+            UserDefaults.standard.set(token, forKey: "pendingFCMToken")
             return
         }
         
-        let urlString = "\(API_BASE_URL)/push-notifications/register-token"
+        print("✅ JWT token found, proceeding to register FCM token")
+        
+        let urlString = APIConfig.registerTokenEndpoint
         guard let url = URL(string: urlString) else {
-            print("❌ Invalid URL")
+            print("❌ Invalid URL: \(urlString)")
             return
         }
+        
+        print("🔗 Sending to: \(urlString)")
         
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("Bearer \(jwtToken)", forHTTPHeaderField: "Authorization")
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = APIConfig.requestTimeout
         
         let body = ["deviceToken": token]
-        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
         
-        URLSession.shared.dataTask(with: request) { data, response, error in
-            if let error = error {
-                print("❌ Error sending token to backend: \(error.localizedDescription)")
-            } else {
-                print("✅ FCM token registered with backend")
+        do {
+            request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        } catch {
+            print("❌ Error serializing JSON: \(error.localizedDescription)")
+            return
+        }
+        
+        print("📝 Request body: \(body)")
+        
+        URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
+            DispatchQueue.main.async {
+                if let error = error {
+                    print("❌ Network error sending token to backend: \(error.localizedDescription)")
+                    return
+                }
+                
+                guard let httpResponse = response as? HTTPURLResponse else {
+                    print("❌ Invalid response type")
+                    return
+                }
+                
+                print("📊 HTTP Status Code: \(httpResponse.statusCode)")
+                
+                if let data = data {
+                    if let responseString = String(data: data, encoding: .utf8) {
+                        print("📦 Response: \(responseString)")
+                    }
+                }
+                
+                if httpResponse.statusCode == 200 {
+                    print("✅ FCM token successfully registered with backend!")
+                    print("   Device can now receive push notifications")
+                } else {
+                    print("⚠️  Unexpected status code: \(httpResponse.statusCode)")
+                }
             }
         }.resume()
+    }
+    
+    /**
+     * Re-send pending FCM token after user logs in
+     */
+    func resendPendingTokenAfterLogin() {
+        if let pendingToken = UserDefaults.standard.string(forKey: "pendingFCMToken") {
+            print("🔄 Resending pending FCM token after login...")
+            UserDefaults.standard.removeObject(forKey: "pendingFCMToken")
+            sendTokenToBackend(token: pendingToken)
+        }
     }
     
     /**
