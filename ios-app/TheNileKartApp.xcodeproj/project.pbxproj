@@ -103,7 +103,6 @@
 				A1234567890123460 /* Sources */,
 				A1234567890123459 /* Frameworks */,
 				A1234567890123461 /* Resources */,
-				E7BD4ABD88B10F0E73BD08FA /* [CP] Copy Pods Resources */,
 			);
 			buildRules = (
 			);
@@ -160,23 +159,7 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXShellScriptBuildPhase section */
-		E7BD4ABD88B10F0E73BD08FA /* [CP] Copy Pods Resources */ = {
-			isa = PBXShellScriptBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			inputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-TheNileKartApp/Pods-TheNileKartApp-resources-${CONFIGURATION}-input-files.xcfilelist",
-			);
-			name = "[CP] Copy Pods Resources";
-			outputFileListPaths = (
-				"${PODS_ROOT}/Target Support Files/Pods-TheNileKartApp/Pods-TheNileKartApp-resources-${CONFIGURATION}-output-files.xcfilelist",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/sh;
-			shellScript = "\"${PODS_ROOT}/Target Support Files/Pods-TheNileKartApp/Pods-TheNileKartApp-resources.sh\"\n";
-			showEnvVarsInLog = 0;
-		};
+
 		FB8E13C80105E11486FF2EC4 /* [CP] Check Pods Manifest.lock */ = {
 			isa = PBXShellScriptBuildPhase;
 			buildActionMask = 2147483647;
