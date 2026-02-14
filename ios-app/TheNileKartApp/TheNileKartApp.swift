@@ -231,21 +231,14 @@ class PushNotificationManager: NSObject, UNUserNotificationCenterDelegate, Messa
     // MARK: - Messaging Delegate Methods
     
     /// Called when FCM token is refreshed
-    func messaging(_ messaging: Messaging, didRefreshRegistrationToken fcmToken: String) {
+    func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
+        guard let fcmToken = fcmToken else { return }
         print("🔄 FCM token refreshed!")
         print("🔐 New token: \(fcmToken.prefix(50))...")
         print("📏 Token length: \(fcmToken.count) characters")
         
         UserDefaults.standard.set(fcmToken, forKey: "fcmToken")
         sendTokenToBackend(token: fcmToken)
-    }
-    
-    /// Called when a remote message is received
-    func messaging(_ messaging: Messaging, didReceive remoteMessage: RemoteMessage) {
-        print("📥 Remote message received!")
-        print("📦 Data: \(remoteMessage.appData)")
-        
-        handleRemoteNotification(userInfo: remoteMessage.appData)
     }
 }
 
