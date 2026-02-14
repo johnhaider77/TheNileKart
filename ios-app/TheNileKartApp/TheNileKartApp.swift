@@ -67,18 +67,24 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
                     // Only configure if not already configured
                     if FirebaseApp.app() == nil {
                         print("🔧 Configuring Firebase with GoogleService-Info.plist...")
-                        FirebaseApp.configure()
-                        print("🔥 Firebase configured successfully")
-                        
-                        // Set Messaging delegate after Firebase is configured
-                        DispatchQueue.main.async { [weak self] in
-                            do {
-                                Messaging.messaging().delegate = PushNotificationManager.shared
-                                print("✅ Messaging delegate set")
-                                PushNotificationManager.shared.ensureInitialized()
-                            } catch {
-                                print("⚠️  Error setting messaging delegate: \(error)")
+                        do {
+                            FirebaseApp.configure()
+                            print("🔥 Firebase configured successfully")
+                            
+                            // Set Messaging delegate after Firebase is configured
+                            DispatchQueue.main.async { [weak self] in
+                                do {
+                                    Messaging.messaging().delegate = PushNotificationManager.shared
+                                    print("✅ Messaging delegate set")
+                                    PushNotificationManager.shared.ensureInitialized()
+                                } catch {
+                                    print("⚠️  Error setting messaging delegate: \(error)")
+                                    // Continue anyway - push notifications are optional
+                                }
                             }
+                        } catch {
+                            print("⚠️  Firebase configuration error: \(error)")
+                            // App should still work without Firebase
                         }
                     } else {
                         print("ℹ️  Firebase already configured")
@@ -169,27 +175,54 @@ class PushNotificationManager: NSObject, UNUserNotificationCenterDelegate, Messa
     }
     
     func setupPushNotifications() {
-        print("🔧 Setting up push notifications...")
-        UNUserNotificationCenter.current().delegate = self
+        print("🔧 Setting up push notifications (Firebase optional)...")
         
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { [weak self] granted, error in
-            DispatchQueue.main.async {
-                if granted {
-                    UIApplication.shared.registerForRemoteNotifications()
-                    print("✅ User granted permission, registering for remote notifications")
-                    self?.retrieveFCMToken()
-                } else if let error = error {
-                    print("❌ Error: \(error.localizedDescription)")
+        do {
+            // Set notification delegate
+            UNUserNotificationCenter.current().delegate = self
+            
+            // Request user permission for notifications (non-blocking)
+            UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { [weak self] granted, error in
+                DispatchQueue.main.async {
+                    if granted {
+                        print("✅ User granted notification permission")
+                        UIApplication.shared.registerForRemoteNotifications()
+                        
+                        // Try to get FCM token in background, but if it fails, it's ok
+                        DispatchQueue.global(qos: .background).asyncAfter(deadline: .now() + 1.0) {
+                            do {
+                                // Check if Firebase is available
+                                guard FirebaseApp.app() != nil else {
+                                    print("⚠️  Firebase not available, skipping token retrieval")
+                                    return
+                                }
+                                self?.retrieveFCMToken()
+                            } catch {
+                                print("⚠️  Error in token retrieval: \(error)")
+                            }
+                        }
+                    } else if let error = error {
+                        print("❌ Error: \(error.localizedDescription)")
+                    }
                 }
             }
+        } catch {
+            print("⚠️  Error in setupPushNotifications: \(error)")
+            // Continue anyway
         }
     }
     
     private func retrieveFCMToken() {
         print("📤 Fetching FCM token from Firebase...")
         
-        DispatchQueue.global(qos: .background).asyncAfter(deadline: .now() + 0.5) { [weak self] in
+        DispatchQueue.global(qos: .background).asyncAfter(deadline: .now() + 1.0) { [weak self] in
             do {
+                // Check if Firebase app is configured
+                guard FirebaseApp.app() != nil else {
+                    print("⚠️  Firebase app not configured yet")
+                    return
+                }
+                
                 let messaging = Messaging.messaging()
                 print("✅ Firebase Messaging instance accessed")
                 
@@ -337,13 +370,21 @@ class PushNotificationManager: NSObject, UNUserNotificationCenterDelegate, Messa
     
     /// Called when FCM token is refreshed
     func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
-        guard let fcmToken = fcmToken else { return }
-        print("🔄 FCM token refreshed!")
-        print("🔐 New token: \(fcmToken.prefix(50))...")
-        print("📏 Token length: \(fcmToken.count) characters")
-        
-        UserDefaults.standard.set(fcmToken, forKey: "fcmToken")
-        sendTokenToBackend(token: fcmToken)
+        do {
+            guard let fcmToken = fcmToken else { 
+                print("⚠️  FCM token is nil")
+                return 
+            }
+            
+            print("🔄 FCM token refreshed!")
+            print("🔐 New token: \(fcmToken.prefix(50))...")
+            print("📏 Token length: \(fcmToken.count) characters")
+            
+            UserDefaults.standard.set(fcmToken, forKey: "fcmToken")
+            sendTokenToBackend(token: fcmToken)
+        } catch {
+            print("⚠️  Error in messaging delegate: \(error)")
+        }
     }
 }
 
