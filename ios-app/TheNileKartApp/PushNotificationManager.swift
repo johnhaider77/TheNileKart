@@ -1,6 +1,9 @@
 import UIKit
 import UserNotifications
 
+// Import Firebase optionally
+import FirebaseMessaging
+
 // MARK: - API Configuration
 struct APIConfig {
     #if DEBUG
@@ -23,7 +26,7 @@ struct APIConfig {
  * Push Notification Manager for iOS
  * Handles FCM registration, notification handling, and routing
  */
-class PushNotificationManager: NSObject, UNUserNotificationCenterDelegate {
+class PushNotificationManager: NSObject, UNUserNotificationCenterDelegate, MessagingDelegate {
 
     static let shared = PushNotificationManager()
     var onNotificationReceived: ((PushNotification) -> Void)?

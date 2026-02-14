@@ -29,19 +29,29 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
         print("🚀 AppDelegate initializing...")
         
         // Initialize Firebase in background to avoid blocking main thread
-        DispatchQueue.global(qos: .background).async {
+        DispatchQueue.global(qos: .background).asyncAfter(deadline: .now() + 0.5) { [weak self] in
             do {
-                // Configure Firebase
-                FirebaseApp.configure()
-                print("🔥 Firebase configured successfully")
+                // Configure Firebase safely
+                if FirebaseApp.app() == nil {
+                    print("🔧 Configuring Firebase...")
+                    FirebaseApp.configure()
+                    print("🔥 Firebase configured successfully")
+                } else {
+                    print("ℹ️  Firebase already configured")
+                }
                 
-                // Set Messaging delegate
-                Messaging.messaging().delegate = PushNotificationManager.shared
+                // Set Messaging delegate safely
+                DispatchQueue.main.async {
+                    Messaging.messaging().delegate = PushNotificationManager.shared
+                    print("✅ Messaging delegate set")
+                }
                 
                 // Initialize PushNotificationManager
                 _ = PushNotificationManager.shared
+                print("✅ PushNotificationManager initialized")
             } catch {
-                print("❌ Error during Firebase setup: \(error)")
+                print("⚠️  Firebase configuration error (non-critical): \(error)")
+                // App continues even if Firebase setup fails
             }
         }
         
