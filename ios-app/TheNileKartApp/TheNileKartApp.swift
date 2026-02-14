@@ -7,7 +7,11 @@ import FirebaseMessaging
 // MARK: - API Configuration
 struct APIConfig {
     #if DEBUG
+    #if targetEnvironment(simulator)
     static let baseURL = "http://localhost:5000/api"
+    #else
+    static let baseURL = "http://40.172.190.250:5000/api"
+    #endif
     #else
     static let baseURL = "https://thenilekart.com/api"
     #endif

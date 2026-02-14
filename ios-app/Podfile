@@ -1,7 +1,6 @@
 platform :ios, '17.0'
 
 target 'TheNileKartApp' do
-  # Enable module headers to fix static library integration
   use_modular_headers!
   
   pod 'Firebase/Core'

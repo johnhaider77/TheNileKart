@@ -6,8 +6,13 @@ import Foundation
 struct APIConfig {
     // Production API base URL
     #if DEBUG
-    // Development
+    // Development - Use EC2 for device, localhost for simulator
+    #if targetEnvironment(simulator)
     static let baseURL = "http://localhost:5000/api"
+    #else
+    // Physical device - use EC2 server IP
+    static let baseURL = "http://40.172.190.250:5000/api"
+    #endif
     #else
     // Production
     static let baseURL = "https://thenilekart.com/api"

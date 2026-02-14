@@ -1,0 +1,6 @@
+module Pods_TheNileKartApp {
+  umbrella header "Pods-TheNileKartApp-umbrella.h"
+
+  export *
+  module * { export * }
+}
