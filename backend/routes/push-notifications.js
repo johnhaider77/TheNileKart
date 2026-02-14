@@ -59,7 +59,29 @@ router.post('/register-token', authenticateToken, async (req, res) => {
     const userId = req.user.id;
 
     if (!deviceToken) {
-      return res.status(400).json({ error: 'Device token is required' });
+      return res.status(400).json({ 
+        success: false,
+        error: 'Device token is required' 
+      });
+    }
+
+    // Check if token is valid before saving
+    if (!isValidFCMToken(deviceToken)) {
+      console.warn(`⚠️  User ${userId} attempted to register invalid FCM token: ${deviceToken.substring(0, 50)}...`);
+      
+      // Check if it's a test/placeholder token
+      const testTokenIndicators = ['exampleToken123', 'test', 'demo', 'example', 'placeholder'];
+      const isTestToken = testTokenIndicators.some(t => deviceToken.toLowerCase().includes(t.toLowerCase()));
+      
+      return res.status(400).json({
+        success: false,
+        error: isTestToken 
+          ? 'Invalid device token: This appears to be a test/placeholder token. Please ensure the iOS app has GoogleService-Info.plist configured for Firebase.'
+          : `Invalid device token format. FCM tokens must be 150+ characters. Got ${deviceToken.length} chars.`,
+        tokenLength: deviceToken.length,
+        isTestToken,
+        recommendation: 'Ensure iOS app is properly registered with Firebase Cloud Messaging and GoogleService-Info.plist is in the project'
+      });
     }
 
     // Get current device tokens
@@ -67,14 +89,21 @@ router.post('/register-token', authenticateToken, async (req, res) => {
     const userResult = await db.query(userQuery, [userId]);
 
     if (userResult.rows.length === 0) {
-      return res.status(404).json({ error: 'User not found' });
+      return res.status(404).json({ 
+        success: false,
+        error: 'User not found' 
+      });
     }
 
     let deviceTokens = userResult.rows[0].device_tokens || [];
     
+    // Remove old invalid tokens
+    deviceTokens = deviceTokens.filter(token => isValidFCMToken(token));
+    
     // Add token if not already present
     if (!deviceTokens.includes(deviceToken)) {
       deviceTokens.push(deviceToken);
+      console.log(`✅ Registered valid FCM token for user ${userId}. Total tokens: ${deviceTokens.length}`);
     }
 
     // Update user with new device token
@@ -84,11 +113,15 @@ router.post('/register-token', authenticateToken, async (req, res) => {
     res.status(200).json({
       success: true,
       message: 'Device token registered successfully',
-      deviceTokensCount: deviceTokens.length
+      deviceTokensCount: deviceTokens.length,
+      tokenPreview: deviceToken.substring(0, 50) + '...'
     });
   } catch (error) {
     console.error('Error registering device token:', error.message);
-    res.status(500).json({ error: 'Failed to register device token' });
+    res.status(500).json({ 
+      success: false,
+      error: 'Failed to register device token' 
+    });
   }
 });
 
