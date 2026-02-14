@@ -100,15 +100,26 @@ struct WebViewWrapper: UIViewRepresentable {
                 }, false);
             """
             
-            webView.evaluateJavaScript(zoomDisableScript) { _, error in
+            webView.evaluateJavaScript(zoomDisableScript) { [weak self] _, error in
                 if let error = error {
-                    print("Error injecting disable script: \(error.localizedDescription)")
+                    print("⚠️  Error injecting zoom script: \(error.localizedDescription)")
+                } else {
+                    print("✅ Zoom controls disabled")
                 }
             }
         }
         
         func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
-            print("❌ WebView navigation failed: \(error.localizedDescription)")
+            print("⚠️  WebView navigation failed: \(error.localizedDescription)")
+            // Don't crash, just log the error
+        }
+        
+        func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
+            print("⚠️  WebView provisional navigation failed: \(error.localizedDescription)")
+            // Check if it's a network error and show a user-friendly message
+            if error.localizedDescription.contains("NSURLErrorDomain") {
+                print("⚠️  Network connection issue - frontend may not be accessible")
+            }
         }
         
         func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
