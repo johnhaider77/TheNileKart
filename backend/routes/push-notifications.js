@@ -97,8 +97,14 @@ router.post('/register-token', authenticateToken, async (req, res) => {
 
     let deviceTokens = userResult.rows[0].device_tokens || [];
     
-    // Remove old invalid tokens
+    // Remove old invalid tokens automatically (cleanup)
+    const oldInvalidCount = deviceTokens.length;
     deviceTokens = deviceTokens.filter(token => isValidFCMToken(token));
+    const cleanedCount = oldInvalidCount - deviceTokens.length;
+    
+    if (cleanedCount > 0) {
+      console.log(`🧹 Auto-cleanup: Removed ${cleanedCount} invalid token(s) for user ${userId}`);
+    }
     
     // Add token if not already present
     if (!deviceTokens.includes(deviceToken)) {
@@ -114,7 +120,8 @@ router.post('/register-token', authenticateToken, async (req, res) => {
       success: true,
       message: 'Device token registered successfully',
       deviceTokensCount: deviceTokens.length,
-      tokenPreview: deviceToken.substring(0, 50) + '...'
+      tokenPreview: deviceToken.substring(0, 50) + '...',
+      cleaned: cleanedCount > 0 ? `Removed ${cleanedCount} invalid token(s)` : undefined
     });
   } catch (error) {
     console.error('Error registering device token:', error.message);
@@ -327,12 +334,18 @@ router.post('/send-bulk', authenticateToken, async (req, res) => {
 
     const allNotificationsSent = notificationResult.successfulSends > 0 && notificationResult.failedSends === 0;
     const hasFailures = notificationResult.failedSends > 0;
+    
+    // Analyze if failures are due to invalid tokens
+    const invalidTokensCount = allDeviceTokens.filter(t => !isValidFCMToken(t)).length;
+    const hasOnlyInvalidTokens = invalidTokensCount === allDeviceTokens.length && allDeviceTokens.length > 0;
 
     res.status(200).json({
       success: notificationResult.success,
       notificationsSent: allNotificationsSent,
       message: hasFailures 
-        ? `Notification sending partially failed: ${notificationResult.successfulSends} sent, ${notificationResult.failedSends} failed. Check errors below.`
+        ? hasOnlyInvalidTokens
+          ? `Notification sending failed: All ${invalidTokensCount} device token(s) are invalid/short. iOS app must retrieve real FCM token from Firebase SDK.`
+          : `Notification sending partially failed: ${notificationResult.successfulSends} sent, ${notificationResult.failedSends} failed. Check errors below.`
         : `Successfully sent notifications to ${notificationResult.successfulSends} device(s)`,
       recipientsCount: recipientUserIds.length,
       totalDevices: allDeviceTokens.length,
@@ -342,6 +355,8 @@ router.post('/send-bulk', authenticateToken, async (req, res) => {
       warning: notificationResult.failedSends > 0 ? 'Some notifications failed. Check error details.' : undefined,
       failureAnalysis: notificationResult.failedSends > 0 ? {
         totalFailed: notificationResult.failedSends,
+        invalidTokensDetected: invalidTokensCount,
+        allTokensInvalid: hasOnlyInvalidTokens,
         errors: notificationResult.results?.filter(r => !r.success).map(r => ({
           tokenPreview: r.token?.substring(0, 50) + '...',
           tokenLength: r.token?.length,
@@ -349,7 +364,10 @@ router.post('/send-bulk', authenticateToken, async (req, res) => {
           fcmStatus: r.details?.error?.status,
           fcmMessage: r.details?.error?.message,
           isProbablyInvalidToken: (r.token?.length || 0) < 100 ? '⚠️ Token too short - likely not a real FCM token' : undefined
-        }))
+        })),
+        recommendation: hasOnlyInvalidTokens 
+          ? 'CRITICAL: All device tokens are invalid (test/placeholder tokens). Verify iOS app has: 1) GoogleService-Info.plist present, 2) Firebase properly initialized, 3) User granted notification permissions'
+          : 'Some tokens are invalid. Ensure iOS app generates real FCM tokens (150+ characters) from Firebase SDK'
       } : undefined
     });
   } catch (error) {
