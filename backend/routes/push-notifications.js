@@ -198,12 +198,18 @@ router.post('/send', authenticateToken, async (req, res) => {
       notificationResult.success ? 'sent' : 'failed'
     ]);
 
+    // Check if tokens are valid - if all are invalid, it's a configuration issue
+    const invalidTokens = deviceTokens.filter(t => !isValidFCMToken(t));
+    const hasOnlyInvalidTokens = invalidTokens.length === deviceTokens.length && deviceTokens.length > 0;
+    
     res.status(200).json({
       success: notificationResult.success,
       notificationsSent: notificationResult.successfulSends > 0,
       message: notificationResult.successfulSends > 0 
         ? `Notification sent successfully to ${notificationResult.successfulSends} device(s)`
-        : `Failed to send notification: ${notificationResult.failedSends} device(s) failed`,
+        : hasOnlyInvalidTokens
+          ? `Failed to send notification: All ${invalidTokens.length} device token(s) are invalid/short. iOS app must retrieve real FCM token from Firebase SDK.`
+          : `Failed to send notification: ${notificationResult.failedSends} device(s) failed`,
       notificationId: storeResult.rows[0].id,
       devicesSent: notificationResult.successfulSends,
       devicesFailed: notificationResult.failedSends,
@@ -217,12 +223,17 @@ router.post('/send', authenticateToken, async (req, res) => {
               error: r.error,
               isProbablyInvalidToken: (r.token?.length || 0) < 100 ? '⚠️ Token too short' : undefined,
               fcmError: r.details
-            }))
+            })),
+            invalidTokenCount: invalidTokens.length,
+            tokenValidationIssue: hasOnlyInvalidTokens ? '🔴 CRITICAL: All tokens are invalid. iOS app must send real FCM token.' : undefined
           },
       debugInfo: {
         recipientId: recipientUserId,
         deviceTokensRegistered: deviceTokens.length,
-        deviceTokensSample: deviceTokens.length > 0 ? deviceTokens[0].substring(0, 30) + '...' : 'none'
+        deviceTokensSample: deviceTokens.length > 0 ? deviceTokens[0].substring(0, 30) + '...' : 'none',
+        tokenLengths: deviceTokens.map(t => ({ length: t.length, isValid: isValidFCMToken(t) })),
+        allTokensInvalid: hasOnlyInvalidTokens,
+        recommendation: hasOnlyInvalidTokens ? 'Verify iOS app has: 1) GoogleService-Info.plist, 2) Firebase initialized properly, 3) User granted notification permissions' : undefined
       }
     });
   } catch (error) {
@@ -506,6 +517,59 @@ router.get('/diagnostic', authenticateToken, async (req, res) => {
   } catch (error) {
     console.error('Diagnostic error:', error.message);
     res.status(500).json({ error: 'Diagnostic check failed', details: error.message });
+  }
+});
+
+/**
+ * Clean invalid tokens from database (for this user only)
+ * DELETE /api/push-notifications/clean-tokens
+ */
+router.delete('/clean-tokens', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // Get user's current tokens
+    const userQuery = 'SELECT device_tokens FROM users WHERE id = $1';
+    const userResult = await db.query(userQuery, [userId]);
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const allTokens = userResult.rows[0].device_tokens || [];
+    const validTokens = allTokens.filter(token => isValidFCMToken(token));
+    const invalidTokens = allTokens.filter(token => !isValidFCMToken(token));
+
+    // Update user with only valid tokens
+    if (invalidTokens.length > 0) {
+      const updateQuery = 'UPDATE users SET device_tokens = $1, updated_at = NOW() WHERE id = $2 RETURNING id';
+      await db.query(updateQuery, [JSON.stringify(validTokens), userId]);
+
+      console.log(`🧹 Cleaned ${invalidTokens.length} invalid tokens for user ${userId}`);
+      console.log(`   Invalid tokens: ${invalidTokens.map(t => `${t.substring(0, 20)}...`).join(', ')}`);
+      console.log(`   Remaining valid tokens: ${validTokens.length}`);
+
+      res.status(200).json({
+        success: true,
+        message: `Removed ${invalidTokens.length} invalid token(s)`,
+        invalidTokensRemoved: invalidTokens.length,
+        validTokensRemaining: validTokens.length,
+        removedTokens: invalidTokens.map(t => ({
+          token: t.substring(0, 30) + '...',
+          reason: t.length < 100 ? 'Too short (test/placeholder token)' : 'Invalid format'
+        }))
+      });
+    } else {
+      res.status(200).json({
+        success: true,
+        message: 'No invalid tokens to clean',
+        invalidTokensRemoved: 0,
+        validTokensRemaining: validTokens.length
+      });
+    }
+  } catch (error) {
+    console.error('Error cleaning tokens:', error.message);
+    res.status(500).json({ error: 'Failed to clean tokens' });
   }
 });
 
