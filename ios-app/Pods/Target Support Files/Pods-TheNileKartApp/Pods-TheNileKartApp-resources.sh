@@ -4,7 +4,7 @@ set -u
 set -o pipefail
 
 function on_error {
-  echo "$(realpath -mq "${0}"):$1: error: Unexpected failure"
+  echo "$(basename "${0}"):$1: error: Unexpected failure"
 }
 trap 'on_error $LINENO' ERR
 
@@ -16,7 +16,7 @@ fi
 
 mkdir -p "${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}"
 
-RESOURCES_TO_COPY=${PODS_ROOT}/resources-to-copy-${TARGETNAME}.txt
+RESOURCES_TO_COPY="${TEMP_DIR}/resources-to-copy-${TARGETNAME}.txt"
 > "$RESOURCES_TO_COPY"
 
 XCASSET_FILES=()
@@ -118,10 +118,25 @@ if [[ "$CONFIGURATION" == "Release" ]]; then
 fi
 
 mkdir -p "${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}"
-rsync -avr --copy-links --no-relative --exclude '*/.svn/*' --files-from="$RESOURCES_TO_COPY" / "${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}"
+
+# Copy resources listed in the file
+if [[ -s "$RESOURCES_TO_COPY" ]]; then
+  while IFS= read -r resource_path; do
+    if [[ -d "$resource_path" ]]; then
+      cp -r "$resource_path" "${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/" 2>/dev/null || true
+    fi
+  done < "$RESOURCES_TO_COPY"
+fi
+
 if [[ "${ACTION}" == "install" ]] && [[ "${SKIP_INSTALL}" == "NO" ]]; then
   mkdir -p "${INSTALL_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}"
-  rsync -avr --copy-links --no-relative --exclude '*/.svn/*' --files-from="$RESOURCES_TO_COPY" / "${INSTALL_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}"
+  if [[ -s "$RESOURCES_TO_COPY" ]]; then
+    while IFS= read -r resource_path; do
+      if [[ -d "$resource_path" ]]; then
+        cp -r "$resource_path" "${INSTALL_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/" 2>/dev/null || true
+      fi
+    done < "$RESOURCES_TO_COPY"
+  fi
 fi
 rm -f "$RESOURCES_TO_COPY"
 
