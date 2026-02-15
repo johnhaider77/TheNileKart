@@ -17,11 +17,12 @@ fi
 mkdir -p "${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}"
 
 RESOURCES_TO_COPY=${PODS_ROOT}/resources-to-copy-${TARGETNAME}.txt
-# Handle sandbox restrictions on macOS Sonoma+
-if ! > "$RESOURCES_TO_COPY" 2>/dev/null; then
-  # Use a writable temp directory if Pods directory is sandboxed
-  RESOURCES_TO_COPY="/tmp/$(basename "${PODS_ROOT}")-resources-${TARGETNAME}.txt"
-  touch "$RESOURCES_TO_COPY"
+# Handle sandbox restrictions on macOS Sonoma+ - try to write with error suppression
+if ! touch "$RESOURCES_TO_COPY" 2>/dev/null; then
+  # Fallback to temp directory if Pods directory is sandboxed
+  RESOURCES_TO_COPY="/tmp/pods-resources-${TARGETNAME}-$$.txt"
+  mkdir -p "$(dirname "$RESOURCES_TO_COPY")"
+  touch "$RESOURCES_TO_COPY" || true
 fi
 
 XCASSET_FILES=()
@@ -29,6 +30,8 @@ XCASSET_FILES=()
 # This protects against multiple targets copying the same framework dependency at the same time. The solution
 # was originally proposed here: https://lists.samba.org/archive/rsync/2008-February/020158.html
 RSYNC_PROTECT_TMP_FILES=(--filter "P .*.??????")
+# Add rsync filter to handle sandbox restrictions
+RSYNC_PROTECT_TMP_FILES+=(--no-perms --no-times --no-owner --no-group)
 
 case "${TARGETED_DEVICE_FAMILY:-}" in
   1,2)
