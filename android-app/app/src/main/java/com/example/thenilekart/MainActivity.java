@@ -51,20 +51,28 @@ public class MainActivity extends AppCompatActivity {
         // Try to load web app
         loadWebApp();
 
-        // Request FCM token
-        FirebaseMessaging.getInstance().getToken()
-                .addOnCompleteListener(task -> {
-                    if (!task.isSuccessful()) {
-                        Log.w(TAG, "❌ Fetching FCM token failed", task.getException());
-                        return;
-                    }
+        // Request FCM token - wrap in try-catch to prevent crashes if Firebase API key is missing
+        try {
+            FirebaseMessaging.getInstance().getToken()
+                    .addOnCompleteListener(task -> {
+                        if (!task.isSuccessful()) {
+                            Log.w(TAG, "❌ Fetching FCM token failed", task.getException());
+                            return;
+                        }
 
-                    String token = task.getResult();
-                    Log.d(TAG, "✅ FCM Token: " + token);
-                    
-                    // Register token with backend
-                    PushNotificationService.sendTokenToBackend(this, token);
-                });
+                        String token = task.getResult();
+                        Log.d(TAG, "✅ FCM Token: " + token);
+                        
+                        // Register token with backend
+                        PushNotificationService.sendTokenToBackend(this, token);
+                    });
+        } catch (IllegalArgumentException e) {
+            Log.w(TAG, "⚠️ Firebase API key not configured: " + e.getMessage());
+            Log.d(TAG, "ℹ️ App will continue without push notifications");
+        } catch (Exception e) {
+            Log.w(TAG, "⚠️ Firebase initialization error: " + e.getMessage());
+            Log.d(TAG, "ℹ️ Continuing anyway - web app should still load");
+        }
 
         // Handle notification click
         handleNotificationClick(getIntent());
