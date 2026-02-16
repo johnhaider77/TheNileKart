@@ -109,14 +109,16 @@ body {
   line-height: 1.6;
   font-size: 16px;
   overflow-x: hidden;
-  overflow-y: scroll; /* Force scrollbar to ensure scrolling works */
+  overflow-y: auto;
   position: relative;
   /* Enhanced mobile scrolling */
   -webkit-overflow-scrolling: touch;
   /* Simplified touch action */
   touch-action: auto;
-  height: 100%;
+  height: auto;
   min-height: 100vh;
+  margin: 0;
+  padding: 0;
 }
 
 /* Canvas Background Pattern */

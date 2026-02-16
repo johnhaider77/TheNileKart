@@ -145,63 +145,51 @@ public class MainActivity extends AppCompatActivity {
                     if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.KITKAT) {
                         String js = "javascript:(function() {" +
                                 "try {" +
-                                "  console.log('🔧 Starting CSS injection...');" +
+                                "  console.log('🔧 Starting CSS injection for Android WebView...');" +
                                 "  console.log('Document ready state: ' + document.readyState);" +
                                 "  console.log('Body exists: ' + (document.body !== null));" +
-                                "  console.log('Document scrollHeight: ' + document.documentElement.scrollHeight);" +
-                                "  console.log('Body scrollHeight: ' + (document.body ? document.body.scrollHeight : 'N/A'));" +
+                                "  console.log('Root div exists: ' + (document.getElementById('root') !== null));" +
                                 "  " +
-                                "  var style = document.createElement('style');" +
-                                "  style.id = 'android-visibility-fix';" +
-                                "  style.textContent = 'html, body { " +
-                                "    margin: 0 !important; " +
-                                "    padding: 0 !important; " +
-                                "    width: 100% !important; " +
-                                "    height: 100vh !important; " +
-                                "    min-height: 100vh !important; " +
-                                "    background: white !important; " +
-                                "    color: #000 !important; " +
-                                "    visibility: visible !important; " +
-                                "    opacity: 1 !important; " +
-                                "    display: block !important; " +
-                                "    overflow-y: auto !important; " +
-                                "  } " +
-                                "  #root, #app, [data-reactroot] { " +
-                                "    width: 100% !important; " +
-                                "    min-height: 100% !important; " +
-                                "    height: 100% !important; " +
-                                "    background: white !important; " +
-                                "    visibility: visible !important; " +
-                                "    opacity: 1 !important; " +
-                                "    display: block !important; " +
-                                "  } " +
-                                "  body > div { " +
-                                "    width: 100% !important; " +
-                                "    min-height: 100vh !important; " +
-                                "    visibility: visible !important; " +
-                                "    opacity: 1 !important; " +
-                                "    background: white !important; " +
-                                "    display: block !important; " +
-                                "  }';" +
-                                "  " +
-                                "  if (document.head) {" +
-                                "    document.head.appendChild(style);" +
-                                "    console.log('✅ Style tag added to HEAD');" +
-                                "  } else if (document.body) {" +
-                                "    document.body.appendChild(style);" +
-                                "    console.log('✅ Style tag added to BODY (head not ready)');" +
-                                "  } else {" +
-                                "    setTimeout(function() { document.head.appendChild(style); }, 100);" +
-                                "    console.log('⏳ Style tag deferred (DOM not ready)');" +
+                                "  var root = document.getElementById('root');" +
+                                "  if (root) {" +
+                                "    console.log('Root div found, forcing display...');" +
+                                "    root.style.display = 'block';" +
+                                "    root.style.visibility = 'visible';" +
+                                "    root.style.opacity = '1';" +
+                                "    root.style.width = '100%';" +
+                                "    root.style.minHeight = '100vh';" +
+                                "    root.style.height = 'auto';" +
                                 "  }" +
                                 "  " +
-                                "  console.log('After injection:');" +
-                                "  console.log('Body height: ' + document.body.style.height);" +
-                                "  console.log('Document scrollHeight: ' + document.documentElement.scrollHeight);" +
-                                "  console.log('✅ CSS injection complete - page should be visible now');" +
+                                "  var style = document.createElement('style');" +
+                                "  style.id = 'android-webview-fix';" +
+                                "  style.textContent = '" +
+                                "    html { margin: 0 !important; padding: 0 !important; width: 100% !important; height: auto !important; min-height: 100% !important; background: white !important; } " +
+                                "    body { margin: 0 !important; padding: 0 !important; width: 100% !important; height: auto !important; min-height: 100vh !important; background: white !important; color: #000 !important; visibility: visible !important; opacity: 1 !important; display: block !important; overflow-y: auto !important; } " +
+                                "    #root { display: block !important; visibility: visible !important; opacity: 1 !important; width: 100% !important; height: auto !important; min-height: 100vh !important; background: white !important; } " +
+                                "    #root > * { width: 100% !important; height: auto !important; } " +
+                                "    * { box-sizing: border-box !important; } " +
+                                "  ';" +
+                                "  " +
+                                "  document.head.appendChild(style);" +
+                                "  console.log('✅ CSS fix injected');" +
+                                "  " +
+                                "  setTimeout(function() { " +
+                                "    var rootAfter = document.getElementById('root');" +
+                                "    if (rootAfter && rootAfter.children.length === 0) {" +
+                                "      console.log('⚠️ WARNING: Root div has no children - React might not be initialized');" +
+                                "      rootAfter.innerHTML = '<div style=\"text-align: center; padding: 20px; color: #666;\">Loading application...</div>';" +
+                                "    } else if (rootAfter && rootAfter.children.length > 0) {" +
+                                "      console.log('✅ React app detected with ' + rootAfter.children.length + ' child elements');" +
+                                "    }" +
+                                "    console.log('Document height: ' + document.documentElement.offsetHeight);" +
+                                "    console.log('Body height: ' + document.body.offsetHeight);" +
+                                "    if (root) console.log('Root height: ' + root.offsetHeight);" +
+                                "  }, 500);" +
+                                "  " +
+                                "  console.log('✅ CSS injection complete');" +
                                 "} catch(e) { " +
-                                "  console.log('❌ CSS injection error: ' + e.message); " +
-                                "  console.log('Stack: ' + e.stack); " +
+                                "  console.log('❌ Error: ' + e.message); " +
                                 "}" +
                                 "})()";
                         view.evaluateJavascript(js, null);
