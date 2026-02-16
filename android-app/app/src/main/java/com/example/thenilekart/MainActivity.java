@@ -115,6 +115,16 @@ public class MainActivity extends AppCompatActivity {
             // Cache settings
             webview.getSettings().setCacheMode(android.webkit.WebSettings.LOAD_DEFAULT);
             
+            // Zoom settings - ensure page is zoomed to fit
+            webview.getSettings().setBuiltInZoomControls(false);
+            webview.getSettings().setDisplayZoomControls(false);
+            webview.getSettings().setDefaultZoom(android.webkit.WebSettings.ZoomDensity.MEDIUM);
+            webview.setInitialScale(100);
+            
+            // Viewport settings - CRITICAL for mobile rendering
+            webview.getSettings().setUseWideViewPort(true);
+            webview.getSettings().setLoadWithOverviewMode(true);
+            
             // Set WebViewClient to handle page loading
             webview.setWebViewClient(new WebViewClient() {
                 @Override
@@ -135,13 +145,64 @@ public class MainActivity extends AppCompatActivity {
                     if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.KITKAT) {
                         String js = "javascript:(function() {" +
                                 "try {" +
+                                "  console.log('🔧 Starting CSS injection...');" +
+                                "  console.log('Document ready state: ' + document.readyState);" +
+                                "  console.log('Body exists: ' + (document.body !== null));" +
+                                "  console.log('Document scrollHeight: ' + document.documentElement.scrollHeight);" +
+                                "  console.log('Body scrollHeight: ' + (document.body ? document.body.scrollHeight : 'N/A'));" +
+                                "  " +
                                 "  var style = document.createElement('style');" +
-                                "  style.textContent = 'body, html { background: white !important; color: #000 !important; visibility: visible !important; opacity: 1 !important; display: block !important; } " +
-                                "  #root, [data-reactroot] { background: white !important; visibility: visible !important; opacity: 1 !important; display: block !important; } " +
-                                "  body > div { visibility: visible !important; opacity: 1 !important; background: white !important; display: block !important; }';" +
-                                "  document.head.appendChild(style);" +
-                                "  console.log('✅ CSS injected - page should be visible now');" +
-                                "} catch(e) { console.log('CSS injection error: ' + e.message); }" +
+                                "  style.id = 'android-visibility-fix';" +
+                                "  style.textContent = 'html, body { " +
+                                "    margin: 0 !important; " +
+                                "    padding: 0 !important; " +
+                                "    width: 100% !important; " +
+                                "    height: 100vh !important; " +
+                                "    min-height: 100vh !important; " +
+                                "    background: white !important; " +
+                                "    color: #000 !important; " +
+                                "    visibility: visible !important; " +
+                                "    opacity: 1 !important; " +
+                                "    display: block !important; " +
+                                "    overflow-y: auto !important; " +
+                                "  } " +
+                                "  #root, #app, [data-reactroot] { " +
+                                "    width: 100% !important; " +
+                                "    min-height: 100% !important; " +
+                                "    height: 100% !important; " +
+                                "    background: white !important; " +
+                                "    visibility: visible !important; " +
+                                "    opacity: 1 !important; " +
+                                "    display: block !important; " +
+                                "  } " +
+                                "  body > div { " +
+                                "    width: 100% !important; " +
+                                "    min-height: 100vh !important; " +
+                                "    visibility: visible !important; " +
+                                "    opacity: 1 !important; " +
+                                "    background: white !important; " +
+                                "    display: block !important; " +
+                                "  }';" +
+                                "  " +
+                                "  if (document.head) {" +
+                                "    document.head.appendChild(style);" +
+                                "    console.log('✅ Style tag added to HEAD');" +
+                                "  } else if (document.body) {" +
+                                "    document.body.appendChild(style);" +
+                                "    console.log('✅ Style tag added to BODY (head not ready)');" +
+                                "  } else {" +
+                                "    setTimeout(function() { document.head.appendChild(style); }, 100);" +
+                                "    console.log('⏳ Style tag deferred (DOM not ready)');" +
+                                "  }" +
+                                "  " +
+                                "  console.log('After injection:');" +
+                                "  console.log('Body height: ' + document.body.style.height);" +
+                                "  console.log('Document scrollHeight: ' + document.documentElement.scrollHeight);" +
+                                "  console.log('✅ CSS injection complete - page should be visible now');" +
+                                "} catch(e) { " +
+                                "  console.log('❌ CSS injection error: ' + e.message); " +
+                                "  console.log('Stack: ' + e.stack); " +
+                                "}" +
                                 "})()";
                         view.evaluateJavascript(js, null);
                     }
