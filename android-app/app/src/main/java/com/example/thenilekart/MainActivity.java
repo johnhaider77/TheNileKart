@@ -131,19 +131,19 @@ public class MainActivity extends AppCompatActivity {
                     isLoaded = true;
                     Log.d(TAG, "✅ Page loaded: " + url);
                     
-                    // Inject CSS to ensure page is visible
-                    String css = "javascript:(function() {" +
-                            "var style = document.createElement('style');" +
-                            "style.type = 'text/css';" +
-                            "style.innerHTML = 'body, html { background: white; color: #000; visibility: visible; opacity: 1; }' +" +
-                            "'#root { background: white; visibility: visible; opacity: 1; }' +" +
-                            "'body > div { visibility: visible; opacity: 1; background: white; }';" +
-                            "document.head.appendChild(style);" +
-                            "console.log('✅ CSS injected for visibility');" +
-                            "})()";
-                    
+                    // Inject CSS to ensure page is visible (bypasses CSP by using DOM manipulation)
                     if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.KITKAT) {
-                        view.evaluateJavascript(css, null);
+                        String js = "javascript:(function() {" +
+                                "try {" +
+                                "  var style = document.createElement('style');" +
+                                "  style.textContent = 'body, html { background: white !important; color: #000 !important; visibility: visible !important; opacity: 1 !important; display: block !important; } " +
+                                "  #root, [data-reactroot] { background: white !important; visibility: visible !important; opacity: 1 !important; display: block !important; } " +
+                                "  body > div { visibility: visible !important; opacity: 1 !important; background: white !important; display: block !important; }';" +
+                                "  document.head.appendChild(style);" +
+                                "  console.log('✅ CSS injected - page should be visible now');" +
+                                "} catch(e) { console.log('CSS injection error: ' + e.message); }" +
+                                "})()";
+                        view.evaluateJavascript(js, null);
                     }
                 }
                 

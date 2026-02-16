@@ -49,6 +49,8 @@ app.use(helmet({
     directives: {
       ...helmet.contentSecurityPolicy.getDefaultDirectives(),
       "img-src": ["'self'", "data:", "https:", "http://localhost:*", "http://127.0.0.1:*"],
+      "script-src": ["'self'", "'unsafe-inline'"], // Allow inline scripts for WebView CSS injection
+      "style-src": ["'self'", "'unsafe-inline'"], // Allow inline styles
     },
   },
   crossOriginResourcePolicy: { policy: "cross-origin" }
