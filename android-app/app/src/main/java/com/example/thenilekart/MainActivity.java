@@ -76,6 +76,8 @@ public class MainActivity extends AppCompatActivity {
     private void loadWebApp() {
         if (webview != null) {
             Log.d(TAG, "📱 Attempting to load: " + WEB_APP_URL);
+            // Set background color to show loading state instead of blank screen
+            webview.setBackgroundColor(android.graphics.Color.WHITE);
             webview.loadUrl(WEB_APP_URL);
         }
     }
@@ -111,6 +113,8 @@ public class MainActivity extends AppCompatActivity {
                 public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
                     super.onPageStarted(view, url, favicon);
                     Log.d(TAG, "🔄 Loading: " + url);
+                    // Show white background while loading
+                    view.setBackgroundColor(android.graphics.Color.WHITE);
                 }
                 
                 @Override
@@ -118,17 +122,38 @@ public class MainActivity extends AppCompatActivity {
                     super.onPageFinished(view, url);
                     isLoaded = true;
                     Log.d(TAG, "✅ Page loaded: " + url);
+                    
+                    // Inject CSS to ensure page is visible
+                    String css = "javascript:(function() {" +
+                            "var style = document.createElement('style');" +
+                            "style.type = 'text/css';" +
+                            "style.innerHTML = 'body, html { background: white; color: #000; visibility: visible; opacity: 1; }' +" +
+                            "'#root { background: white; visibility: visible; opacity: 1; }' +" +
+                            "'body > div { visibility: visible; opacity: 1; background: white; }';" +
+                            "document.head.appendChild(style);" +
+                            "console.log('✅ CSS injected for visibility');" +
+                            "})()";
+                    
+                    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.KITKAT) {
+                        view.evaluateJavascript(css, null);
+                    }
                 }
                 
                 @Override
                 public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
                     Log.e(TAG, "❌ WebView error: " + errorCode + " - " + description + " (URL: " + failingUrl + ")");
                     
-                    // Show user-friendly error message
-                    String errorMessage = "Error: " + description;
+                    // Don't show error for SSL issues since we're using HTTP
+                    if (description.contains("SSL") || description.contains("certificate")) {
+                        Log.d(TAG, "ℹ️ SSL warning (expected for HTTP): " + description);
+                        return;
+                    }
+                    
+                    // Show user-friendly error message for other errors
                     Toast.makeText(MainActivity.this, "Connection failed. Please check your internet.", Toast.LENGTH_SHORT).show();
                     
                     // Show error page
+                    String errorMessage = "Error: " + description;
                     String errorHtml = "<html><body style='font-family: Arial; text-align: center; padding: 20px; background: #f5f5f5;'>" +
                             "<h2 style='color: #d32f2f;'>⚠️ Connection Error</h2>" +
                             "<p>Failed to load: " + failingUrl + "</p>" +
