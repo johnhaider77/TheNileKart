@@ -5,6 +5,7 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Build;
 import android.util.Log;
 
@@ -17,10 +18,6 @@ import com.example.thenilekart.R;
 
 import org.json.JSONObject;
 
-/**
- * Push Notification Service for Android
- * Handles FCM registration, notification handling, and routing
- */
 public class PushNotificationService extends FirebaseMessagingService {
 
     private static final String TAG = "PushNotificationService";
@@ -32,184 +29,129 @@ public class PushNotificationService extends FirebaseMessagingService {
         super.onNewToken(token);
         Log.d(TAG, "✅ FCM Token: " + token);
 
-        // Save token to SharedPreferences
-        getSharedPreferences("FirebaseMessaging", MODE_PRIVATE)
-                .edit()
-                .putString("fcmToken", token)
-                .apply();
+        SharedPreferences prefs = getSharedPreferences("FirebaseMessaging", Context.MODE_PRIVATE);
+        prefs.edit().putString("fcmToken", token).apply();
 
-        // Send token to backend if user is logged in
         sendTokenToBackend(token);
     }
 
     @Override
     public void onMessageReceived(RemoteMessage remoteMessage) {
         super.onMessageReceived(remoteMessage);
-        Log.d(TAG, "📥 Message received from: " + remoteMessage.getFrom());
+        Log.d(TAG, "📥 Message received");
 
-        // Parse notification data
-        String heading = "";
-        String message = "";
-        String actionType = "home";
-        JSONObject actionData = new JSONObject();
+        String title = "";
+        String body = "";
 
-        // Get data from notification
         if (remoteMessage.getNotification() != null) {
-            heading = remoteMessage.getNotification().getTitle();
-            message = remoteMessage.getNotification().getBody();
-            Log.d(TAG, "Notification - Title: " + heading + ", Body: " + message);
+            title = remoteMessage.getNotification().getTitle();
+            body = remoteMessage.getNotification().getBody();
         }
 
-        // Get data from data payload
         if (!remoteMessage.getData().isEmpty()) {
-            Log.d(TAG, "Message data: " + remoteMessage.getData());
-
             if (remoteMessage.getData().containsKey("title")) {
-                heading = remoteMessage.getData().get("title");
+                title = remoteMessage.getData().get("title");
             }
             if (remoteMessage.getData().containsKey("body")) {
-                message = remoteMessage.getData().get("body");
-            }
-            if (remoteMessage.getData().containsKey("actionType")) {
-                actionType = remoteMessage.getData().get("actionType");
-            }
-            if (remoteMessage.getData().containsKey("actionData")) {
-                try {
-                    actionData = new JSONObject(remoteMessage.getData().get("actionData"));
-                } catch (Exception e) {
-                    Log.e(TAG, "Error parsing action data: " + e.getMessage());
-                }
+                body = remoteMessage.getData().get("body");
             }
         }
 
-        // Show notification
-        showNotification(heading, message, actionType, actionData);
+        showNotification(title, body);
     }
 
-    /**
-     * Show notification in notification center
-     */
-    private void showNotification(String heading, String message, String actionType, JSONObject actionData) {
+    private void showNotification(String title, String body) {
         try {
-            Log.d(TAG, "📲 Showing notification: " + heading);
+            Log.d(TAG, "📲 Showing notification: " + title);
 
-            // Create notification channel (required for Android 8+)
             createNotificationChannel();
 
-            // Create intent for notification tap
             Intent intent = new Intent(this, MainActivity.class);
             intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
-            intent.putExtra("notification_action_type", actionType);
-            intent.putExtra("notification_action_data", actionData.toString());
 
             PendingIntent pendingIntent = PendingIntent.getActivity(
                     this,
-                    (int) System.currentTimeMillis(),
+                    0,
                     intent,
                     PendingIntent.FLAG_IMMUTABLE | PendingIntent.FLAG_UPDATE_CURRENT
             );
 
-            // Build notification
             NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
-                    .setSmallIcon(R.drawable.ic_notification) // Make sure this drawable exists
-                    .setContentTitle(heading)
-                    .setContentText(message)
+                    .setSmallIcon(R.drawable.ic_notification)
+                    .setContentTitle(title)
+                    .setContentText(body)
                     .setContentIntent(pendingIntent)
                     .setAutoCancel(true)
-                    .setPriority(NotificationCompat.PRIORITY_HIGH)
-                    .setStyle(new NotificationCompat.BigTextStyle()
-                            .bigText(message));
+                    .setPriority(NotificationCompat.PRIORITY_HIGH);
 
-            // Add action buttons if needed
-            builder.addAction(0, "Open", pendingIntent);
-
-            // Show notification
-            NotificationManager notificationManager =
-                    (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-            if (notificationManager != null) {
-                notificationManager.notify(NOTIFICATION_ID, builder.build());
+            NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+            if (manager != null) {
+                manager.notify(NOTIFICATION_ID, builder.build());
                 Log.d(TAG, "✅ Notification displayed");
             }
         } catch (Exception e) {
-            Log.e(TAG, "❌ Error showing notification: " + e.getMessage(), e);
+            Log.e(TAG, "❌ Error showing notification: " + e.getMessage());
         }
     }
 
-    /**
-     * Create notification channel (required for Android 8+)
-     */
     private void createNotificationChannel() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            String channelName = "TheNileKart Notifications";
-            String channelDescription = "Notifications from TheNileKart";
-            int importance = NotificationManager.IMPORTANCE_HIGH;
-
             NotificationChannel channel = new NotificationChannel(
                     CHANNEL_ID,
-                    channelName,
-                    importance
+                    "TheNileKart Notifications",
+                    NotificationManager.IMPORTANCE_HIGH
             );
-            channel.setDescription(channelDescription);
-            channel.enableVibration(true);
-            channel.enableLights(true);
-
-            NotificationManager notificationManager =
-                    (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-            if (notificationManager != null) {
-                notificationManager.createNotificationChannel(channel);
-                Log.d(TAG, "✅ Notification channel created");
+            NotificationManager manager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+            if (manager != null) {
+                manager.createNotificationChannel(channel);
             }
         }
     }
 
-    /**
-     * Send FCM token to backend
-     */
     private void sendTokenToBackend(String token) {
+        sendTokenToBackendInternal(this, token);
+    }
+
+    public static void sendTokenToBackend(Context context, String token) {
+        sendTokenToBackendInternal(context, token);
+    }
+
+    private static void sendTokenToBackendInternal(Context context, String token) {
         new Thread(() -> {
             try {
-                // Retrieve JWT token from SharedPreferences
-                String jwtToken = getSharedPreferences("auth", MODE_PRIVATE)
-                        .getString("token", null);
+                SharedPreferences authPrefs = context.getSharedPreferences("auth", Context.MODE_PRIVATE);
+                String jwtToken = authPrefs.getString("token", null);
 
                 if (jwtToken == null) {
-                    Log.w(TAG, "⚠️  No JWT token found, skipping token registration");
+                    Log.w(TAG, "⚠️  No JWT token found");
                     return;
                 }
 
-                String urlString = BuildConfig.API_BASE_URL + "/push-notifications/register-token";
-                java.net.URL url = new java.net.URL(urlString);
-                java.net.HttpURLConnection connection = (java.net.HttpURLConnection) url.openConnection();
+                String url = "http://40.172.190.250:3000/api/push-notifications/register-token";
+                java.net.HttpURLConnection conn = (java.net.HttpURLConnection) new java.net.URL(url).openConnection();
+                conn.setRequestMethod("POST");
+                conn.setRequestProperty("Authorization", "Bearer " + jwtToken);
+                conn.setRequestProperty("Content-Type", "application/json");
+                conn.setDoOutput(true);
 
-                connection.setRequestMethod("POST");
-                connection.setRequestProperty("Authorization", "Bearer " + jwtToken);
-                connection.setRequestProperty("Content-Type", "application/json");
-                connection.setDoOutput(true);
-
-                // Create request body
                 JSONObject body = new JSONObject();
                 body.put("deviceToken", token);
 
-                byte[] outputBytes = body.toString().getBytes("utf-8");
-                connection.getOutputStream().write(outputBytes);
+                conn.getOutputStream().write(body.toString().getBytes("utf-8"));
 
-                int responseCode = connection.getResponseCode();
-                if (responseCode == 200) {
-                    Log.d(TAG, "✅ FCM token registered with backend");
+                if (conn.getResponseCode() == 200) {
+                    Log.d(TAG, "✅ Token registered");
                 } else {
-                    Log.e(TAG, "❌ Failed to register token. Response code: " + responseCode);
+                    Log.e(TAG, "❌ Failed: " + conn.getResponseCode());
                 }
             } catch (Exception e) {
-                Log.e(TAG, "❌ Error sending token to backend: " + e.getMessage(), e);
+                Log.e(TAG, "❌ Error: " + e.getMessage());
             }
         }).start();
     }
 
-    /**
-     * Get stored FCM token
-     */
     public static String getFCMToken(Context context) {
-        return context.getSharedPreferences("FirebaseMessaging", MODE_PRIVATE)
-                .getString("fcmToken", null);
+        SharedPreferences prefs = context.getSharedPreferences("FirebaseMessaging", Context.MODE_PRIVATE);
+        return prefs.getString("fcmToken", null);
     }
 }

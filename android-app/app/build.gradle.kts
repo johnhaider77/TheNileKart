@@ -2,14 +2,15 @@
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
+    id("com.google.gms.google-services")
 }
 
 android {
-    namespace = "com.thenilekart"
+    namespace = "com.example.thenilekart"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.thenilekart"
+        applicationId = "com.example.thenilekart"
         minSdk = 24
         targetSdk = 35
         versionCode = 4
@@ -54,4 +55,8 @@ android {
 dependencies {
     implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.appcompat:appcompat:1.6.1")
+    implementation("androidx.navigation:navigation-fragment-ktx:2.7.5")
+    implementation("androidx.navigation:navigation-ui-ktx:2.7.5")
+    implementation("com.google.firebase:firebase-messaging-ktx:23.4.0")
+    implementation("com.google.firebase:firebase-core:21.1.1")
 }
