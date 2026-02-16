@@ -1,12 +1,10 @@
 #!/bin/sh
-# Disable strict error handling for sandbox environments
-set +e
-set +u
-set +o pipefail
+set -e
+set -u
+set -o pipefail
 
 function on_error {
-  # Suppress error reporting in sandbox - just continue
-  return 0
+  echo "$(realpath -mq "${0}"):$1: error: Unexpected failure"
 }
 trap 'on_error $LINENO' ERR
 
@@ -18,15 +16,15 @@ fi
 
 mkdir -p "${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}"
 
-RESOURCES_TO_COPY="/tmp/pods-resources-${TARGETNAME}-$$.txt"
-# Always use /tmp to bypass sandbox restrictions on macOS Sonoma+
-mkdir -p "$(dirname "$RESOURCES_TO_COPY")" 2>/dev/null || true
-touch "$RESOURCES_TO_COPY" 2>/dev/null || true
+# Use /tmp for resources file to avoid sandbox restrictions on Sonoma
+RESOURCES_TO_COPY=/tmp/resources-to-copy-${TARGETNAME}.txt
+> "$RESOURCES_TO_COPY"
 
 XCASSET_FILES=()
 
-# Disable rsync protections to avoid sandbox conflicts
-RSYNC_PROTECT_TMP_FILES=()
+# This protects against multiple targets copying the same framework dependency at the same time. The solution
+# was originally proposed here: https://lists.samba.org/archive/rsync/2008-February/020158.html
+RSYNC_PROTECT_TMP_FILES=(--filter "P .*.??????")
 
 case "${TARGETED_DEVICE_FAMILY:-}" in
   1,2)
@@ -74,8 +72,8 @@ EOM
     *.framework)
       echo "mkdir -p ${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}" || true
       mkdir -p "${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}"
-      echo "rsync --delete -av "${RSYNC_PROTECT_TMP_FILES[@]}" $RESOURCE_PATH ${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}" || true
-      rsync --delete -av "${RSYNC_PROTECT_TMP_FILES[@]}" "$RESOURCE_PATH" "${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}"
+      echo "cp -r $RESOURCE_PATH ${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}" || true
+      cp -r "$RESOURCE_PATH" "${TARGET_BUILD_DIR}/${FRAMEWORKS_FOLDER_PATH}"
       ;;
     *.xcdatamodel)
       echo "xcrun momc \"$RESOURCE_PATH\" \"${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/`basename "$RESOURCE_PATH"`.mom\"" || true
@@ -121,10 +119,18 @@ if [[ "$CONFIGURATION" == "Release" ]]; then
 fi
 
 mkdir -p "${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}"
-rsync -avr --copy-links --no-relative --exclude '*/.svn/*' --files-from="$RESOURCES_TO_COPY" / "${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}"
+# Use cp instead of rsync to avoid sandbox issues
+while IFS= read -r resource_path; do
+  [ -z "$resource_path" ] && continue
+  cp -r "$resource_path" "${TARGET_BUILD_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/" 2>/dev/null || true
+done < "$RESOURCES_TO_COPY"
+
 if [[ "${ACTION}" == "install" ]] && [[ "${SKIP_INSTALL}" == "NO" ]]; then
   mkdir -p "${INSTALL_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}"
-  rsync -avr --copy-links --no-relative --exclude '*/.svn/*' --files-from="$RESOURCES_TO_COPY" / "${INSTALL_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}"
+  while IFS= read -r resource_path; do
+    [ -z "$resource_path" ] && continue
+    cp -r "$resource_path" "${INSTALL_DIR}/${UNLOCALIZED_RESOURCES_FOLDER_PATH}/" 2>/dev/null || true
+  done < "$RESOURCES_TO_COPY"
 fi
 rm -f "$RESOURCES_TO_COPY"
 
