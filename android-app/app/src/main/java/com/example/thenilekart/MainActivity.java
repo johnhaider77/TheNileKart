@@ -7,6 +7,7 @@ import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.webkit.WebChromeClient;
 import android.widget.Toast;
+import android.widget.FrameLayout;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -23,6 +24,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String FALLBACK_HTML = "file:///android_asset/index.html"; // Local fallback
     private WebView webview;
     private boolean isLoaded = false;
+    private FrameLayout webViewContainer;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -31,8 +33,20 @@ public class MainActivity extends AppCompatActivity {
 
         webview = findViewById(R.id.webview);
         
+        if (webview == null) {
+            Log.e(TAG, "❌ CRITICAL: WebView not found in layout!");
+            Toast.makeText(this, "Error: WebView not initialized", Toast.LENGTH_LONG).show();
+            return;
+        }
+        
+        Log.d(TAG, "✅ WebView found and initialized");
+        
         // Configure WebView
         configureWebView();
+        
+        // Make sure WebView is visible
+        webview.setVisibility(android.view.View.VISIBLE);
+        Log.d(TAG, "✅ WebView set to VISIBLE");
         
         // Try to load web app
         loadWebApp();
