@@ -6,6 +6,7 @@ import android.util.Log;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.webkit.WebChromeClient;
+import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -18,8 +19,10 @@ import com.example.thenilekart.services.PushNotificationService;
 public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "MainActivity";
-    private static final String WEB_APP_URL = "http://40.172.190.250:3000"; // Backend web app URL
+    private static final String WEB_APP_URL = "http://40.172.190.250:5000"; // Backend API running on port 5000
+    private static final String FALLBACK_HTML = "file:///android_asset/index.html"; // Local fallback
     private WebView webview;
+    private boolean isLoaded = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -31,8 +34,8 @@ public class MainActivity extends AppCompatActivity {
         // Configure WebView
         configureWebView();
         
-        // Load web app
-        webview.loadUrl(WEB_APP_URL);
+        // Try to load web app
+        loadWebApp();
 
         // Request FCM token
         FirebaseMessaging.getInstance().getToken()
@@ -54,12 +57,25 @@ public class MainActivity extends AppCompatActivity {
     }
     
     /**
+     * Load web app with fallback
+     */
+    private void loadWebApp() {
+        if (webview != null) {
+            Log.d(TAG, "📱 Attempting to load: " + WEB_APP_URL);
+            webview.loadUrl(WEB_APP_URL);
+        }
+    }
+    
+    /**
      * Configure WebView settings for optimal functionality
      */
     private void configureWebView() {
         if (webview != null) {
             // Enable JavaScript
             webview.getSettings().setJavaScriptEnabled(true);
+            
+            // Allow mixed content (HTTP/HTTPS)
+            webview.getSettings().setMixedContentMode(android.webkit.WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
             
             // Set user agent
             webview.getSettings().setUserAgentString(
@@ -72,32 +88,59 @@ public class MainActivity extends AppCompatActivity {
             // Enable database
             webview.getSettings().setDatabaseEnabled(true);
             
+            // Cache settings
+            webview.getSettings().setCacheMode(android.webkit.WebSettings.LOAD_DEFAULT);
+            
             // Set WebViewClient to handle page loading
             webview.setWebViewClient(new WebViewClient() {
                 @Override
                 public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
                     super.onPageStarted(view, url, favicon);
-                    Log.d(TAG, "Loading: " + url);
+                    Log.d(TAG, "🔄 Loading: " + url);
                 }
                 
                 @Override
                 public void onPageFinished(WebView view, String url) {
                     super.onPageFinished(view, url);
-                    Log.d(TAG, "Page loaded: " + url);
+                    isLoaded = true;
+                    Log.d(TAG, "✅ Page loaded: " + url);
                 }
                 
                 @Override
                 public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
-                    Log.e(TAG, "WebView error: " + errorCode + " - " + description);
+                    Log.e(TAG, "❌ WebView error: " + errorCode + " - " + description + " (URL: " + failingUrl + ")");
+                    
+                    // Show user-friendly error message
+                    String errorMessage = "Error: " + description;
+                    Toast.makeText(MainActivity.this, "Connection failed. Please check your internet.", Toast.LENGTH_SHORT).show();
+                    
+                    // Show error page
+                    String errorHtml = "<html><body style='font-family: Arial; text-align: center; padding: 20px; background: #f5f5f5;'>" +
+                            "<h2 style='color: #d32f2f;'>⚠️ Connection Error</h2>" +
+                            "<p>Failed to load: " + failingUrl + "</p>" +
+                            "<p>Error: " + description + " (" + errorCode + ")</p>" +
+                            "<p style='color: #666; font-size: 12px;'>Please check if the backend server is running at " + WEB_APP_URL + "</p>" +
+                            "<button onclick='location.reload()' style='padding: 10px 20px; background: #2196F3; color: white; border: none; border-radius: 4px; cursor: pointer;'>Retry</button>" +
+                            "</body></html>";
+                    
+                    view.loadData(errorHtml, "text/html", "utf-8");
+                    
                     super.onReceivedError(view, errorCode, description, failingUrl);
+                }
+                
+                @Override
+                public boolean shouldOverrideUrlLoading(WebView view, String url) {
+                    view.loadUrl(url);
+                    return true;
                 }
             });
             
-            // Set WebChromeClient for console logging
+            // Set WebChromeClient for console logging and debugging
             webview.setWebChromeClient(new WebChromeClient() {
                 @Override
                 public void onConsoleMessage(String message, int lineNumber, String sourceID) {
-                    Log.d(TAG, "WebConsole: " + message);
+                    Log.d(TAG, "📋 WebConsole: " + message);
+                    super.onConsoleMessage(message, lineNumber, sourceID);
                 }
             });
         }
