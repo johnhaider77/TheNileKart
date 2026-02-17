@@ -1,45 +1,26 @@
 {
   "project_info": {
-    "project_number": "947539748293",
-    "firebase_url": "https://thenilekart-prod.firebaseio.com",
-    "project_id": "thenilekart-prod",
-    "storage_bucket": "thenilekart-prod.appspot.com"
+    "project_number": "239492826254",
+    "project_id": "thenilekart-4e16d",
+    "storage_bucket": "thenilekart-4e16d.firebasestorage.app"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:947539748293:android:f8e6a7b9c3d4e5f6",
+        "mobilesdk_app_id": "1:239492826254:android:1211c1b54cc9e94187f5df",
         "android_client_info": {
           "package_name": "com.example.thenilekart"
         }
       },
-      "oauth_client": [
-        {
-          "client_id": "947539748293-abc1234567890def.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
+      "oauth_client": [],
       "api_key": [
         {
-          "current_key": "AIzaSyF1a2b3c4d5e6f7g8h9i0j1k2l3m4n5o6p"
+          "current_key": "AIzaSyD9zWufRFXQrdr7UZvqrS0qde4AxfhSCio"
         }
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "947539748293-ios.apps.googleusercontent.com",
-              "client_type": 1
-            }
-          ]
-        },
-        "analytics_service": {
-          "analytics_property": {
-            "tracking_id": "UA-123456789-1"
-          }
-        },
-        "fcm_service": {
-          "fcm_enabled": true
+          "other_platform_oauth_client": []
         }
       }
     }
