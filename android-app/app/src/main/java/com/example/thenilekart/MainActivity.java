@@ -20,7 +20,8 @@ import com.example.thenilekart.services.PushNotificationService;
 public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "MainActivity";
-    private static final String WEB_APP_URL = "http://40.172.190.250:5000"; // Backend API running on port 5000
+    private static final String WEB_APP_URL = "https://www.thenilekart.com"; // Production domain
+    private static final String FALLBACK_URL = "http://40.172.190.250:5000"; // Fallback to IP if production fails
     private static final String FALLBACK_HTML = "file:///android_asset/index.html"; // Local fallback
     private WebView webview;
     private boolean isLoaded = false;
