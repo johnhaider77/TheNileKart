@@ -177,6 +177,15 @@ public class MainActivity extends AppCompatActivity {
             // Enable JavaScript
             webview.getSettings().setJavaScriptEnabled(true);
             
+            // Add JavaScript bridge for push notification token registration after login
+            webview.addJavascriptInterface(new Object() {
+                @android.webkit.JavascriptInterface
+                public void onLoginSuccess() {
+                    Log.d(TAG, "🔐 Login event detected - registering FCM token");
+                    PushNotificationService.registerTokenAfterLogin(MainActivity.this);
+                }
+            }, "AndroidBridge");
+            
             // Allow mixed content (HTTP/HTTPS)
             webview.getSettings().setMixedContentMode(android.webkit.WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
             

@@ -223,4 +223,15 @@ public class PushNotificationService extends FirebaseMessagingService {
         SharedPreferences prefs = context.getSharedPreferences("FirebaseMessaging", Context.MODE_PRIVATE);
         return prefs.getString("fcmToken", null);
     }
+
+    // Call this method after user logs in to register the FCM token with JWT
+    public static void registerTokenAfterLogin(Context context) {
+        String token = getFCMToken(context);
+        if (token != null) {
+            Log.d(TAG, "🔄 Registering FCM token after login...");
+            sendTokenToBackendInternal(context, token);
+        } else {
+            Log.w(TAG, "⚠️ No FCM token found to register after login");
+        }
+    }
 }

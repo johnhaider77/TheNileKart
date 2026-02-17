@@ -50,6 +50,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     localStorage.setItem('token', token);
     localStorage.setItem('user', JSON.stringify(userData));
     setUser(userData);
+    
+    // Notify Android app about successful login for FCM token registration
+    if ((window as any).AndroidBridge && (window as any).AndroidBridge.onLoginSuccess) {
+      try {
+        console.log('📱 Calling Android bridge to register FCM token after login');
+        (window as any).AndroidBridge.onLoginSuccess();
+      } catch (error) {
+        console.error('Error calling Android bridge:', error);
+      }
+    }
+    
     // Cart merge will be handled by CartContext useEffect
   };
 
