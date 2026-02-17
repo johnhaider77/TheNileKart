@@ -209,6 +209,25 @@ router.post('/send', authenticateToken, async (req, res) => {
     const invalidTokens = deviceTokens.filter(t => !isValidFCMToken(t));
     const hasOnlyInvalidTokens = invalidTokens.length === deviceTokens.length && deviceTokens.length > 0;
     
+    // Auto-clean invalid tokens from database
+    if (invalidTokens.length > 0) {
+      const validTokens = deviceTokens.filter(t => isValidFCMToken(t));
+      if (validTokens.length > 0) {
+        console.log(`🧹 Auto-cleaning ${invalidTokens.length} invalid token(s) for user ${recipientUserId}`);
+        try {
+          await db.query(
+            'UPDATE users SET device_tokens = $1 WHERE id = $2',
+            [validTokens, recipientUserId]
+          );
+          console.log(`✅ Removed ${invalidTokens.length} invalid token(s). ${validTokens.length} valid token(s) remain.`);
+        } catch (cleanupErr) {
+          console.warn(`⚠️ Failed to auto-clean invalid tokens: ${cleanupErr.message}`);
+        }
+      } else {
+        console.log(`🔴 All tokens are invalid for user ${recipientUserId}. Need real FCM token from app.`);
+      }
+    }
+    
     res.status(200).json({
       success: notificationResult.success,
       notificationsSent: notificationResult.successfulSends > 0,
@@ -339,12 +358,29 @@ router.post('/send-bulk', authenticateToken, async (req, res) => {
     const invalidTokensCount = allDeviceTokens.filter(t => !isValidFCMToken(t)).length;
     const hasOnlyInvalidTokens = invalidTokensCount === allDeviceTokens.length && allDeviceTokens.length > 0;
 
+    // Auto-cleanup: Remove invalid tokens from all recipient accounts
+    if (invalidTokensCount > 0) {
+      for (const userId of recipientUserIds) {
+        const userTokens = recipientMap[userId] || [];
+        const validTokens = userTokens.filter(t => isValidFCMToken(t));
+        if (validTokens.length < userTokens.length) {
+          const invalidCount = userTokens.length - validTokens.length;
+          console.log(`🧹 Auto-cleanup: Removing ${invalidCount} invalid token(s) from user ${userId}`);
+          if (validTokens.length > 0) {
+            await db.query('UPDATE users SET device_tokens = $1 WHERE id = $2', [validTokens, userId]);
+          } else {
+            await db.query('UPDATE users SET device_tokens = NULL WHERE id = $1', [userId]);
+          }
+        }
+      }
+    }
+
     res.status(200).json({
       success: notificationResult.success,
       notificationsSent: allNotificationsSent,
       message: hasFailures 
         ? hasOnlyInvalidTokens
-          ? `Notification sending failed: All ${invalidTokensCount} device token(s) are invalid/short. iOS app must retrieve real FCM token from Firebase SDK.`
+          ? `Notification sending failed: All ${invalidTokensCount} device token(s) are invalid/short. iOS app must retrieve real FCM token from Firebase SDK. Invalid tokens have been removed from the system.`
           : `Notification sending partially failed: ${notificationResult.successfulSends} sent, ${notificationResult.failedSends} failed. Check errors below.`
         : `Successfully sent notifications to ${notificationResult.successfulSends} device(s)`,
       recipientsCount: recipientUserIds.length,
