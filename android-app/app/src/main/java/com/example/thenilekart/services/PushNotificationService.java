@@ -125,7 +125,7 @@ public class PushNotificationService extends FirebaseMessagingService {
                     return;
                 }
                 
-                // Log token analysis for debugging
+                // Log comprehensive token analysis for debugging
                 Log.d(TAG, "📊 Token Analysis:");
                 Log.d(TAG, "   - Length: " + token.length() + " characters");
                 Log.d(TAG, "   - Valid FCM token should be 150+ characters");
@@ -138,18 +138,21 @@ public class PushNotificationService extends FirebaseMessagingService {
                                        token.toLowerCase().contains("example") ||
                                        token.length() < 100;
                 
+                // Log validation result with helpful guidance
                 if (isPlaceholder) {
-                    Log.w(TAG, "⚠️ PLACEHOLDER TOKEN DETECTED - Token appears to be invalid!");
-                    Log.w(TAG, "   Length: " + token.length() + " chars (should be 150+)");
-                    Log.w(TAG, "   Possible causes:");
-                    Log.w(TAG, "   1. Firebase Cloud Messaging API not enabled in Firebase Console");
-                    Log.w(TAG, "   2. google-services.json credentials are incomplete");
-                    Log.w(TAG, "   3. App not properly registered in Firebase Console");
-                    Log.w(TAG, "   4. Firebase SDK not initialized correctly");
-                    Log.w(TAG, "   SOLUTION:");
-                    Log.w(TAG, "   - Enable Cloud Messaging API in Firebase Console");
-                    Log.w(TAG, "   - Regenerate and download google-services.json");
-                    Log.w(TAG, "   - Uninstall and reinstall the app");
+                    Log.w(TAG, "⚠️ PLACEHOLDER TOKEN DETECTED!");
+                    Log.w(TAG, "   Token length: " + token.length() + " chars (real tokens: 150+)");
+                    Log.w(TAG, "   Token sample: " + token);
+                    Log.w(TAG, "   This means Firebase returned a test/placeholder token");
+                    Log.w(TAG, "   Likely causes:");
+                    Log.w(TAG, "   1. Firebase Cloud Messaging API not enabled in Console");
+                    Log.w(TAG, "   2. google-services.json has invalid/incomplete credentials");
+                    Log.w(TAG, "   3. App not registered in Firebase Console");
+                    Log.w(TAG, "   4. Device has no internet or poor connectivity");
+                } else {
+                    Log.d(TAG, "✅ Token validation PASSED");
+                    Log.d(TAG, "   Length: " + token.length() + " chars (valid for push notifications)");
+                    Log.d(TAG, "   Token starts with: " + token.substring(0, Math.min(20, token.length())) + "...");
                 }
                 
                 SharedPreferences authPrefs = context.getSharedPreferences("auth", Context.MODE_PRIVATE);
