@@ -141,56 +141,46 @@ public class MainActivity extends AppCompatActivity {
                     isLoaded = true;
                     Log.d(TAG, "✅ Page loaded: " + url);
                     
-                    // Inject CSS to ensure page is visible (bypasses CSP by using DOM manipulation)
+                    // Force content to be visible with aggressive CSS injection
                     if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.KITKAT) {
                         String js = "javascript:(function() {" +
                                 "try {" +
-                                "  console.log('🔧 Starting CSS injection for Android WebView...');" +
-                                "  console.log('Document ready state: ' + document.readyState);" +
-                                "  console.log('Body exists: ' + (document.body !== null));" +
-                                "  console.log('Root div exists: ' + (document.getElementById('root') !== null));" +
+                                "  // Remove any display:none, visibility:hidden, or opacity:0 from everywhere" +
+                                "  var hideElements = document.querySelectorAll('[style*=\"display:none\"],[style*=\"visibility:hidden\"],[style*=\"opacity:0\"]');" +
+                                "  hideElements.forEach(el => { el.style.display=''; el.style.visibility=''; el.style.opacity=''; });" +
                                 "  " +
+                                "  // Force root div to show" +
                                 "  var root = document.getElementById('root');" +
                                 "  if (root) {" +
-                                "    console.log('Root div found, forcing display...');" +
-                                "    root.style.display = 'block';" +
-                                "    root.style.visibility = 'visible';" +
-                                "    root.style.opacity = '1';" +
-                                "    root.style.width = '100%';" +
-                                "    root.style.minHeight = '100vh';" +
-                                "    root.style.height = 'auto';" +
+                                "    root.style.cssText = 'display:block !important; visibility:visible !important; opacity:1 !important; width:100% !important; height:auto !important; min-height:100vh !important;';" +
                                 "  }" +
                                 "  " +
+                                "  // Force body to expand" +
+                                "  document.body.style.cssText = 'display:block !important; visibility:visible !important; opacity:1 !important; width:100% !important; height:auto !important; min-height:100vh !important; margin:0 !important; padding:0 !important; background:white !important; color:#000 !important;';" +
+                                "  document.documentElement.style.cssText = 'display:block !important; visibility:visible !important; opacity:1 !important; width:100% !important; height:auto !important; min-height:100%;';" +
+                                "  " +
+                                "  // Create and inject mega-fix stylesheet" +
                                 "  var style = document.createElement('style');" +
-                                "  style.id = 'android-webview-fix';" +
-                                "  style.textContent = '" +
-                                "    html { margin: 0 !important; padding: 0 !important; width: 100% !important; height: auto !important; min-height: 100% !important; background: white !important; } " +
-                                "    body { margin: 0 !important; padding: 0 !important; width: 100% !important; height: auto !important; min-height: 100vh !important; background: white !important; color: #000 !important; visibility: visible !important; opacity: 1 !important; display: block !important; overflow-y: auto !important; } " +
-                                "    #root { display: block !important; visibility: visible !important; opacity: 1 !important; width: 100% !important; height: auto !important; min-height: 100vh !important; background: white !important; } " +
-                                "    #root > * { width: 100% !important; height: auto !important; } " +
-                                "    * { box-sizing: border-box !important; } " +
-                                "  ';" +
-                                "  " +
+                                "  style.id = 'android-mega-fix';" +
+                                "  style.textContent = 'html { height:auto !important; min-height:100%; width:100% !important; } body { height:auto !important; min-height:100vh !important; width:100% !important; margin:0 !important; padding:0 !important; display:block !important; visibility:visible !important; opacity:1 !important; background:white !important; color:#000 !important; overflow-y:auto !important; } #root { display:block !important; visibility:visible !important; opacity:1 !important; width:100% !important; height:auto !important; min-height:100% !important; } * { visibility:visible !important; opacity:1 !important; } .hidden, .display-none, [class*=\"hidden\"], [class*=\"invisible\"] { display:block !important; visibility:visible !important; opacity:1 !important; } body > div { width:100% !important; height:auto !important; min-height:100vh !important; display:block !important; }';" +
                                 "  document.head.appendChild(style);" +
-                                "  console.log('✅ CSS fix injected');" +
+                                "  console.log('✅ Aggressive CSS fix applied');" +
                                 "  " +
-                                "  setTimeout(function() { " +
-                                "    var rootAfter = document.getElementById('root');" +
-                                "    if (rootAfter && rootAfter.children.length === 0) {" +
-                                "      console.log('⚠️ WARNING: Root div has no children - React might not be initialized');" +
-                                "      rootAfter.innerHTML = '<div style=\"text-align: center; padding: 20px; color: #666;\">Loading application...</div>';" +
-                                "    } else if (rootAfter && rootAfter.children.length > 0) {" +
-                                "      console.log('✅ React app detected with ' + rootAfter.children.length + ' child elements');" +
+                                "  // Check after a delay if React has rendered" +
+                                "  setTimeout(function() {" +
+                                "    var rootElement = document.getElementById('root');" +
+                                "    if (rootElement && rootElement.children.length > 0) {" +
+                                "      console.log('✅ React content detected - ' + rootElement.children.length + ' children');" +
+                                "    } else if (rootElement) {" +
+                                "      console.log('⚠️ Root exists but no React content - showing placeholder');" +
+                                "      rootElement.innerHTML = '<div style=\"text-align:center; padding:40px; color:#333; background:white; min-height:100vh;\"><h2>Loading TheNileKart...</h2><p>If this persists, check internet connection</p></div>';" +
+                                "    } else {" +
+                                "      console.log('❌ Root div not found');" +
                                 "    }" +
-                                "    console.log('Document height: ' + document.documentElement.offsetHeight);" +
-                                "    console.log('Body height: ' + document.body.offsetHeight);" +
-                                "    if (root) console.log('Root height: ' + root.offsetHeight);" +
-                                "  }, 500);" +
+                                "  }, 1000);" +
                                 "  " +
                                 "  console.log('✅ CSS injection complete');" +
-                                "} catch(e) { " +
-                                "  console.log('❌ Error: ' + e.message); " +
-                                "}" +
+                                "} catch(e) { console.log('❌ Error: ' + e); }" +
                                 "})()";
                         view.evaluateJavascript(js, null);
                     }
