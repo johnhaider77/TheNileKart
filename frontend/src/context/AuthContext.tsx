@@ -51,11 +51,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     localStorage.setItem('user', JSON.stringify(userData));
     setUser(userData);
     
-    // Notify Android app about successful login for FCM token registration
+    // Notify Android app about successful login with JWT token for FCM registration
     if ((window as any).AndroidBridge && (window as any).AndroidBridge.onLoginSuccess) {
       try {
-        console.log('📱 Calling Android bridge to register FCM token after login');
-        (window as any).AndroidBridge.onLoginSuccess();
+        console.log('📱 Calling Android bridge with JWT token for FCM registration');
+        (window as any).AndroidBridge.onLoginSuccess(token);
       } catch (error) {
         console.error('Error calling Android bridge:', error);
       }

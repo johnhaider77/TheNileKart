@@ -1,6 +1,7 @@
 package com.example.thenilekart;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.util.Log;
 import android.webkit.WebView;
@@ -130,7 +131,7 @@ public class MainActivity extends AppCompatActivity {
                               token.length() < 100;
         
         // Save token to SharedPreferences for later retrieval
-        android.content.SharedPreferences prefs = getSharedPreferences("FirebaseMessaging", Context.MODE_PRIVATE);
+        SharedPreferences prefs = getSharedPreferences("FirebaseMessaging", MODE_PRIVATE);
         prefs.edit().putString("fcmToken", token).apply();
         Log.d(TAG, "💾 Token saved to SharedPreferences");
         
@@ -185,9 +186,20 @@ public class MainActivity extends AppCompatActivity {
             // Add JavaScript bridge for push notification token registration after login
             webview.addJavascriptInterface(new Object() {
                 @android.webkit.JavascriptInterface
-                public void onLoginSuccess() {
-                    Log.d(TAG, "🔐 Login event detected - registering FCM token");
-                    PushNotificationService.registerTokenAfterLogin(MainActivity.this);
+                public void onLoginSuccess(String jwtToken) {
+                    Log.d(TAG, "🔐 Login event detected - JWT token received");
+                    
+                    // Save JWT token to SharedPreferences for FCM token registration
+                    if (jwtToken != null && !jwtToken.isEmpty()) {
+                        SharedPreferences authPrefs = getSharedPreferences("auth", MODE_PRIVATE);
+                        authPrefs.edit().putString("token", jwtToken).apply();
+                        Log.d(TAG, "💾 JWT token saved to SharedPreferences");
+                        
+                        // Now register the FCM token with the JWT
+                        PushNotificationService.registerTokenAfterLogin(MainActivity.this);
+                    } else {
+                        Log.w(TAG, "⚠️ JWT token is empty or null");
+                    }
                 }
             }, "AndroidBridge");
             
