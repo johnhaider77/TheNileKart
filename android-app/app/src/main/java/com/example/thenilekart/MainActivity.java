@@ -129,6 +129,11 @@ public class MainActivity extends AppCompatActivity {
                               token.toLowerCase().contains("example") ||
                               token.length() < 100;
         
+        // Save token to SharedPreferences for later retrieval
+        android.content.SharedPreferences prefs = getSharedPreferences("FirebaseMessaging", Context.MODE_PRIVATE);
+        prefs.edit().putString("fcmToken", token).apply();
+        Log.d(TAG, "💾 Token saved to SharedPreferences");
+        
         if (isPlaceholder) {
             Log.w(TAG, "⚠️  WARNING: Token appears to be a placeholder!");
             Log.d(TAG, "   This means Firebase SDK returned a test token");
