@@ -125,8 +125,19 @@ public class PushNotificationService extends FirebaseMessagingService {
                     return;
                 }
                 
+                // Log token analysis for debugging
+                Log.d(TAG, "📊 Token Analysis:");
+                Log.d(TAG, "   - Length: " + token.length() + " characters");
+                Log.d(TAG, "   - Valid FCM token should be 150+ characters");
+                
                 if (token.length() < 150) {
-                    Log.w(TAG, "⚠️ Token seems invalid (too short: " + token.length() + " chars, need >= 150)");
+                    Log.w(TAG, "⚠️ INVALID TOKEN DETECTED - Token is too short!");
+                    Log.w(TAG, "   This indicates Firebase returned a placeholder token");
+                    Log.w(TAG, "   Possible causes:");
+                    Log.w(TAG, "   1. google-services.json has dummy/placeholder API key");
+                    Log.w(TAG, "   2. Firebase not properly configured in Android app");
+                    Log.w(TAG, "   3. App not registered in Firebase Console");
+                    Log.w(TAG, "   SOLUTION: Replace google-services.json with real Firebase config");
                 }
                 
                 SharedPreferences authPrefs = context.getSharedPreferences("auth", Context.MODE_PRIVATE);
@@ -161,6 +172,13 @@ public class PushNotificationService extends FirebaseMessagingService {
                     Log.d(TAG, "✅ FCM Token registered successfully!");
                     Log.d(TAG, "   Token length: " + token.length() + " chars");
                     Log.d(TAG, "   Token sample: " + token.substring(0, Math.min(50, token.length())) + "...");
+                    
+                    // Log validity status
+                    if (token.length() >= 150) {
+                        Log.d(TAG, "   ✅ Token is VALID (150+ chars) - Real FCM token");
+                    } else {
+                        Log.d(TAG, "   ❌ Token is INVALID (< 150 chars) - Placeholder from Firebase");
+                    }
                 } else {
                     // Read error response for debugging
                     String errorResponse = "";
