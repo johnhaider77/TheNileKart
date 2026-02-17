@@ -63,10 +63,20 @@ public class MainActivity extends AppCompatActivity {
 
         // Request FCM token - wrap in try-catch to prevent crashes if Firebase API key is missing
         try {
+            Log.d(TAG, "🔧 Firebase Initialization Debug Info:");
+            Log.d(TAG, "   - Package Name: " + getPackageName());
+            Log.d(TAG, "   - Android SDK: " + Build.VERSION.SDK_INT);
+            Log.d(TAG, "   - Firebase Version: messaging-ktx:23.4.0");
+            Log.d(TAG, "   - Checking if google-services.json is properly loaded...");
+            
             FirebaseMessaging.getInstance().getToken()
                     .addOnCompleteListener(task -> {
                         if (!task.isSuccessful()) {
                             Log.w(TAG, "❌ Fetching FCM token failed", task.getException());
+                            Log.d(TAG, "⚠️  This usually means:");
+                            Log.d(TAG, "   1. google-services.json is missing or has invalid API key");
+                            Log.d(TAG, "   2. Firebase project not configured properly");
+                            Log.d(TAG, "   3. Internet connection is disabled");
                             return;
                         }
 
@@ -74,6 +84,16 @@ public class MainActivity extends AppCompatActivity {
                         if (token != null && !token.isEmpty()) {
                             Log.d(TAG, "✅ FCM Token obtained: " + token.substring(0, Math.min(50, token.length())) + "...");
                             Log.d(TAG, "Token length: " + token.length() + " chars (valid if >= 150)");
+                            
+                            // Check if token looks real or is a placeholder
+                            if (token.length() < 100) {
+                                Log.w(TAG, "⚠️  WARNING: Token is suspiciously short!");
+                                Log.d(TAG, "   This usually means Firebase returned a placeholder/test token");
+                                Log.d(TAG, "   Possible fixes:");
+                                Log.d(TAG, "   1. Verify google-services.json has real Firebase API key");
+                                Log.d(TAG, "   2. Check Firebase Console project settings");
+                                Log.d(TAG, "   3. Ensure app is registered in Firebase console");
+                            }
                             
                             // Register token with backend
                             PushNotificationService.sendTokenToBackend(this, token);
@@ -83,9 +103,11 @@ public class MainActivity extends AppCompatActivity {
                     });
         } catch (IllegalArgumentException e) {
             Log.w(TAG, "⚠️ Firebase API key not configured: " + e.getMessage());
-            Log.d(TAG, "ℹ️ App will continue without push notifications");
+            Log.d(TAG, "   Error Details: " + e);
+            Log.d(TAG, "   Fix: Ensure google-services.json is in app/ directory with valid API key");
         } catch (Exception e) {
             Log.w(TAG, "⚠️ Firebase initialization error: " + e.getMessage());
+            Log.d(TAG, "   Error Details: " + e);
             Log.d(TAG, "ℹ️ Continuing anyway - web app should still load");
         }
 
