@@ -226,12 +226,15 @@ public class PushNotificationService extends FirebaseMessagingService {
 
     // Call this method after user logs in to register the FCM token with JWT
     public static void registerTokenAfterLogin(Context context) {
-        String token = getFCMToken(context);
-        if (token != null) {
-            Log.d(TAG, "🔄 Registering FCM token after login...");
-            sendTokenToBackendInternal(context, token);
-        } else {
-            Log.w(TAG, "⚠️ No FCM token found to register after login");
-        }
+        // Delay by 2 seconds to ensure JWT token is saved to localStorage/SharedPreferences
+        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
+            String token = getFCMToken(context);
+            if (token != null) {
+                Log.d(TAG, "🔄 Registering FCM token after login (after 2s delay)...");
+                sendTokenToBackendInternal(context, token);
+            } else {
+                Log.w(TAG, "⚠️ No FCM token found to register after login");
+            }
+        }, 2000);
     }
 }
