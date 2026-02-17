@@ -123,29 +123,53 @@ public class PushNotificationService extends FirebaseMessagingService {
                 String jwtToken = authPrefs.getString("token", null);
 
                 if (jwtToken == null) {
-                    Log.w(TAG, "⚠️  No JWT token found");
+                    Log.w(TAG, "⚠️  No JWT token found - user may not be logged in yet");
                     return;
                 }
 
-                String url = "http://40.172.190.250:3000/api/push-notifications/register-token";
+                // Use production domain with proper protocol
+                String url = "https://www.thenilekart.com/api/push-notifications/register-token";
+                
                 java.net.HttpURLConnection conn = (java.net.HttpURLConnection) new java.net.URL(url).openConnection();
                 conn.setRequestMethod("POST");
                 conn.setRequestProperty("Authorization", "Bearer " + jwtToken);
                 conn.setRequestProperty("Content-Type", "application/json");
                 conn.setDoOutput(true);
+                conn.setConnectTimeout(10000);
+                conn.setReadTimeout(10000);
 
                 JSONObject body = new JSONObject();
                 body.put("deviceToken", token);
 
-                conn.getOutputStream().write(body.toString().getBytes("utf-8"));
+                byte[] outputBytes = body.toString().getBytes("utf-8");
+                conn.setFixedLengthStreamingMode(outputBytes.length);
+                conn.getOutputStream().write(outputBytes);
+                conn.getOutputStream().close();
 
-                if (conn.getResponseCode() == 200) {
-                    Log.d(TAG, "✅ Token registered");
+                int responseCode = conn.getResponseCode();
+                if (responseCode == 200) {
+                    Log.d(TAG, "✅ FCM Token registered with backend: " + token.substring(0, 50) + "...");
                 } else {
-                    Log.e(TAG, "❌ Failed: " + conn.getResponseCode());
+                    // Read error response for debugging
+                    String errorResponse = "";
+                    try {
+                        java.io.BufferedReader br = new java.io.BufferedReader(
+                            new java.io.InputStreamReader(conn.getErrorStream())
+                        );
+                        String line;
+                        while ((line = br.readLine()) != null) {
+                            errorResponse += line;
+                        }
+                        br.close();
+                    } catch (Exception ignored) {}
+                    
+                    Log.e(TAG, "❌ Failed to register token. Response code: " + responseCode + 
+                             ", Error: " + errorResponse);
                 }
+                
+                conn.disconnect();
             } catch (Exception e) {
-                Log.e(TAG, "❌ Error: " + e.getMessage());
+                Log.e(TAG, "❌ Error sending token to backend: " + e.getMessage(), e);
             }
         }).start();
     }
