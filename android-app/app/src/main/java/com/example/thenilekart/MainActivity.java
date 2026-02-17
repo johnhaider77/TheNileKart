@@ -75,8 +75,12 @@ public class MainActivity extends AppCompatActivity {
                             Log.w(TAG, "❌ Fetching FCM token failed", task.getException());
                             Log.d(TAG, "⚠️  This usually means:");
                             Log.d(TAG, "   1. google-services.json is missing or has invalid API key");
-                            Log.d(TAG, "   2. Firebase project not configured properly");
+                            Log.d(TAG, "   2. Firebase Cloud Messaging API not enabled in Firebase Console");
                             Log.d(TAG, "   3. Internet connection is disabled");
+                            Log.d(TAG, "   Retrying in 5 seconds...");
+                            
+                            // Retry after 5 seconds
+                            retryGetFCMToken(5000);
                             return;
                         }
 
@@ -86,13 +90,25 @@ public class MainActivity extends AppCompatActivity {
                             Log.d(TAG, "Token length: " + token.length() + " chars (valid if >= 150)");
                             
                             // Check if token looks real or is a placeholder
-                            if (token.length() < 100) {
-                                Log.w(TAG, "⚠️  WARNING: Token is suspiciously short!");
-                                Log.d(TAG, "   This usually means Firebase returned a placeholder/test token");
-                                Log.d(TAG, "   Possible fixes:");
-                                Log.d(TAG, "   1. Verify google-services.json has real Firebase API key");
-                                Log.d(TAG, "   2. Check Firebase Console project settings");
-                                Log.d(TAG, "   3. Ensure app is registered in Firebase console");
+                            boolean isPlaceholder = token.toLowerCase().contains("exampletoken") || 
+                                                  token.toLowerCase().contains("test") ||
+                                                  token.toLowerCase().contains("demo") ||
+                                                  token.toLowerCase().contains("example") ||
+                                                  token.length() < 100;
+                            
+                            if (isPlaceholder) {
+                                Log.w(TAG, "⚠️  WARNING: Token appears to be a placeholder!");
+                                Log.d(TAG, "   This means Firebase SDK returned a test token");
+                                Log.d(TAG, "   Possible causes:");
+                                Log.d(TAG, "   1. Firebase Cloud Messaging API not enabled");
+                                Log.d(TAG, "   2. App not registered in Firebase Console");
+                                Log.d(TAG, "   3. google-services.json credentials incomplete");
+                                Log.d(TAG, "   Solutions:");
+                                Log.d(TAG, "   - Enable Cloud Messaging API in Firebase Console");
+                                Log.d(TAG, "   - Regenerate google-services.json");
+                                Log.d(TAG, "   - Uninstall and reinstall the app");
+                                
+                                // Still register the token, backend will handle validation
                             }
                             
                             // Register token with backend
@@ -113,6 +129,31 @@ public class MainActivity extends AppCompatActivity {
 
         // Handle notification click
         handleNotificationClick(getIntent());
+    }
+    
+    /**
+     * Retry FCM token retrieval after delay
+     */
+    private void retryGetFCMToken(long delayMs) {
+        new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
+            try {
+                Log.d(TAG, "🔄 Retrying FCM token retrieval...");
+                FirebaseMessaging.getInstance().getToken()
+                        .addOnCompleteListener(task -> {
+                            if (task.isSuccessful()) {
+                                String token = task.getResult();
+                                if (token != null && !token.isEmpty()) {
+                                    Log.d(TAG, "✅ FCM Token retrieved on retry!");
+                                    PushNotificationService.sendTokenToBackend(this, token);
+                                }
+                            } else {
+                                Log.w(TAG, "❌ FCM token retry failed");
+                            }
+                        });
+            } catch (Exception e) {
+                Log.e(TAG, "❌ FCM token retry exception: " + e.getMessage());
+            }
+        }, delayMs);
     }
     
     /**

@@ -129,15 +129,27 @@ public class PushNotificationService extends FirebaseMessagingService {
                 Log.d(TAG, "📊 Token Analysis:");
                 Log.d(TAG, "   - Length: " + token.length() + " characters");
                 Log.d(TAG, "   - Valid FCM token should be 150+ characters");
+                Log.d(TAG, "   - First 50 chars: " + token.substring(0, Math.min(50, token.length())));
                 
-                if (token.length() < 150) {
-                    Log.w(TAG, "⚠️ INVALID TOKEN DETECTED - Token is too short!");
-                    Log.w(TAG, "   This indicates Firebase returned a placeholder token");
+                // Check for placeholder/test tokens
+                boolean isPlaceholder = token.toLowerCase().contains("exampletoken") || 
+                                       token.toLowerCase().contains("test") ||
+                                       token.toLowerCase().contains("demo") ||
+                                       token.toLowerCase().contains("example") ||
+                                       token.length() < 100;
+                
+                if (isPlaceholder) {
+                    Log.w(TAG, "⚠️ PLACEHOLDER TOKEN DETECTED - Token appears to be invalid!");
+                    Log.w(TAG, "   Length: " + token.length() + " chars (should be 150+)");
                     Log.w(TAG, "   Possible causes:");
-                    Log.w(TAG, "   1. google-services.json has dummy/placeholder API key");
-                    Log.w(TAG, "   2. Firebase not properly configured in Android app");
-                    Log.w(TAG, "   3. App not registered in Firebase Console");
-                    Log.w(TAG, "   SOLUTION: Replace google-services.json with real Firebase config");
+                    Log.w(TAG, "   1. Firebase Cloud Messaging API not enabled in Firebase Console");
+                    Log.w(TAG, "   2. google-services.json credentials are incomplete");
+                    Log.w(TAG, "   3. App not properly registered in Firebase Console");
+                    Log.w(TAG, "   4. Firebase SDK not initialized correctly");
+                    Log.w(TAG, "   SOLUTION:");
+                    Log.w(TAG, "   - Enable Cloud Messaging API in Firebase Console");
+                    Log.w(TAG, "   - Regenerate and download google-services.json");
+                    Log.w(TAG, "   - Uninstall and reinstall the app");
                 }
                 
                 SharedPreferences authPrefs = context.getSharedPreferences("auth", Context.MODE_PRIVATE);
