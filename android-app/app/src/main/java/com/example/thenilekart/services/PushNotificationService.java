@@ -119,11 +119,21 @@ public class PushNotificationService extends FirebaseMessagingService {
     private static void sendTokenToBackendInternal(Context context, String token) {
         new Thread(() -> {
             try {
+                // Validate token
+                if (token == null || token.isEmpty()) {
+                    Log.w(TAG, "❌ Token is null or empty");
+                    return;
+                }
+                
+                if (token.length() < 150) {
+                    Log.w(TAG, "⚠️ Token seems invalid (too short: " + token.length() + " chars, need >= 150)");
+                }
+                
                 SharedPreferences authPrefs = context.getSharedPreferences("auth", Context.MODE_PRIVATE);
                 String jwtToken = authPrefs.getString("token", null);
 
                 if (jwtToken == null) {
-                    Log.w(TAG, "⚠️  No JWT token found - user may not be logged in yet");
+                    Log.w(TAG, "⚠️ No JWT token found - user may not be logged in yet");
                     return;
                 }
 
@@ -148,7 +158,9 @@ public class PushNotificationService extends FirebaseMessagingService {
 
                 int responseCode = conn.getResponseCode();
                 if (responseCode == 200) {
-                    Log.d(TAG, "✅ FCM Token registered with backend: " + token.substring(0, 50) + "...");
+                    Log.d(TAG, "✅ FCM Token registered successfully!");
+                    Log.d(TAG, "   Token length: " + token.length() + " chars");
+                    Log.d(TAG, "   Token sample: " + token.substring(0, Math.min(50, token.length())) + "...");
                 } else {
                     // Read error response for debugging
                     String errorResponse = "";

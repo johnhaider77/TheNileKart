@@ -8,8 +8,13 @@ import android.webkit.WebViewClient;
 import android.webkit.WebChromeClient;
 import android.widget.Toast;
 import android.widget.FrameLayout;
+import android.os.Build;
 
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+import android.Manifest;
+import android.content.pm.PackageManager;
 
 import com.google.firebase.messaging.FirebaseMessaging;
 import com.example.thenilekart.services.PushNotificationService;
@@ -26,6 +31,7 @@ public class MainActivity extends AppCompatActivity {
     private WebView webview;
     private boolean isLoaded = false;
     private FrameLayout webViewContainer;
+    private static final int NOTIFICATION_PERMISSION_REQUEST_CODE = 101;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -52,6 +58,9 @@ public class MainActivity extends AppCompatActivity {
         // Try to load web app
         loadWebApp();
 
+        // Request notification permission (Android 13+)
+        requestNotificationPermissionIfNeeded();
+
         // Request FCM token - wrap in try-catch to prevent crashes if Firebase API key is missing
         try {
             FirebaseMessaging.getInstance().getToken()
@@ -62,10 +71,15 @@ public class MainActivity extends AppCompatActivity {
                         }
 
                         String token = task.getResult();
-                        Log.d(TAG, "✅ FCM Token: " + token);
-                        
-                        // Register token with backend
-                        PushNotificationService.sendTokenToBackend(this, token);
+                        if (token != null && !token.isEmpty()) {
+                            Log.d(TAG, "✅ FCM Token obtained: " + token.substring(0, Math.min(50, token.length())) + "...");
+                            Log.d(TAG, "Token length: " + token.length() + " chars (valid if >= 150)");
+                            
+                            // Register token with backend
+                            PushNotificationService.sendTokenToBackend(this, token);
+                        } else {
+                            Log.w(TAG, "❌ FCM Token is null or empty");
+                        }
                     });
         } catch (IllegalArgumentException e) {
             Log.w(TAG, "⚠️ Firebase API key not configured: " + e.getMessage());
@@ -273,5 +287,42 @@ public class MainActivity extends AppCompatActivity {
      */
     public String getFCMToken() {
         return PushNotificationService.getFCMToken(this);
+    }
+
+    /**
+     * Request notification permission for Android 13+
+     */
+    private void requestNotificationPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) { // Android 13+
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                    != PackageManager.PERMISSION_GRANTED) {
+                Log.d(TAG, "📋 Requesting notification permission for Android 13+");
+                ActivityCompat.requestPermissions(this,
+                        new String[]{Manifest.permission.POST_NOTIFICATIONS},
+                        NOTIFICATION_PERMISSION_REQUEST_CODE);
+            } else {
+                Log.d(TAG, "✅ Notification permission already granted");
+            }
+        } else {
+            Log.d(TAG, "ℹ️ Android < 13, notification permission not required");
+        }
+    }
+
+    /**
+     * Handle permission request results
+     */
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        
+        if (requestCode == NOTIFICATION_PERMISSION_REQUEST_CODE) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                Log.d(TAG, "✅ Notification permission granted by user");
+                Toast.makeText(this, "Notifications enabled", Toast.LENGTH_SHORT).show();
+            } else {
+                Log.w(TAG, "❌ Notification permission denied by user");
+                Toast.makeText(this, "Notifications permission denied", Toast.LENGTH_SHORT).show();
+            }
+        }
     }
 }
