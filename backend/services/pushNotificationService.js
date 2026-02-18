@@ -45,9 +45,9 @@ async function getAccessToken() {
       throw new Error('Firebase service account key not configured');
     }
 
-    // Check if token is still valid
-    if (accessToken && tokenExpiry && new Date() < tokenExpiry) {
-      console.log('✅ Using cached Firebase access token (expires:', tokenExpiry.toISOString(), ')');
+    // Check if token is still valid (with 5 min buffer)
+    if (accessToken && tokenExpiry && new Date() < new Date(tokenExpiry.getTime() - 5 * 60 * 1000)) {
+      console.log('✅ Using cached Firebase access token (expires in', Math.round((tokenExpiry - new Date()) / 1000), 'seconds)');
       return accessToken;
     }
 
@@ -64,7 +64,17 @@ async function getAccessToken() {
       iat: now
     };
 
-    const token = jwt.sign(payload, key.private_key, {
+    // Handle escaped newlines in private key
+    let privateKey = key.private_key;
+    if (typeof privateKey === 'string') {
+      privateKey = privateKey.replace(/\\n/g, '\n');
+    }
+
+    console.log('🔑 Creating JWT for Firebase service account...');
+    console.log('   Service Account Email:', key.client_email);
+    console.log('   Project ID:', key.project_id);
+
+    const token = jwt.sign(payload, privateKey, {
       algorithm: 'RS256',
       header: {
         alg: 'RS256',
@@ -72,11 +82,18 @@ async function getAccessToken() {
       }
     });
 
-    console.log('🔑 Getting new Firebase access token from Google OAuth...');
+    console.log('🔑 JWT created successfully. Getting OAuth access token...');
+    
     const response = await axios.post('https://oauth2.googleapis.com/token', {
       grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
       assertion: token
+    }, {
+      timeout: 10000
     });
+
+    if (!response.data.access_token) {
+      throw new Error('No access token in OAuth response: ' + JSON.stringify(response.data));
+    }
 
     accessToken = response.data.access_token;
     tokenExpiry = new Date(Date.now() + (response.data.expires_in - 60) * 1000); // Refresh 60 seconds before expiry
@@ -84,12 +101,20 @@ async function getAccessToken() {
     console.log('✅ Firebase access token obtained successfully');
     console.log('⏰ Token expires at:', tokenExpiry.toISOString());
     console.log('📊 Token type:', response.data.token_type);
+    console.log('⏱️  Expires in:', response.data.expires_in, 'seconds');
     return accessToken;
   } catch (error) {
     console.error('❌ Error getting Firebase access token:', error.message);
-    if (error.response?.data) {
-      console.error('Google OAuth error details:', JSON.stringify(error.response.data, null, 2));
+    if (error.response?.status) {
+      console.error('HTTP Status:', error.response.status);
     }
+    if (error.response?.data) {
+      console.error('OAuth Error Response:', JSON.stringify(error.response.data, null, 2));
+      if (error.response.data?.error_description) {
+        console.error('Error Description:', error.response.data.error_description);
+      }
+    }
+    console.error('Full OAuth Error:', error.toString());
     throw new Error('Failed to authenticate with Firebase Cloud Messaging: ' + error.message);
   }
 }
@@ -140,7 +165,13 @@ async function sendNotification(deviceToken, heading, message, data = {}) {
     const key = getServiceAccountKey();
     const projectId = key.project_id;
 
+    if (!accessToken) {
+      throw new Error('Failed to get Firebase access token');
+    }
+
     console.log(`📤 Sending notification to device: ${deviceToken.substring(0, 20)}...`);
+    console.log(`🔑 Using access token (first 20 chars): ${accessToken.substring(0, 20)}...`);
+    console.log(`📍 Firebase Project: ${projectId}`);
 
     const notificationPayload = {
       message: {
@@ -221,6 +252,51 @@ async function sendNotification(deviceToken, heading, message, data = {}) {
     
     if (error.response?.status) {
       console.error('HTTP Status:', error.response.status);
+      
+      // Handle 401 - try to refresh token and retry
+      if (error.response.status === 401) {
+        console.error('⚠️  HTTP 401 - Refreshing Firebase access token and retrying...');
+        try {
+          // Force clear the cached token
+          accessToken = null;
+          tokenExpiry = null;
+          
+          // Get a fresh token
+          const newAccessToken = await getAccessToken();
+          
+          console.log('🔄 Retrying push notification with fresh token...');
+          // Retry the request
+          const retryResponse = await axios.post(
+            `${FCM_API_URL}/${getServiceAccountKey().project_id}/messages:send`,
+            {
+              message: {
+                token: deviceToken,
+                notification: {
+                  title: (arguments[1] || 'Notification'),
+                  body: (arguments[2] || 'You have a new notification')
+                }
+              }
+            },
+            {
+              headers: {
+                'Authorization': `Bearer ${newAccessToken}`,
+                'Content-Type': 'application/json'
+              },
+              timeout: 10000
+            }
+          );
+          
+          console.log('✅ Retry successful:', retryResponse.data.name);
+          return {
+            success: true,
+            messageId: retryResponse.data.name,
+            timestamp: new Date()
+          };
+        } catch (retryError) {
+          console.error('❌ Retry failed:', retryError.message);
+          // Fall through to normal error handling
+        }
+      }
     }
     
     if (error.response?.data) {
