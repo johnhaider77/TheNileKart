@@ -147,13 +147,31 @@ router.post('/register-token', authenticateToken, async (req, res) => {
     const userResult = await db.query(userQuery, [userId]);
 
     if (userResult.rows.length === 0) {
+      console.log(`👤 User not found: ${userId}`);
       return res.status(404).json({ 
         success: false,
         error: 'User not found' 
       });
     }
 
+    console.log(`📝 Registering token for user ${userId}`);
     let deviceTokens = userResult.rows[0].device_tokens || [];
+    console.log(`📋 Current device tokens count: ${deviceTokens.length}, Type: ${typeof deviceTokens}`);
+    
+    // Ensure deviceTokens is an array
+    if (typeof deviceTokens === 'string') {
+      try {
+        deviceTokens = JSON.parse(deviceTokens);
+      } catch (e) {
+        console.warn(`⚠️ Failed to parse device_tokens string, treating as array`);
+        deviceTokens = [];
+      }
+    }
+    
+    if (!Array.isArray(deviceTokens)) {
+      console.warn(`⚠️ device_tokens is not an array, resetting to empty array`);
+      deviceTokens = [];
+    }
     
     // Remove old invalid tokens automatically (cleanup)
     const oldInvalidCount = deviceTokens.length;
@@ -170,9 +188,11 @@ router.post('/register-token', authenticateToken, async (req, res) => {
       console.log(`✅ Registered valid FCM token for user ${userId}. Total tokens: ${deviceTokens.length}`);
     }
 
+    console.log(`💾 Updating database with ${deviceTokens.length} token(s)`);
     // Update user with new device token
     const updateQuery = 'UPDATE users SET device_tokens = $1, fcm_token = $2, updated_at = NOW() WHERE id = $3 RETURNING id';
-    await db.query(updateQuery, [JSON.stringify(deviceTokens), deviceToken, userId]);
+    const updateResult = await db.query(updateQuery, [JSON.stringify(deviceTokens), deviceToken, userId]);
+    console.log(`✅ Database update result:`, updateResult.rows);
 
     res.status(200).json({
       success: true,
@@ -182,10 +202,12 @@ router.post('/register-token', authenticateToken, async (req, res) => {
       cleaned: cleanedCount > 0 ? `Removed ${cleanedCount} invalid token(s)` : undefined
     });
   } catch (error) {
-    console.error('Error registering device token:', error.message);
+    console.error('❌ Error registering device token:', error.message);
+    console.error('Stack trace:', error.stack);
     res.status(500).json({ 
       success: false,
-      error: 'Failed to register device token' 
+      error: 'Failed to register device token',
+      details: error.message
     });
   }
 });
