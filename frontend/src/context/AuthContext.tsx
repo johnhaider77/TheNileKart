@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { User } from '../utils/types';
+import { setupPushNotifications } from '../services/pushNotificationService';
 
 interface AuthContextType {
   user: User | null;
@@ -37,6 +38,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       try {
         const parsedUser = JSON.parse(userData);
         setUser(parsedUser);
+        
+        // Setup push notifications for already logged-in user
+        setupPushNotifications(token).catch(error => {
+          console.error('Failed to setup push notifications:', error);
+        });
       } catch (error) {
         console.error('Error parsing stored user data:', error);
         localStorage.removeItem('token');
@@ -50,6 +56,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     localStorage.setItem('token', token);
     localStorage.setItem('user', JSON.stringify(userData));
     setUser(userData);
+    
+    // Setup push notifications for this user
+    setupPushNotifications(token).catch(error => {
+      console.error('Failed to setup push notifications:', error);
+    });
     
     // Notify Android app about successful login with JWT token for FCM registration
     if ((window as any).AndroidBridge && (window as any).AndroidBridge.onLoginSuccess) {
