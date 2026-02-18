@@ -41,44 +41,65 @@ export const getFCMToken = async (): Promise<string | null> => {
 };
 
 /**
- * Request notification permission and get FCM token
+ * Request notification permission SYNCHRONOUSLY (must be called from user event handler)
  */
-export const requestNotificationPermissionAndGetToken = async (): Promise<string | null> => {
+export const requestNotificationPermissionSync = (): boolean => {
   try {
     // Check if notifications are supported
     if (!('Notification' in window)) {
       console.warn('⚠️ This browser does not support notifications');
-      return null;
+      return false;
     }
 
     // Check if Service Workers are supported
     if (!('serviceWorker' in navigator)) {
       console.warn('⚠️ Service Workers are not supported');
-      return null;
+      return false;
     }
 
-    // Request permission
+    // Request permission synchronously (must be called in user event handler)
     if (Notification.permission === 'granted') {
       console.log('✅ Notification permission already granted');
-      return await getFCMToken();
+      return true;
     }
 
     if (Notification.permission !== 'denied') {
-      const permission = await Notification.requestPermission();
-      
-      if (permission === 'granted') {
-        console.log('✅ Notification permission granted');
-        return await getFCMToken();
-      } else {
-        console.log('❌ Notification permission denied');
-        return null;
-      }
+      // Call requestPermission synchronously - this will show the popup
+      Notification.requestPermission().then(permission => {
+        if (permission === 'granted') {
+          console.log('✅ Notification permission granted by user');
+        } else {
+          console.log('❌ Notification permission denied by user');
+        }
+      }).catch(error => {
+        console.error('Error requesting notification permission:', error);
+      });
+      return true; // Permission popup was shown
     }
 
-    console.log('❌ Notification permission was previously denied');
-    return null;
+    console.log('⚠️ Notification permission was previously denied');
+    return false;
   } catch (error) {
     console.error('❌ Error requesting notification permission:', error);
+    return false;
+  }
+};
+
+/**
+ * Get FCM token asynchronously (only call after permission is granted)
+ */
+export const getTokenAfterPermissionGranted = async (): Promise<string | null> => {
+  try {
+    // Wait a bit for permission to be processed
+    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    if (Notification.permission === 'granted') {
+      const token = await getFCMToken();
+      return token;
+    }
+    return null;
+  } catch (error) {
+    console.error('❌ Error getting token after permission:', error);
     return null;
   }
 };

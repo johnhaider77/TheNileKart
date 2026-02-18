@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { authAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { requestNotificationPermissionImmediately } from '../services/pushNotificationService';
 import '../styles/global.css';
 
 const ModernLogin: React.FC = () => {
@@ -184,6 +185,9 @@ const ModernLogin: React.FC = () => {
       const response = await authAPI.registerWithOTP(registerData);
       
       if (response.data.message || response.data.token) {
+        // Request notification permission immediately (must be in user event context)
+        requestNotificationPermissionImmediately();
+        
         // Login the user
         login(response.data.token, response.data.user);
         navigate(getRedirectPath(), { replace: true });
@@ -215,6 +219,9 @@ const ModernLogin: React.FC = () => {
           setLoading(false);
           return;
         }
+        
+        // Request notification permission immediately (must be in user event context)
+        requestNotificationPermissionImmediately();
         
         // Get the redirect path and login with redirect
         const redirectPath = getRedirectPath();

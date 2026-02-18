@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { authAPI } from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { requestNotificationPermissionImmediately } from '../services/pushNotificationService';
 
 const SellerLogin: React.FC = () => {
   const [isLogin, setIsLogin] = useState(true);
@@ -39,6 +40,10 @@ const SellerLogin: React.FC = () => {
           setLoading(false);
           return;
         }
+        
+        // Request notification permission immediately (must be in user event context)
+        requestNotificationPermissionImmediately();
+        
         login(response.data.token, response.data.user);
         navigate('/seller/dashboard');
       } else {
@@ -58,6 +63,10 @@ const SellerLogin: React.FC = () => {
         };
         
         const response = await authAPI.register(registerData);
+        
+        // Request notification permission immediately (must be in user event context)
+        requestNotificationPermissionImmediately();
+        
         login(response.data.token, response.data.user);
         navigate('/seller/dashboard');
       }

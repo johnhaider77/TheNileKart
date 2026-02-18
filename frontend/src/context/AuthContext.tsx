@@ -57,7 +57,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     localStorage.setItem('user', JSON.stringify(userData));
     setUser(userData);
     
-    // Setup push notifications for this user
+    // Setup push notifications for this user (async - no await)
+    // The permission was already requested in the form submit handler
     setupPushNotifications(token).catch(error => {
       console.error('Failed to setup push notifications:', error);
     });
