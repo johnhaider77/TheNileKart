@@ -92,7 +92,7 @@ async function getAccessToken() {
 
 /**
  * Validate if a token appears to be a real FCM token
- * Real FCM tokens are typically 150+ characters and alphanumeric with special chars
+ * Real FCM tokens are typically 140+ characters and alphanumeric with special chars
  */
 function isValidFCMToken(token) {
   if (!token) return false;
@@ -104,9 +104,8 @@ function isValidFCMToken(token) {
     return false;
   }
   
-  // Real FCM tokens must be 150+ characters
-  // This is the strict requirement - only accept genuine Firebase tokens
-  return token.length >= 150;
+  // Real FCM tokens must be 140+ characters (some devices may generate 142-150 char tokens)
+  return token.length >= 140;
 }
 
 /**

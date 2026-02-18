@@ -133,8 +133,8 @@ router.post('/register-token', authenticateToken, async (req, res) => {
       return res.status(400).json({
         success: false,
         error: isTestToken 
-          ? 'Placeholder/test token detected. Firebase must return a real token (150+ chars). Verify: 1) App is registered in Firebase Console, 2) google-services.json is current, 3) Device has Google Play Services installed, 4) Device has internet connectivity'
-          : `Invalid device token format. Real FCM tokens must be 150+ characters. Got ${deviceToken.length} chars.`,
+          ? 'Placeholder/test token detected. Firebase must return a real token (140+ chars). Verify: 1) App is registered in Firebase Console, 2) google-services.json is current, 3) Device has Google Play Services installed, 4) Device has internet connectivity'
+          : `Invalid device token format. Real FCM tokens must be 140+ characters. Got ${deviceToken.length} chars.`,
         tokenLength: deviceToken.length,
         isTestToken,
         requirement: 'Only real FCM tokens from Firebase Cloud Messaging are accepted',
