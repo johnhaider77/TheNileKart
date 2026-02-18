@@ -270,12 +270,13 @@
 .customer-item {
   display: flex;
   align-items: center;
-  padding: 1rem;
+  padding: 0.75rem 1rem;
   border-bottom: 1px solid #f0f0f0;
   transition: background-color 0.2s;
   cursor: pointer;
   white-space: nowrap;
   min-width: fit-content;
+  flex-shrink: 0;
 }
 
 .customer-item:hover {
@@ -283,7 +284,7 @@
 }
 
 .customer-item input[type="checkbox"] {
-  margin-right: 1rem;
+  margin-right: 0.75rem;
   cursor: pointer;
   width: 18px;
   height: 18px;
@@ -292,7 +293,7 @@
 
 .customer-info {
   display: flex;
-  gap: 1.5rem;
+  gap: 1rem;
   align-items: center;
   flex-shrink: 0;
 }
@@ -301,23 +302,24 @@
   font-weight: 600;
   color: #333;
   white-space: nowrap;
-  min-width: 150px;
+  min-width: 120px;
+  font-size: 0.95rem;
 }
 
 .customer-email {
   color: #666;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   white-space: nowrap;
-  min-width: 200px;
+  min-width: 180px;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
 .customer-phone {
   color: #999;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   white-space: nowrap;
-  min-width: 120px;
+  min-width: 110px;
 }
 
 .loading {
@@ -378,63 +380,33 @@
 
   .customers-list {
     max-height: 400px;
-    overflow-x: hidden;
   }
 
-  .customer-item {
-    flex-wrap: wrap;
+  .customer-name {
+    min-width: 110px;
+    font-size: 0.9rem;
+  }
+
+  .customer-email {
+    min-width: 160px;
+    font-size: 0.8rem;
+  }
+
+  .customer-phone {
+    min-width: 100px;
+    font-size: 0.8rem;
   }
 
   .customer-info {
-    flex-direction: column;
-    gap: 0.5rem;
-    width: 100%;
+    gap: 0.75rem;
+  }
+
+  .customer-item {
+    padding: 0.5rem 0.75rem;
   }
 
   .customer-item input[type="checkbox"] {
-    margin-bottom: 0.5rem;
-  }
-
-  .customer-name,
-  .customer-email,
-  .customer-phone {
-    min-width: auto;
-    white-space: normal;
-    width: 100%;
-  }
-
-  .customer-email {
-    overflow: visible;
-    text-overflow: clip;
-  }
-}
-
-@media (max-width: 768px) {
-  .customer-item {
-    flex-direction: column;
-    align-items: flex-start;
-    white-space: normal;
-    min-width: auto;
-  }
-
-  .customer-info {
-    flex-direction: column;
-    gap: 0.5rem;
-    width: 100%;
-    margin-top: 0.5rem;
-  }
-
-  .customer-name,
-  .customer-email,
-  .customer-phone {
-    min-width: auto;
-    white-space: normal;
-    width: 100%;
-  }
-
-  .customer-email {
-    overflow: visible;
-    text-overflow: clip;
+    margin-right: 0.5rem;
   }
 }
 
@@ -469,28 +441,36 @@
     padding: 1rem;
   }
 
+  .customers-list {
+    max-height: 300px;
+  }
+
   .customer-item {
-    padding: 0.75rem;
+    padding: 0.5rem;
   }
 
   .customer-item input[type="checkbox"] {
-    margin-right: 0.75rem;
-    margin-bottom: 0.5rem;
+    margin-right: 0.5rem;
+    width: 16px;
+    height: 16px;
+  }
+
+  .customer-info {
+    gap: 0.5rem;
   }
 
   .customer-name {
-    font-size: 0.95rem;
+    min-width: 90px;
+    font-size: 0.85rem;
   }
 
   .customer-email {
-    font-size: 0.85rem;
+    min-width: 140px;
+    font-size: 0.75rem;
   }
 
   .customer-phone {
-    font-size: 0.85rem;
-  }
-
-  .customers-list {
-    max-height: 300px;
+    min-width: 90px;
+    font-size: 0.75rem;
   }
 }
