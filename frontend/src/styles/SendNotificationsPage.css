@@ -378,6 +378,63 @@
 
   .customers-list {
     max-height: 400px;
+    overflow-x: hidden;
+  }
+
+  .customer-item {
+    flex-wrap: wrap;
+  }
+
+  .customer-info {
+    flex-direction: column;
+    gap: 0.5rem;
+    width: 100%;
+  }
+
+  .customer-item input[type="checkbox"] {
+    margin-bottom: 0.5rem;
+  }
+
+  .customer-name,
+  .customer-email,
+  .customer-phone {
+    min-width: auto;
+    white-space: normal;
+    width: 100%;
+  }
+
+  .customer-email {
+    overflow: visible;
+    text-overflow: clip;
+  }
+}
+
+@media (max-width: 768px) {
+  .customer-item {
+    flex-direction: column;
+    align-items: flex-start;
+    white-space: normal;
+    min-width: auto;
+  }
+
+  .customer-info {
+    flex-direction: column;
+    gap: 0.5rem;
+    width: 100%;
+    margin-top: 0.5rem;
+  }
+
+  .customer-name,
+  .customer-email,
+  .customer-phone {
+    min-width: auto;
+    white-space: normal;
+    width: 100%;
+  }
+
+  .customer-email {
+    overflow: visible;
+    text-overflow: clip;
   }
 }
 
@@ -410,5 +467,30 @@
   .preview-section {
     margin: 1.5rem 0;
     padding: 1rem;
+  }
+
+  .customer-item {
+    padding: 0.75rem;
+  }
+
+  .customer-item input[type="checkbox"] {
+    margin-right: 0.75rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .customer-name {
+    font-size: 0.95rem;
+  }
+
+  .customer-email {
+    font-size: 0.85rem;
+  }
+
+  .customer-phone {
+    font-size: 0.85rem;
+  }
+
+  .customers-list {
+    max-height: 300px;
   }
 }
