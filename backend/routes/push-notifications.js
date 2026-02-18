@@ -50,6 +50,58 @@ router.get('/check-token', (req, res) => {
 });
 
 /**
+ * Send test push notification (authenticated users only)
+ * POST /api/push-notifications/send-test
+ */
+router.post('/send-test', authenticateToken, async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { token } = req.body;
+
+    if (!token) {
+      return res.status(400).json({ 
+        success: false,
+        error: 'Device token is required'
+      });
+    }
+
+    // Validate token
+    if (!isValidFCMToken(token)) {
+      return res.status(400).json({
+        success: false,
+        error: `Invalid FCM token. Must be 150+ characters. Got ${token.length} chars.`,
+        tokenLength: token.length,
+        requirement: 'Only real FCM tokens are accepted'
+      });
+    }
+
+    // Send test notification
+    console.log(`📤 Sending test notification to user ${userId} with token: ${token.substring(0, 30)}...`);
+    await sendNotification(
+      token,
+      '🧪 Test Notification',
+      'If you see this, push notifications are working!',
+      { type: 'test', timestamp: new Date().toISOString() }
+    );
+
+    console.log(`✅ Test notification sent successfully to user ${userId}`);
+    res.json({
+      success: true,
+      message: 'Test notification sent successfully',
+      tokenUsed: token.substring(0, 30) + '...',
+      timestamp: new Date().toISOString()
+    });
+  } catch (error) {
+    console.error('Error sending test notification:', error.message);
+    res.status(500).json({
+      success: false,
+      error: 'Failed to send test notification',
+      details: error.message
+    });
+  }
+});
+
+/**
  * Register device token for a user
  * POST /api/push-notifications/register-token
  */
@@ -73,14 +125,20 @@ router.post('/register-token', authenticateToken, async (req, res) => {
       const testTokenIndicators = ['exampleToken123', 'test', 'demo', 'example', 'placeholder'];
       const isTestToken = testTokenIndicators.some(t => deviceToken.toLowerCase().includes(t.toLowerCase()));
       
+      console.log(`Token Analysis for User ${userId}:`);
+      console.log(`  - Length: ${deviceToken.length} chars (required: 150+)`);
+      console.log(`  - Is test token: ${isTestToken}`);
+      console.log(`  - Token sample: ${deviceToken.substring(0, 50)}...`);
+      
       return res.status(400).json({
         success: false,
         error: isTestToken 
-          ? 'Invalid device token: This appears to be a test/placeholder token. Please ensure the iOS app has GoogleService-Info.plist configured for Firebase.'
-          : `Invalid device token format. FCM tokens must be 150+ characters. Got ${deviceToken.length} chars.`,
+          ? 'Placeholder/test token detected. Firebase must return a real token (150+ chars). Verify: 1) App is registered in Firebase Console, 2) google-services.json is current, 3) Device has Google Play Services installed, 4) Device has internet connectivity'
+          : `Invalid device token format. Real FCM tokens must be 150+ characters. Got ${deviceToken.length} chars.`,
         tokenLength: deviceToken.length,
         isTestToken,
-        recommendation: 'Ensure iOS app is properly registered with Firebase Cloud Messaging and GoogleService-Info.plist is in the project'
+        requirement: 'Only real FCM tokens from Firebase Cloud Messaging are accepted',
+        helpText: 'Ensure device has Google Play Services 15.0.0+ and is connected to internet with proper Google account'
       });
     }
 

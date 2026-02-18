@@ -96,15 +96,17 @@ async function getAccessToken() {
  */
 function isValidFCMToken(token) {
   if (!token) return false;
+  if (typeof token !== 'string') return false;
   
   // Test tokens or obviously fake tokens
-  const testTokens = ['exampleToken123', 'test', 'demo', 'example'];
+  const testTokens = ['exampleToken123', 'test', 'demo', 'example', 'placeholder'];
   if (testTokens.some(t => token.toLowerCase().includes(t.toLowerCase()))) {
     return false;
   }
   
-  // Real FCM tokens are usually 150+ characters
-  return token.length > 100;
+  // Real FCM tokens must be 150+ characters
+  // This is the strict requirement - only accept genuine Firebase tokens
+  return token.length >= 150;
 }
 
 /**
