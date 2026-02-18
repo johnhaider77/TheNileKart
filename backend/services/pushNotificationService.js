@@ -47,6 +47,7 @@ async function getAccessToken() {
 
     // Check if token is still valid
     if (accessToken && tokenExpiry && new Date() < tokenExpiry) {
+      console.log('✅ Using cached Firebase access token (expires:', tokenExpiry.toISOString(), ')');
       return accessToken;
     }
 
@@ -71,6 +72,7 @@ async function getAccessToken() {
       }
     });
 
+    console.log('🔑 Getting new Firebase access token from Google OAuth...');
     const response = await axios.post('https://oauth2.googleapis.com/token', {
       grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
       assertion: token
@@ -80,11 +82,13 @@ async function getAccessToken() {
     tokenExpiry = new Date(Date.now() + (response.data.expires_in - 60) * 1000); // Refresh 60 seconds before expiry
 
     console.log('✅ Firebase access token obtained successfully');
+    console.log('⏰ Token expires at:', tokenExpiry.toISOString());
+    console.log('📊 Token type:', response.data.token_type);
     return accessToken;
   } catch (error) {
     console.error('❌ Error getting Firebase access token:', error.message);
     if (error.response?.data) {
-      console.error('Firebase error details:', JSON.stringify(error.response.data, null, 2));
+      console.error('Google OAuth error details:', JSON.stringify(error.response.data, null, 2));
     }
     throw new Error('Failed to authenticate with Firebase Cloud Messaging: ' + error.message);
   }
@@ -181,12 +185,22 @@ async function sendNotification(deviceToken, heading, message, data = {}) {
       }
     };
 
+    console.log('📋 FCM Payload Structure:', {
+      messageToken: deviceToken.substring(0, 30) + '...',
+      notificationTitle: heading,
+      notificationBody: message,
+      hasAndroidConfig: true,
+      hasApnsConfig: true,
+      hasWebpushConfig: true,
+      dataFields: Object.keys(notificationPayload.message.data)
+    });
+
     const response = await axios.post(
       `${FCM_API_URL}/${projectId}/messages:send`,
       notificationPayload,
       {
         headers: {
-          'Authorization': `Bearer ${accessToken}`,
+          'Authorization': `Bearer ${accessToken.substring(0, 20)}...`,
           'Content-Type': 'application/json'
         },
         timeout: 10000
@@ -194,6 +208,7 @@ async function sendNotification(deviceToken, heading, message, data = {}) {
     );
 
     console.log('✅ Push notification sent successfully to FCM:', response.data.name);
+    console.log('📊 FCM Response:', JSON.stringify(response.data, null, 2));
     return {
       success: true,
       messageId: response.data.name,
@@ -210,11 +225,18 @@ async function sendNotification(deviceToken, heading, message, data = {}) {
     
     if (error.response?.data) {
       console.error('❌ FCM Error Details:', JSON.stringify(error.response.data, null, 2));
+      
       // Log specific FCM error types
       if (error.response.data?.error?.details) {
         error.response.data.error.details.forEach(detail => {
           console.error('  - Detail:', detail.detail);
+          console.error('    Field Violation:', detail.fieldViolation);
         });
+      }
+      
+      // Log the exact error message from Firebase
+      if (error.response.data?.error?.message) {
+        console.error('  📌 Firebase Error Message:', error.response.data.error.message);
       }
     }
     
@@ -223,15 +245,19 @@ async function sendNotification(deviceToken, heading, message, data = {}) {
       console.error('   1. Malformed token or device token is invalid');
       console.error('   2. Firebase project configuration issue');
       console.error('   3. Service account key invalid or expired');
+      console.error('   4. Notification payload structure is incorrect');
+      console.error('   5. Device token has been disabled or unregistered');
     } else if (error.response?.status === 401) {
       console.error('⚠️  HTTP 401 - Authentication failed');
       console.error('   Please verify FIREBASE_SERVICE_ACCOUNT_KEY is configured');
+      console.error('   Access Token:', accessToken.substring(0, 20) + '...');
     } else if (error.response?.status === 404) {
       console.error('⚠️  HTTP 404 - Project not found');
+      console.error('   Firebase Project ID:', projectId);
       console.error('   Please verify Firebase project ID is correct');
     }
     
-    console.error('Full error:', error);
+    console.error('Full error:', error.toString());
     
     return {
       success: false,
