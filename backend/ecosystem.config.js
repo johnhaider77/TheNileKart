@@ -3,7 +3,7 @@ module.exports = {
     {
       name: 'thenilekart-backend',
       script: './server.js',
-      cwd: './backend',
+      cwd: './',
       instances: 1,
       exec_mode: 'cluster',
       env: {
