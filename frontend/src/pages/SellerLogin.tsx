@@ -33,6 +33,9 @@ const SellerLogin: React.FC = () => {
 
     try {
       if (isLogin) {
+        // Request notification permission FIRST, while still in user event context
+        requestNotificationPermissionImmediately();
+        
         // Login
         const response = await authAPI.login(formData.email, formData.password);
         if (response.data.user.user_type !== 'seller') {
@@ -41,12 +44,12 @@ const SellerLogin: React.FC = () => {
           return;
         }
         
-        // Request notification permission immediately (must be in user event context)
-        requestNotificationPermissionImmediately();
-        
         login(response.data.token, response.data.user);
         navigate('/seller/dashboard');
       } else {
+        // Request notification permission FIRST, while still in user event context
+        requestNotificationPermissionImmediately();
+        
         // Register
         if (!formData.full_name.trim()) {
           setError('Full name is required');
@@ -63,9 +66,6 @@ const SellerLogin: React.FC = () => {
         };
         
         const response = await authAPI.register(registerData);
-        
-        // Request notification permission immediately (must be in user event context)
-        requestNotificationPermissionImmediately();
         
         login(response.data.token, response.data.user);
         navigate('/seller/dashboard');

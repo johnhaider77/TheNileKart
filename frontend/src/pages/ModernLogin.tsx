@@ -173,6 +173,9 @@ const ModernLogin: React.FC = () => {
         return;
       }
 
+      // Request notification permission FIRST, while still in user event context
+      requestNotificationPermissionImmediately();
+
       const registerData = {
         email: formData.email,
         password: formData.password,
@@ -185,9 +188,6 @@ const ModernLogin: React.FC = () => {
       const response = await authAPI.registerWithOTP(registerData);
       
       if (response.data.message || response.data.token) {
-        // Request notification permission immediately (must be in user event context)
-        requestNotificationPermissionImmediately();
-        
         // Login the user
         login(response.data.token, response.data.user);
         navigate(getRedirectPath(), { replace: true });
@@ -211,6 +211,9 @@ const ModernLogin: React.FC = () => {
 
     try {
       if (isLogin) {
+        // Request notification permission FIRST, while still in user event context
+        requestNotificationPermissionImmediately();
+        
         const response = await authAPI.login(formData.email, formData.password);
         
         // Check if user is actually a customer
@@ -219,9 +222,6 @@ const ModernLogin: React.FC = () => {
           setLoading(false);
           return;
         }
-        
-        // Request notification permission immediately (must be in user event context)
-        requestNotificationPermissionImmediately();
         
         // Get the redirect path and login with redirect
         const redirectPath = getRedirectPath();
