@@ -3,6 +3,70 @@ const router = express.Router();
 const db = require('../config/database');
 const { sendNotification, sendMultipleNotifications, sendTopicNotification, isValidFCMToken } = require('../services/pushNotificationService');
 const { authenticateToken, requireSeller } = require('../middleware/auth');
+const fs = require('fs');
+const path = require('path');
+
+/**
+ * Firebase Health Check Endpoint (public endpoint for diagnostics)
+ * GET /api/push-notifications/firebase-status
+ */
+router.get('/firebase-status', (req, res) => {
+  try {
+    const status = {
+      timestamp: new Date().toISOString(),
+      firebaseConfigured: false,
+      details: {}
+    };
+
+    // Check for environment variable
+    if (process.env.FIREBASE_SERVICE_ACCOUNT_KEY) {
+      status.firebaseConfigured = true;
+      status.details.envVarSet = true;
+      try {
+        const key = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT_KEY);
+        status.details.projectId = key.project_id;
+        status.details.clientEmail = key.client_email?.substring(0, 20) + '...';
+      } catch (e) {
+        status.details.envVarInvalid = true;
+        status.details.error = 'FIREBASE_SERVICE_ACCOUNT_KEY is not valid JSON';
+      }
+    }
+
+    // Check for file
+    const keyPath = path.join(__dirname, '../../firebase-service-account-key.json');
+    if (fs.existsSync(keyPath)) {
+      status.firebaseConfigured = true;
+      status.details.fileExists = true;
+      try {
+        const key = require(keyPath);
+        status.details.projectId = key.project_id;
+        status.details.clientEmail = key.client_email?.substring(0, 20) + '...';
+      } catch (e) {
+        status.details.fileInvalid = true;
+        status.details.error = 'firebase-service-account-key.json is not valid JSON';
+      }
+    } else {
+      status.details.fileExists = false;
+    }
+
+    if (!status.firebaseConfigured) {
+      status.details.recommendation = 'Set FIREBASE_SERVICE_ACCOUNT_KEY environment variable with Firebase service account JSON';
+      status.details.nextSteps = [
+        '1. Get service account key from Google Cloud Console',
+        '2. Set environment variable: export FIREBASE_SERVICE_ACCOUNT_KEY=\'{"type":"service_account",...}\'',
+        '3. Restart the backend process',
+        '4. Test with POST /api/push-notifications/send'
+      ];
+    }
+
+    res.status(status.firebaseConfigured ? 200 : 503).json(status);
+  } catch (error) {
+    res.status(500).json({
+      error: 'Failed to check Firebase status',
+      details: error.message
+    });
+  }
+});
 
 /**
  * Check if a token is valid FCM format (public endpoint for debugging)

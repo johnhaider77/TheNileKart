@@ -200,16 +200,39 @@ async function sendNotification(deviceToken, heading, message, data = {}) {
       timestamp: new Date()
     };
   } catch (error) {
-    console.error('❌ Error sending push notification:', error.message);
+    console.error('❌ Error sending push notification to token:', deviceToken.substring(0, 30) + '...');
+    console.error('Error message:', error.message);
+    console.error('Error code:', error.code);
+    
+    if (error.response?.status) {
+      console.error('HTTP Status:', error.response.status);
+    }
+    
     if (error.response?.data) {
       console.error('❌ FCM Error Details:', JSON.stringify(error.response.data, null, 2));
+      // Log specific FCM error types
+      if (error.response.data?.error?.details) {
+        error.response.data.error.details.forEach(detail => {
+          console.error('  - Detail:', detail.detail);
+        });
+      }
     }
+    
     if (error.response?.status === 400) {
-      console.error('⚠️  Invalid device token or malformed request. Please check:');
-      console.error('   1. Device token is valid (150+ characters)');
-      console.error('   2. Device has registered for notifications');
-      console.error('   3. Firebase project ID is correct');
+      console.error('⚠️  HTTP 400 - Invalid request. Possible causes:');
+      console.error('   1. Malformed token or device token is invalid');
+      console.error('   2. Firebase project configuration issue');
+      console.error('   3. Service account key invalid or expired');
+    } else if (error.response?.status === 401) {
+      console.error('⚠️  HTTP 401 - Authentication failed');
+      console.error('   Please verify FIREBASE_SERVICE_ACCOUNT_KEY is configured');
+    } else if (error.response?.status === 404) {
+      console.error('⚠️  HTTP 404 - Project not found');
+      console.error('   Please verify Firebase project ID is correct');
     }
+    
+    console.error('Full error:', error);
+    
     return {
       success: false,
       error: error.message,
@@ -231,25 +254,37 @@ async function sendMultipleNotifications(deviceTokens, heading, message, data = 
     const results = [];
 
     for (const token of deviceTokens) {
+      console.log(`🔄 Attempting to send notification to token: ${token.substring(0, 30)}...`);
       const result = await sendNotification(token, heading, message, data);
+      console.log(`📊 Send result:`, { success: result.success, error: result.error });
       results.push({
         token,
         ...result
       });
     }
 
+    const successfulSends = results.filter(r => r.success).length;
+    const failedSends = results.filter(r => !r.success).length;
+    const overallSuccess = successfulSends > 0;
+
+    console.log(`📈 Multiple notification send summary: ${successfulSends} succeeded, ${failedSends} failed`);
+
     return {
-      success: true,
+      success: overallSuccess,
       totalTokens: deviceTokens.length,
-      successfulSends: results.filter(r => r.success).length,
-      failedSends: results.filter(r => !r.success).length,
+      successfulSends: successfulSends,
+      failedSends: failedSends,
       results
     };
   } catch (error) {
     console.error('Error sending multiple notifications:', error.message);
+    console.error('Stack trace:', error.stack);
     return {
       success: false,
       error: error.message,
+      totalTokens: deviceTokens.length,
+      successfulSends: 0,
+      failedSends: deviceTokens.length,
       results: []
     };
   }
