@@ -189,10 +189,13 @@ router.post('/register-token', authenticateToken, async (req, res) => {
     }
 
     console.log(`💾 Updating database with ${deviceTokens.length} token(s)`);
+    console.log(`📋 Device tokens array:`, deviceTokens);
+    
     // Update user with new device token
-    const updateQuery = 'UPDATE users SET device_tokens = $1, fcm_token = $2, updated_at = NOW() WHERE id = $3 RETURNING id';
-    const updateResult = await db.query(updateQuery, [JSON.stringify(deviceTokens), deviceToken, userId]);
-    console.log(`✅ Database update result:`, updateResult.rows);
+    // Note: device_tokens is a PostgreSQL text[] array, so we pass the array directly
+    const updateQuery = 'UPDATE users SET device_tokens = $1, fcm_token = $2, updated_at = NOW() WHERE id = $3 RETURNING id, device_tokens, fcm_token';
+    const updateResult = await db.query(updateQuery, [deviceTokens, deviceToken, userId]);
+    console.log(`✅ Database update result:`, updateResult.rows[0]);
 
     res.status(200).json({
       success: true,
