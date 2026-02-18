@@ -216,6 +216,17 @@
           return false;
         }
       });
+
+      // Register Firebase Messaging Service Worker
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/firebase-messaging-sw.js')
+          .then(function(registration) {
+            console.log('✅ Firebase Messaging Service Worker registered successfully');
+          })
+          .catch(function(error) {
+            console.log('❌ Service Worker registration failed:', error);
+          });
+      }
     </script>
     <!--
       This HTML file is a template.

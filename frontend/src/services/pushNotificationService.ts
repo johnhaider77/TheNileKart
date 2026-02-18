@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { requestNotificationPermissionAndGetToken, setupMessageListener } from '../config/firebase';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
@@ -183,34 +184,30 @@ export const getUnreadNotificationCount = async (token: string) => {
  */
 export const setupPushNotifications = async (token: string) => {
   try {
-    // Check if already registered
-    const storedToken = localStorage.getItem('fcm_token');
+    console.log('🔔 Setting up push notifications...');
+
+    // Request permission and get FCM token
+    const fcmToken = await requestNotificationPermissionAndGetToken();
     
-    // Request permission (if not already given)
-    const hasPermission = await requestNotificationPermission();
-    
-    if (hasPermission) {
-      // In a real app with Firebase, you would get the FCM token here
-      // For now, we'll generate a device ID
-      let deviceToken = localStorage.getItem('device_token');
-      
-      if (!deviceToken) {
-        // Generate a unique device token
-        deviceToken = `web_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-        localStorage.setItem('device_token', deviceToken);
-      }
-      
-      // Register the token
-      await registerDeviceToken(deviceToken, token);
-      localStorage.setItem('fcm_token', deviceToken);
-      
+    if (fcmToken) {
+      // Register the FCM token with backend
+      await registerDeviceToken(fcmToken, token);
+      localStorage.setItem('fcm_token', fcmToken);
+
+      // Set up listener for incoming messages (foreground)
+      setupMessageListener((payload) => {
+        console.log('📬 Incoming notification:', payload);
+        // You can handle notification here - show toast, update UI, etc.
+      });
+
       console.log('✅ Push notifications setup complete');
       return true;
     }
     
+    console.log('⚠️ Could not set up push notifications - permission denied');
     return false;
   } catch (error) {
-    console.error('Error setting up push notifications:', error);
+    console.error('❌ Error setting up push notifications:', error);
     return false;
   }
 };
