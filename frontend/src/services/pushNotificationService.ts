@@ -214,21 +214,25 @@ export const setupPushNotifications = async (token: string) => {
       
       if (fcmToken) {
         // Register the FCM token with backend
-        await registerDeviceToken(fcmToken, token);
-        localStorage.setItem('fcm_token', fcmToken);
+        try {
+          await registerDeviceToken(fcmToken, token);
+          localStorage.setItem('fcm_token', fcmToken);
 
-        // Set up listener for incoming messages (foreground)
-        setupMessageListener((payload) => {
-          console.log('📬 Incoming notification:', payload);
-          // You can handle notification here - show toast, update UI, etc.
-        });
+          // Set up listener for incoming messages (foreground)
+          setupMessageListener((payload) => {
+            console.log('📬 Incoming notification:', payload);
+            // You can handle notification here - show toast, update UI, etc.
+          });
 
-        console.log('✅ Push notifications setup complete');
+          console.log('✅ Push notifications setup complete');
+        } catch (apiError) {
+          console.error('❌ Error registering FCM token with backend:', apiError);
+        }
       } else {
-        console.log('⚠️ Could not get FCM token');
+        console.log('⏳ FCM token not available. VAPID key may not be configured.');
       }
     } catch (error) {
-      console.error('❌ Error getting FCM token:', error);
+      console.error('❌ Error during push notification setup:', error);
     }
 
     return true;

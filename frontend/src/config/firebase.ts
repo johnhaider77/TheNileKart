@@ -23,6 +23,7 @@ const messaging = getMessaging(app);
  */
 export const getFCMToken = async (): Promise<string | null> => {
   try {
+    // Try to get FCM token with VAPID key
     const token = await getToken(messaging, {
       vapidKey: 'BDHe-ZfXaPsVn9P7s1Q_pR8Zt9K2M3L4N5O6P7Q8R9S0T1U2V3W4X5Y6Z7A8B9C0D1E2F3G4H5I'
     });
@@ -34,11 +35,18 @@ export const getFCMToken = async (): Promise<string | null> => {
       console.log('⚠️ No FCM token available');
       return null;
     }
-  } catch (error) {
+  } catch (error: any) {
+    // Check if it's a VAPID key error
+    if (error?.message?.includes('ECDSA') || error?.message?.includes('vapid')) {
+      console.warn('⚠️ VAPID key not configured. Please add your Firebase VAPID key to firebase.ts');
+      console.log('📝 To get your VAPID key: Firebase Console → Cloud Messaging → Web Push certificates');
+      return null;
+    }
+    
     console.error('❌ Error getting FCM token:', error);
     return null;
   }
-};
+};;
 
 /**
  * Request notification permission SYNCHRONOUSLY (must be called from user event handler)
@@ -115,17 +123,18 @@ export const isNotificationPermissionGranted = (): boolean => {
  */
 export const getTokenAfterPermissionGranted = async (): Promise<string | null> => {
   try {
-    // Wait for permission to be fully set
-    // Increase wait time to ensure permission state is updated
+    // Check permission is granted
+    if (Notification.permission !== 'granted') {
+      console.warn('⚠️ Notification permission not granted');
+      return null;
+    }
+
+    // Wait for permission state to fully update
     await new Promise(resolve => setTimeout(resolve, 300));
     
-    if (Notification.permission === 'granted') {
-      const token = await getFCMToken();
-      return token;
-    }
-    
-    console.warn('⚠️ Notification permission not granted, skipping FCM token retrieval');
-    return null;
+    // Try to get FCM token
+    const token = await getFCMToken();
+    return token;
   } catch (error) {
     console.error('❌ Error getting token after permission:', error);
     return null;
