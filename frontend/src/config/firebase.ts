@@ -25,7 +25,7 @@ export const getFCMToken = async (): Promise<string | null> => {
   try {
     // Try to get FCM token with VAPID key
     const token = await getToken(messaging, {
-      vapidKey: 'BDHe-ZfXaPsVn9P7s1Q_pR8Zt9K2M3L4N5O6P7Q8R9S0T1U2V3W4X5Y6Z7A8B9C0D1E2F3G4H5I'
+      vapidKey: 'BJBZcbtUIYtfF0kW5mgktIHilKxuuRx_FPDoGaE_ndytmBC3DTbFFzUp4ovTx30DOlAKb3C0fvlwj7XquNpPkKk'
     });
     
     if (token) {
