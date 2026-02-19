@@ -3,12 +3,12 @@ import { getMessaging, getToken, onMessage } from 'firebase/messaging';
 
 // Firebase configuration from the console
 const firebaseConfig = {
-  apiKey: 'AIzaSyDTpmbqzFCA2C_BHXtq7jjmW7i_-LZ16c',
+  apiKey: 'AIzaSyDTpmbpaZrcA2C_BHXtq7jJWN7I_-LZiGc',
   authDomain: 'thenilekart-4e16d.firebaseapp.com',
   projectId: 'thenilekart-4e16d',
-  storageBucket: 'thenilekart-4e1d.firebasestorage.app',
+  storageBucket: 'thenilekart-4e16d.firebasestorage.app',
   messagingSenderId: '239492826254',
-  appId: '1:23494928626254:web:2a8a968ec5e1f7d287f5df',
+  appId: '1:239492826254:web:2a8a968ec5e1f7d287f5df',
   measurementId: 'G-SC5493G7QT'
 };
 
