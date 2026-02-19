@@ -30,11 +30,13 @@ import Navbar from './components/Navbar';
 import ProtectedRoute from './components/ProtectedRoute';
 import ErrorBoundary from './components/ErrorBoundary';
 import AddToCartNotification from './components/AddToCartNotification';
+import { NotificationToast } from './components/NotificationToast';
 import { useCart } from './context/CartContext';
 
 // Import styles
 import './styles/global.css';
 import './App.css';
+import './styles/NotificationToast.css';
 
 function AppRoutes() {
   const { isAuthenticated, isSeller, isCustomer, user } = useAuth();
@@ -336,6 +338,8 @@ function AppRoutes() {
           {/* 404 route */}
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
+        {/* Global notification toast component */}
+        <NotificationToast />
       </main>
     </div>
   );

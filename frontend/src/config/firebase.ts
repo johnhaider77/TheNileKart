@@ -191,6 +191,21 @@ export const setupMessageListener = (callback: (payload: any) => void) => {
           console.error('❌ Error displaying foreground notification:', notificationError);
         }
       }
+
+      // Also show in-app toast notification
+      try {
+        const { showNotificationToast } = require('../components/NotificationToast');
+        if (payload.notification) {
+          showNotificationToast(
+            payload.notification.title || 'Notification',
+            payload.notification.body || '',
+            'info'
+          );
+          console.log('✅ In-app toast notification shown');
+        }
+      } catch (toastError) {
+        console.warn('⚠️ Toast notification not available (component may not be mounted):', toastError);
+      }
     });
     console.log('✅ Message listener setup complete');
   } catch (error) {
