@@ -182,10 +182,10 @@ export const getUnreadNotificationCount = async (token: string) => {
  * Request notification permission immediately (must be called from user event - form submit button)
  * This is separated from setupPushNotifications to ensure it's called in user event context
  */
-export const requestNotificationPermissionImmediately = () => {
+export const requestNotificationPermissionImmediately = async () => {
   try {
     console.log('🔔 Requesting notification permission...');
-    requestNotificationPermissionSync();
+    await requestNotificationPermissionSync();
   } catch (error) {
     console.error('Error requesting notification permission:', error);
   }
@@ -194,38 +194,35 @@ export const requestNotificationPermissionImmediately = () => {
 /**
  * Setup push notification handling
  * This should be called when user logs in
- * Step 1: Request permission (sync - must be in user event handler)
- * Step 2: Get FCM token and register (async - happens after permission granted)
+ * Gets FCM token and registers it with backend after permission is granted
  */
 export const setupPushNotifications = async (token: string) => {
   try {
     console.log('🔔 Setting up push notifications...');
 
-    // Step 2: Get FCM token after permission is granted (async)
-    // We do this in a setTimeout to ensure permission dialog is processed
-    setTimeout(async () => {
-      try {
-        const fcmToken = await getTokenAfterPermissionGranted();
-        
-        if (fcmToken) {
-          // Register the FCM token with backend
-          await registerDeviceToken(fcmToken, token);
-          localStorage.setItem('fcm_token', fcmToken);
+    // Get FCM token after permission is granted (async)
+    // Wait longer to ensure permission state is fully updated
+    try {
+      const fcmToken = await getTokenAfterPermissionGranted();
+      
+      if (fcmToken) {
+        // Register the FCM token with backend
+        await registerDeviceToken(fcmToken, token);
+        localStorage.setItem('fcm_token', fcmToken);
 
-          // Set up listener for incoming messages (foreground)
-          setupMessageListener((payload) => {
-            console.log('📬 Incoming notification:', payload);
-            // You can handle notification here - show toast, update UI, etc.
-          });
+        // Set up listener for incoming messages (foreground)
+        setupMessageListener((payload) => {
+          console.log('📬 Incoming notification:', payload);
+          // You can handle notification here - show toast, update UI, etc.
+        });
 
-          console.log('✅ Push notifications setup complete');
-        } else {
-          console.log('⚠️ Could not get FCM token - permission may have been denied');
-        }
-      } catch (error) {
-        console.error('❌ Error getting FCM token:', error);
+        console.log('✅ Push notifications setup complete');
+      } else {
+        console.log('⚠️ Could not get FCM token - permission may have been denied');
       }
-    }, 200);
+    } catch (error) {
+      console.error('❌ Error getting FCM token:', error);
+    }
 
     return true;
   } catch (error) {

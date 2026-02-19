@@ -42,47 +42,57 @@ export const getFCMToken = async (): Promise<string | null> => {
 
 /**
  * Request notification permission SYNCHRONOUSLY (must be called from user event handler)
+ * Returns a promise that resolves when permission is granted or denied
  */
-export const requestNotificationPermissionSync = (): boolean => {
-  try {
-    // Check if notifications are supported
-    if (!('Notification' in window)) {
-      console.warn('⚠️ This browser does not support notifications');
-      return false;
-    }
+export const requestNotificationPermissionSync = (): Promise<boolean> => {
+  return new Promise((resolve) => {
+    try {
+      // Check if notifications are supported
+      if (!('Notification' in window)) {
+        console.warn('⚠️ This browser does not support notifications');
+        resolve(false);
+        return;
+      }
 
-    // Check if Service Workers are supported
-    if (!('serviceWorker' in navigator)) {
-      console.warn('⚠️ Service Workers are not supported');
-      return false;
-    }
+      // Check if Service Workers are supported
+      if (!('serviceWorker' in navigator)) {
+        console.warn('⚠️ Service Workers are not supported');
+        resolve(false);
+        return;
+      }
 
-    // Request permission synchronously (must be called in user event handler)
-    if (Notification.permission === 'granted') {
-      console.log('✅ Notification permission already granted');
-      return true;
-    }
+      // Check if permission already granted
+      if (Notification.permission === 'granted') {
+        console.log('✅ Notification permission already granted');
+        resolve(true);
+        return;
+      }
 
-    if (Notification.permission !== 'denied') {
-      // Call requestPermission synchronously - this will show the popup
+      // If permission was already denied, don't ask again
+      if (Notification.permission === 'denied') {
+        console.log('⚠️ Notification permission was previously denied');
+        resolve(false);
+        return;
+      }
+
+      // Request permission - show the popup
       Notification.requestPermission().then(permission => {
         if (permission === 'granted') {
           console.log('✅ Notification permission granted by user');
+          resolve(true);
         } else {
           console.log('❌ Notification permission denied by user');
+          resolve(false);
         }
       }).catch(error => {
         console.error('Error requesting notification permission:', error);
+        resolve(false);
       });
-      return true; // Permission popup was shown
+    } catch (error) {
+      console.error('❌ Error requesting notification permission:', error);
+      resolve(false);
     }
-
-    console.log('⚠️ Notification permission was previously denied');
-    return false;
-  } catch (error) {
-    console.error('❌ Error requesting notification permission:', error);
-    return false;
-  }
+  });
 };
 
 /**
@@ -90,13 +100,16 @@ export const requestNotificationPermissionSync = (): boolean => {
  */
 export const getTokenAfterPermissionGranted = async (): Promise<string | null> => {
   try {
-    // Wait a bit for permission to be processed
-    await new Promise(resolve => setTimeout(resolve, 100));
+    // Wait for permission to be fully set
+    // Increase wait time to ensure permission state is updated
+    await new Promise(resolve => setTimeout(resolve, 300));
     
     if (Notification.permission === 'granted') {
       const token = await getFCMToken();
       return token;
     }
+    
+    console.warn('⚠️ Notification permission not granted, skipping FCM token retrieval');
     return null;
   } catch (error) {
     console.error('❌ Error getting token after permission:', error);
