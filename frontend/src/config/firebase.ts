@@ -159,16 +159,40 @@ export const setupMessageListener = (callback: (payload: any) => void) => {
         });
       }
 
-      // Also display browser notification if in foreground
+      // Display browser notification if in foreground
       if (payload.notification) {
-        new Notification(payload.notification.title || 'Notification', {
-          body: payload.notification.body,
-          icon: payload.notification.icon || '/logo192.png',
-          tag: 'push-notification',
-          requireInteraction: false
-        });
+        try {
+          // Check if notification permission is granted
+          if (Notification.permission === 'granted') {
+            const notificationTitle = payload.notification.title || 'TheNileKart Notification';
+            const notificationOptions = {
+              body: payload.notification.body || '',
+              icon: payload.notification.icon || '/logo192.png',
+              badge: '/logo192.png',
+              tag: 'push-notification-' + Date.now(),
+              requireInteraction: false,
+              data: payload.data || {}
+            };
+
+            // Show notification via Notification API
+            const notification = new Notification(notificationTitle, notificationOptions);
+            console.log('✅ Foreground notification displayed:', notificationTitle);
+
+            // Handle notification click
+            notification.onclick = () => {
+              console.log('🔔 User clicked notification');
+              window.focus();
+              notification.close();
+            };
+          } else {
+            console.warn('⚠️ Notification permission not granted, cannot display foreground notification');
+          }
+        } catch (notificationError) {
+          console.error('❌ Error displaying foreground notification:', notificationError);
+        }
       }
     });
+    console.log('✅ Message listener setup complete');
   } catch (error) {
     console.error('❌ Error setting up message listener:', error);
   }
