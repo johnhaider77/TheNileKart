@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { requestNotificationPermissionSync, getTokenAfterPermissionGranted, setupMessageListener } from '../config/firebase';
+import { requestNotificationPermissionSync, getTokenAfterPermissionGranted, isNotificationPermissionGranted, setupMessageListener } from '../config/firebase';
 
 const API_BASE_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
 
@@ -200,8 +200,15 @@ export const setupPushNotifications = async (token: string) => {
   try {
     console.log('🔔 Setting up push notifications...');
 
+    // Only attempt to get FCM token if permission is already granted
+    // Permission can only be requested in user event context (during login form submission)
+    if (!isNotificationPermissionGranted()) {
+      console.log('⏳ Notification permission not yet granted. It will be requested on next login.');
+      return false;
+    }
+
     // Get FCM token after permission is granted (async)
-    // Wait longer to ensure permission state is fully updated
+    // Wait to ensure permission state is fully updated
     try {
       const fcmToken = await getTokenAfterPermissionGranted();
       
@@ -218,7 +225,7 @@ export const setupPushNotifications = async (token: string) => {
 
         console.log('✅ Push notifications setup complete');
       } else {
-        console.log('⚠️ Could not get FCM token - permission may have been denied');
+        console.log('⚠️ Could not get FCM token');
       }
     } catch (error) {
       console.error('❌ Error getting FCM token:', error);

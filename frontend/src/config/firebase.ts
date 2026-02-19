@@ -96,6 +96,21 @@ export const requestNotificationPermissionSync = (): Promise<boolean> => {
 };
 
 /**
+ * Check if notification permission is already granted (without requesting)
+ */
+export const isNotificationPermissionGranted = (): boolean => {
+  try {
+    if (!('Notification' in window)) {
+      return false;
+    }
+    return Notification.permission === 'granted';
+  } catch (error) {
+    console.error('Error checking notification permission:', error);
+    return false;
+  }
+};
+
+/**
  * Get FCM token asynchronously (only call after permission is granted)
  */
 export const getTokenAfterPermissionGranted = async (): Promise<string | null> => {
