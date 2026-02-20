@@ -1,0 +1,183 @@
+.notification-toast-container {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 999999;
+  max-width: 400px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+}
+
+.notification-toast {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25), 0 0 20px rgba(0, 0, 0, 0.1);
+  animation: slideIn 0.3s ease-out;
+  max-width: 100%;
+  background-color: #f0f0f0;
+  border-left: 4px solid #999;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  pointer-events: auto;
+  backdrop-filter: blur(2px);
+  min-width: 280px;
+}
+
+.notification-toast-info {
+  background-color: #e3f2fd;
+  border-left-color: #2196f3;
+}
+
+.notification-toast-success {
+  background-color: #e8f5e9;
+  border-left-color: #4caf50;
+}
+
+.notification-toast-warning {
+  background-color: #fff3e0;
+  border-left-color: #ff9800;
+}
+
+.notification-toast-error {
+  background-color: #ffebee;
+  border-left-color: #f44336;
+}
+
+.notification-toast-content {
+  flex: 1;
+  margin-right: 15px;
+}
+
+.notification-toast-title {
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 4px;
+  color: #333;
+}
+
+.notification-toast-info .notification-toast-title {
+  color: #1976d2;
+}
+
+.notification-toast-success .notification-toast-title {
+  color: #388e3c;
+}
+
+.notification-toast-warning .notification-toast-title {
+  color: #f57c00;
+}
+
+.notification-toast-error .notification-toast-title {
+  color: #d32f2f;
+}
+
+.notification-toast-body {
+  font-size: 13px;
+  line-height: 1.4;
+  color: #666;
+}
+
+.notification-toast-info .notification-toast-body {
+  color: #0d47a1;
+}
+
+.notification-toast-success .notification-toast-body {
+  color: #1b5e20;
+}
+
+.notification-toast-warning .notification-toast-body {
+  color: #e65100;
+}
+
+.notification-toast-error .notification-toast-body {
+  color: #b71c1c;
+}
+
+.notification-toast-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 20px;
+  color: #999;
+  padding: 0;
+  min-width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+  flex-shrink: 0;
+}
+
+.notification-toast-close:hover {
+  color: #333;
+}
+
+@keyframes slideIn {
+  from {
+    transform: translateX(400px);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@media (max-width: 768px) {
+  .notification-toast-container {
+    left: 12px;
+    right: 12px;
+    top: 12px;
+    max-width: none;
+    bottom: auto;
+  }
+
+  .notification-toast {
+    padding: 14px 16px;
+    font-size: 14px;
+    min-width: auto;
+  }
+
+  .notification-toast-content {
+    margin-right: 10px;
+  }
+
+  .notification-toast-title {
+    font-size: 13px;
+  }
+
+  .notification-toast-body {
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .notification-toast-container {
+    left: 8px;
+    right: 8px;
+    top: 8px;
+  }
+
+  .notification-toast {
+    padding: 12px 12px;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .notification-toast-content {
+    margin-right: 0;
+    margin-bottom: 8px;
+    width: 100%;
+  }
+
+  .notification-toast-close {
+    align-self: flex-end;
+  }
+}

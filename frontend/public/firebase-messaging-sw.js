@@ -16,22 +16,46 @@ firebase.initializeApp({
 // Retrieve an instance of Firebase Messaging so that it can handle background messages.
 const messaging = firebase.messaging();
 
-// Handle background messages
+// Handle background messages - these are shown when app is not in focus
 messaging.onBackgroundMessage(function(payload) {
-  console.log('📨 Background message received:', payload);
+  console.log('📨 Background message received (tab inactive/closed):', payload);
+  console.log('📬 This notification will be shown as push notification in system tray');
 
-  const notificationTitle = payload.notification?.title || 'TheNileKart';
-  const notificationOptions = {
-    body: payload.notification?.body || 'You have a new notification',
-    icon: payload.notification?.icon || '/logo192.png',
-    badge: '/logo192.png',
-    tag: 'push-notification',
-    requireInteraction: false,
-    data: payload.data || {}
-  };
+  try {
+    const notificationTitle = payload.notification?.title || 'TheNileKart Notification';
+    const notificationBody = payload.notification?.body || 'You have a new notification from TheNileKart';
+    const notificationIcon = payload.notification?.icon || '/logo192.png';
 
-  // Show notification
-  self.registration.showNotification(notificationTitle, notificationOptions);
+    const notificationOptions = {
+      body: notificationBody,
+      icon: notificationIcon,
+      badge: '/logo192.png',
+      tag: 'thenilekart-' + Date.now(), // Unique tag for each notification
+      requireInteraction: true, // Keep notification visible until user acts
+      actions: [
+        {
+          action: 'open',
+          title: 'Open'
+        },
+        {
+          action: 'close',
+          title: 'Close'
+        }
+      ],
+      data: {
+        actionUrl: payload.data?.actionUrl || '/',
+        timestamp: new Date().toISOString(),
+        ...payload.data
+      }
+    };
+
+    console.log('✅ Showing background notification:', { title: notificationTitle, options: notificationOptions });
+
+    // Show notification - this appears in system tray even when tab is closed
+    return self.registration.showNotification(notificationTitle, notificationOptions);
+  } catch (error) {
+    console.error('❌ Error showing background notification:', error);
+  }
 });
 
 // Handle notification click
