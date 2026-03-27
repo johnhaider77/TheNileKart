@@ -1,5 +1,5 @@
 import { initializeApp } from 'firebase/app';
-import { getMessaging, getToken, onMessage } from 'firebase/messaging';
+import { getMessaging, getToken, onMessage, Messaging } from 'firebase/messaging';
 
 // Firebase configuration from the console
 const firebaseConfig = {
@@ -15,16 +15,36 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Initialize Cloud Messaging and get a reference to the service
-const messaging = getMessaging(app);
+// Lazy-initialize Cloud Messaging only when Service Workers are supported
+// WKWebView (iOS app) does NOT support Service Workers, so getMessaging() would crash
+let _messaging: Messaging | null = null;
+const getMessagingInstance = (): Messaging | null => {
+  if (_messaging) return _messaging;
+  if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+    try {
+      _messaging = getMessaging(app);
+      return _messaging;
+    } catch (e) {
+      console.warn('⚠️ Firebase Messaging not available:', e);
+      return null;
+    }
+  }
+  console.warn('⚠️ Service Workers not supported (iOS WKWebView) - Firebase Messaging disabled');
+  return null;
+};
 
 /**
  * Get the FCM token for this device
  */
 export const getFCMToken = async (): Promise<string | null> => {
   try {
+    const msg = getMessagingInstance();
+    if (!msg) {
+      console.warn('⚠️ Firebase Messaging not available (no Service Worker support)');
+      return null;
+    }
     // Try to get FCM token with VAPID key
-    const token = await getToken(messaging, {
+    const token = await getToken(msg, {
       vapidKey: 'BJBZcbtUIYtfF0kW5mgktIHilKxuuRx_FPDoGaE_ndytmBC3DTbFFzUp4ovTx30DOlAKb3C0fvlwj7XquNpPkKk'
     });
     
@@ -146,7 +166,12 @@ export const getTokenAfterPermissionGranted = async (): Promise<string | null> =
  */
 export const setupMessageListener = (callback: (payload: any) => void) => {
   try {
-    onMessage(messaging, (payload) => {
+    const msg = getMessagingInstance();
+    if (!msg) {
+      console.warn('⚠️ Firebase Messaging not available - message listener not set up');
+      return;
+    }
+    onMessage(msg, (payload) => {
       console.log('📨 Message received in foreground:', payload);
       
       // Handle notification data
@@ -213,5 +238,5 @@ export const setupMessageListener = (callback: (payload: any) => void) => {
   }
 };
 
-export { messaging };
+export { getMessagingInstance as getMessagingLazy };
 export default app;
