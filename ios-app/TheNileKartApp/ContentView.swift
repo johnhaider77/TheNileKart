@@ -98,10 +98,11 @@ struct ContentView: View {
         #if targetEnvironment(simulator)
         return "http://localhost:3000"
         #else
-        return "http://40.172.190.250"
+        // Physical device - use production HTTPS URL (EC2 IP not reachable over plain HTTP)
+        return "https://www.thenilekart.com"
         #endif
         #else
-        return "https://thenilekart.com"
+        return "https://www.thenilekart.com"
         #endif
     }
 }

@@ -21,10 +21,11 @@ struct APIConfig {
     #if targetEnvironment(simulator)
     static let baseURL = "http://localhost:5000/api"
     #else
-    static let baseURL = "http://40.172.190.250:5000/api"
+    // Physical device - use production HTTPS API (EC2 IP not reachable directly)
+    static let baseURL = "https://www.thenilekart.com/api"
     #endif
     #else
-    static let baseURL = "https://thenilekart.com/api"
+    static let baseURL = "https://www.thenilekart.com/api"
     #endif
     
     static let registerTokenEndpoint = "\(baseURL)/push-notifications/register-token"
