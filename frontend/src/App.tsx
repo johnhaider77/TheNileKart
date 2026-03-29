@@ -24,6 +24,8 @@ import ViewCustomersPage from './pages/ViewCustomersPage';
 import PromoCodeUsagePage from './pages/PromoCodeUsagePage';
 import SendNotificationsPage from './pages/SendNotificationsPage';
 import MaintenancePage from './components/MaintenancePage';
+import SupportPage from './pages/SupportPage';
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 
 // Import components
 import Navbar from './components/Navbar';
@@ -334,6 +336,10 @@ function AppRoutes() {
               isCustomer ? <Navigate to="/" replace /> : <Navigate to="/seller/login" replace />
             }
           />
+
+          {/* Public info pages */}
+          <Route path="/support" element={<SupportPage />} />
+          <Route path="/privacypolicy" element={<PrivacyPolicyPage />} />
 
           {/* 404 route */}
           <Route path="*" element={<Navigate to="/" />} />

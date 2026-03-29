@@ -42,6 +42,10 @@
 	<true/>
 	<key>UILaunchScreen</key>
 	<dict/>
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>com.thenilekart.app.refresh</string>
+	</array>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>
