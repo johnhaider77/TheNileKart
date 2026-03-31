@@ -1301,4 +1301,124 @@ router.put('/portal-status', [authenticateToken, body('customer_portal_available
   }
 });
 
+// Delete user account
+router.delete('/delete-account', [
+  authenticateToken,
+  body('password').exists().withMessage('Password is required to confirm account deletion'),
+], async (req, res) => {
+  const client = await db.pool.connect();
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    const userId = req.user.id;
+    const { password } = req.body;
+
+    // Verify the user exists and check password
+    const userResult = await client.query(
+      'SELECT id, email, password_hash, user_type FROM users WHERE id = $1',
+      [userId]
+    );
+
+    if (userResult.rows.length === 0) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const userData = userResult.rows[0];
+
+    // Don't allow seller account deletion (protect the store owner)
+    if (userData.user_type === 'seller') {
+      return res.status(403).json({ message: 'Seller accounts cannot be deleted through this method. Please contact support.' });
+    }
+
+    // Verify password
+    const isValidPassword = await bcrypt.compare(password, userData.password_hash);
+    if (!isValidPassword) {
+      return res.status(400).json({ message: 'Incorrect password. Please enter your current password to confirm account deletion.' });
+    }
+
+    // Begin transaction for cascading delete
+    await client.query('BEGIN');
+
+    console.log(`🗑️ Starting account deletion for user ${userId} (${userData.email})`);
+
+    // 1. Delete order_items for this user's orders
+    const ordersResult = await client.query(
+      'SELECT id FROM orders WHERE customer_id = $1',
+      [userId]
+    );
+
+    if (ordersResult.rows.length > 0) {
+      const orderIds = ordersResult.rows.map(r => r.id);
+      await client.query(
+        'DELETE FROM order_items WHERE order_id = ANY($1)',
+        [orderIds]
+      );
+      console.log(`   ✓ Deleted order items for ${orderIds.length} orders`);
+
+      // 2. Delete orders
+      await client.query(
+        'DELETE FROM orders WHERE customer_id = $1',
+        [userId]
+      );
+      console.log(`   ✓ Deleted ${orderIds.length} orders`);
+    }
+
+    // 3. Delete user addresses
+    await client.query(
+      'DELETE FROM user_addresses WHERE user_id = $1',
+      [userId]
+    );
+    console.log('   ✓ Deleted user addresses');
+
+    // 4. Delete cart items
+    try {
+      await client.query(
+        'DELETE FROM cart_items WHERE user_id = $1',
+        [userId]
+      );
+      console.log('   ✓ Deleted cart items');
+    } catch (e) {
+      // Table may not exist, skip silently
+      console.log('   ⊘ cart_items table not found, skipping');
+    }
+
+    // 5. Delete password reset codes
+    try {
+      await client.query(
+        'DELETE FROM password_reset_codes WHERE user_id = $1',
+        [userId]
+      );
+      console.log('   ✓ Deleted password reset codes');
+    } catch (e) {
+      console.log('   ⊘ password_reset_codes not found, skipping');
+    }
+
+    // 6. Finally delete the user
+    await client.query(
+      'DELETE FROM users WHERE id = $1',
+      [userId]
+    );
+    console.log(`   ✓ Deleted user account (${userData.email})`);
+
+    await client.query('COMMIT');
+
+    console.log(`✅ Account deletion complete for user ${userId} (${userData.email})`);
+
+    res.json({
+      success: true,
+      message: 'Your account and all associated data have been permanently deleted.'
+    });
+
+  } catch (error) {
+    await client.query('ROLLBACK');
+    console.error('Account deletion error:', error);
+    res.status(500).json({ message: 'Server error during account deletion. Please try again.' });
+  } finally {
+    client.release();
+  }
+});
+
 module.exports = router;

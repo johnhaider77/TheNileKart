@@ -185,6 +185,9 @@ export const authAPI = {
     phone?: string;
     is_default?: boolean;
   }) => api.post('/auth/addresses', addressData),
+
+  deleteAccount: (password: string) =>
+    api.delete('/auth/delete-account', { data: { password } }),
 };
 
 // Products API calls

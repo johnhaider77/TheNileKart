@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import api, { ordersAPI } from '../services/api';
+import api, { ordersAPI, authAPI } from '../services/api';
 
 interface Order {
   id: number;
@@ -75,6 +75,13 @@ const AccountPage: React.FC = () => {
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [passwordError, setPasswordError] = useState<string | null>(null);
   const [passwordSuccess, setPasswordSuccess] = useState<string | null>(null);
+
+  // Delete account state
+  const [showDeleteAccount, setShowDeleteAccount] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [deleteLoading, setDeleteLoading] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   // Generate month options
   const months = [
@@ -485,6 +492,48 @@ const AccountPage: React.FC = () => {
     setShowPasswordChange(false);
     setPasswordError(null);
     setPasswordSuccess(null);
+  };
+
+  // Delete account handler
+  const handleDeleteAccount = async () => {
+    setDeleteLoading(true);
+    setDeleteError(null);
+
+    if (!deletePassword) {
+      setDeleteError('Please enter your password to confirm account deletion.');
+      setDeleteLoading(false);
+      return;
+    }
+
+    if (deleteConfirmText !== 'DELETE') {
+      setDeleteError('Please type DELETE to confirm.');
+      setDeleteLoading(false);
+      return;
+    }
+
+    try {
+      const response = await authAPI.deleteAccount(deletePassword);
+
+      if (response.data.success) {
+        // Clear local storage and redirect
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        localStorage.removeItem('guestCart');
+        alert('Your account has been permanently deleted. You will now be redirected to the home page.');
+        window.location.href = '/';
+      }
+    } catch (error: any) {
+      setDeleteError(error.response?.data?.message || 'Failed to delete account. Please try again.');
+    } finally {
+      setDeleteLoading(false);
+    }
+  };
+
+  const handleDeleteAccountCancel = () => {
+    setShowDeleteAccount(false);
+    setDeletePassword('');
+    setDeleteConfirmText('');
+    setDeleteError(null);
   };
 
   const handleEditAddress = (address: Address) => {
@@ -1224,6 +1273,107 @@ const AccountPage: React.FC = () => {
                         </div>
                       </div>
                     </form>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Delete Account Section */}
+            <div className="delete-account-section mt-8">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-2xl font-semibold text-red-600">Delete Account</h2>
+                {!showDeleteAccount && (
+                  <button 
+                    className="btn btn-error btn-outline"
+                    onClick={() => setShowDeleteAccount(true)}
+                  >
+                    Delete My Account
+                  </button>
+                )}
+              </div>
+              
+              <div className="card bg-white shadow-md border border-red-200">
+                <div className="card-body">
+                  {!showDeleteAccount ? (
+                    <div>
+                      <div className="flex items-center gap-3">
+                        <div className="text-lg">⚠️</div>
+                        <div>
+                          <h3 className="font-semibold text-red-700">Permanently Delete Your Account</h3>
+                          <p className="text-sm text-gray-600">Once you delete your account, there is no going back. All your data including orders, addresses, and personal information will be permanently removed.</p>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <div className="bg-red-50 border border-red-200 p-4 rounded-lg mb-6">
+                        <h4 className="font-bold text-red-800 mb-2">⚠️ Warning: This action is irreversible</h4>
+                        <p className="text-sm text-red-700 mb-2">Deleting your account will permanently remove:</p>
+                        <ul className="text-sm text-red-700 list-disc list-inside space-y-1">
+                          <li>Your profile information</li>
+                          <li>All saved addresses</li>
+                          <li>Your entire order history</li>
+                          <li>Cart items and preferences</li>
+                        </ul>
+                      </div>
+
+                      {deleteError && (
+                        <div className="alert alert-error mb-4">
+                          <span>{deleteError}</span>
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-1 gap-4">
+                        <div>
+                          <label className="label">
+                            <span className="label-text font-semibold">Enter your password to confirm *</span>
+                          </label>
+                          <input 
+                            type="password" 
+                            className="input input-bordered input-error w-full" 
+                            value={deletePassword}
+                            onChange={(e) => setDeletePassword(e.target.value)}
+                            placeholder="Enter your current password"
+                            disabled={deleteLoading}
+                            required
+                          />
+                        </div>
+
+                        <div>
+                          <label className="label">
+                            <span className="label-text font-semibold">Type <span className="text-red-600 font-bold">DELETE</span> to confirm *</span>
+                          </label>
+                          <input 
+                            type="text" 
+                            className="input input-bordered input-error w-full" 
+                            value={deleteConfirmText}
+                            onChange={(e) => setDeleteConfirmText(e.target.value)}
+                            placeholder="Type DELETE here"
+                            disabled={deleteLoading}
+                            required
+                          />
+                        </div>
+
+                        <div className="flex gap-3 pt-4">
+                          <button 
+                            type="button"
+                            className="btn btn-outline flex-1"
+                            onClick={handleDeleteAccountCancel}
+                            disabled={deleteLoading}
+                          >
+                            Cancel
+                          </button>
+                          <button 
+                            type="button"
+                            className="btn btn-error flex-1"
+                            onClick={handleDeleteAccount}
+                            disabled={deleteLoading || !deletePassword || deleteConfirmText !== 'DELETE'}
+                          >
+                            {deleteLoading ? 'Deleting...' : 'Permanently Delete Account'}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                   )}
                 </div>
               </div>
