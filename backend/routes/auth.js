@@ -1374,29 +1374,55 @@ router.delete('/delete-account', [
     console.log('   ✓ Deleted user addresses');
 
     // 4. Delete cart items
-    try {
-      await client.query(
-        'DELETE FROM cart_items WHERE user_id = $1',
-        [userId]
-      );
-      console.log('   ✓ Deleted cart items');
-    } catch (e) {
-      // Table may not exist, skip silently
-      console.log('   ⊘ cart_items table not found, skipping');
-    }
+    await client.query(
+      'DELETE FROM cart_items WHERE user_id = $1',
+      [userId]
+    );
+    console.log('   ✓ Deleted cart items');
 
-    // 5. Delete password reset codes
-    try {
-      await client.query(
-        'DELETE FROM password_reset_codes WHERE user_id = $1',
-        [userId]
-      );
-      console.log('   ✓ Deleted password reset codes');
-    } catch (e) {
-      console.log('   ⊘ password_reset_codes not found, skipping');
-    }
+    // 5. Delete user sessions
+    await client.query(
+      'DELETE FROM user_sessions WHERE user_id = $1',
+      [userId]
+    );
+    console.log('   ✓ Deleted user sessions');
 
-    // 6. Finally delete the user
+    // 6. Delete checkout sessions
+    await client.query(
+      'DELETE FROM checkout_sessions WHERE user_id = $1',
+      [userId]
+    );
+    console.log('   ✓ Deleted checkout sessions');
+
+    // 7. Delete promo code usage
+    await client.query(
+      'DELETE FROM promo_code_usage WHERE user_id = $1',
+      [userId]
+    );
+    console.log('   ✓ Deleted promo code usage');
+
+    // 8. Delete push notifications (as recipient)
+    await client.query(
+      'DELETE FROM push_notifications WHERE recipient_user_id = $1',
+      [userId]
+    );
+    console.log('   ✓ Deleted push notifications');
+
+    // 9. Delete password reset codes (by email)
+    await client.query(
+      'DELETE FROM password_reset_codes WHERE email = $1',
+      [userData.email]
+    );
+    console.log('   ✓ Deleted password reset codes');
+
+    // 10. Delete signup OTP attempts (by email)
+    await client.query(
+      'DELETE FROM signup_otp_attempts WHERE email = $1',
+      [userData.email]
+    );
+    console.log('   ✓ Deleted signup OTP attempts');
+
+    // 11. Finally delete the user
     await client.query(
       'DELETE FROM users WHERE id = $1',
       [userId]
