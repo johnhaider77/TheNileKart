@@ -35,6 +35,7 @@ const metricsRoutes = require('./routes/metrics');
 const promoCodesSellerRoutes = require('./routes/promo-codes-seller');
 const promoCodesCustomerRoutes = require('./routes/promo-codes-customer');
 const pushNotificationRoutes = require('./routes/push-notifications');
+const shareRoutes = require('./routes/share');
 
 const app = express();
 const server = http.createServer(app);
@@ -124,6 +125,10 @@ setInterval(async () => {
 // Body parsing middleware - increased limits for file uploads
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ extended: true, limit: '50mb' }));
+
+// Share route: /product/:productId — serves OG meta tags for WhatsApp/social previews
+// MUST be registered BEFORE express.static so it is not shadowed by the React build
+app.use('/product', shareRoutes);
 
 // Serve static frontend files from build directory
 let frontendBuildPath = path.join(__dirname, '..', 'frontend', 'build');
