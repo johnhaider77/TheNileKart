@@ -3050,6 +3050,36 @@ h6 { font-size: 1rem; }
   letter-spacing: 0.5px;
 }
 
+.quickview-action-row {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+}
+
+.quickview-action-row .quickview-add-btn {
+  flex: 2;
+}
+
+.quickview-share-btn {
+  flex: 1;
+  background: var(--background-surface);
+  color: var(--primary-color);
+  border: 1px solid var(--primary-color);
+  border-radius: var(--border-radius);
+  padding: 14px 12px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all var(--transition-normal);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.quickview-share-btn:hover {
+  background: var(--primary-light);
+  transform: translateY(-2px);
+}
+
 .quickview-add-btn:hover:not(:disabled) {
   transform: translateY(-2px);
   box-shadow: var(--shadow-glow);
@@ -3269,6 +3299,16 @@ h6 { font-size: 1rem; }
     padding: 3px 0;
   }
 
+  .quickview-action-row {
+    gap: 6px;
+  }
+
+  .quickview-action-row .quickview-add-btn,
+  .quickview-share-btn {
+    padding: 10px 8px;
+    font-size: 12px;
+  }
+
   .quantity-section {
     gap: 2px;
   }
@@ -3417,6 +3457,16 @@ h6 { font-size: 1rem; }
 
   .quantity-section label {
     font-size: 9px;
+  }
+
+  .quickview-action-row {
+    gap: 5px;
+  }
+
+  .quickview-action-row .quickview-add-btn,
+  .quickview-share-btn {
+    padding: 9px 6px;
+    font-size: 11px;
   }
 
   .quickview-description h4,

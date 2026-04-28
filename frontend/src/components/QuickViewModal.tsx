@@ -8,6 +8,7 @@ interface QuickViewModalProps {
   product: Product | any;
   isOpen: boolean;
   onClose: () => void;
+  shareUrl?: string;
 }
 
 // Utility function to calculate % OFF for a specific size
@@ -37,13 +38,7 @@ const formatPercentOff = (percentOff: number): string | null => {
   return null;
 };
 
-interface QuickViewModalProps {
-  product: Product | any;
-  isOpen: boolean;
-  onClose: () => void;
-}
-
-const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClose }) => {
+const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClose, shareUrl }) => {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [selectedSize, setSelectedSize] = useState<string>('');
@@ -456,6 +451,47 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
     }
   };
 
+  const getShareLink = (): string => {
+    if (shareUrl) {
+      return shareUrl;
+    }
+    return `${window.location.origin}/product/${product.id}`;
+  };
+
+  const handleShareProduct = async () => {
+    const url = getShareLink();
+    const shareData = {
+      title: product?.name || 'TheNileKart Product',
+      text: `Check this out on TheNileKart: ${product?.name || 'Product'}`,
+      url,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+        return;
+      }
+
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(url);
+        alert('Product link copied to clipboard!');
+        return;
+      }
+
+      // Final fallback for older browsers
+      const textArea = document.createElement('textarea');
+      textArea.value = url;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      alert('Product link copied to clipboard!');
+    } catch (error) {
+      console.error('Share failed:', error);
+      alert('Unable to share right now. Please try again.');
+    }
+  };
+
   return (
     <>
     <div className="quickview-overlay" onClick={handleOverlayClick}>
@@ -816,13 +852,22 @@ const QuickViewModal: React.FC<QuickViewModalProps> = ({ product, isOpen, onClos
                       </div>
                     </div>
 
-                    <button
-                      onClick={handleAddToCart}
-                      disabled={(!effectiveSelectedSize && !(availableSizes.length === 1 && availableSizes[0].size === 'One Size')) || currentStock === 0}
-                      className="quickview-add-btn"
-                    >
-                      Add {quantity} to Cart
-                    </button>
+                    <div className="quickview-action-row">
+                      <button
+                        onClick={handleAddToCart}
+                        disabled={(!effectiveSelectedSize && !(availableSizes.length === 1 && availableSizes[0].size === 'One Size')) || currentStock === 0}
+                        className="quickview-add-btn"
+                      >
+                        Add {quantity} to Cart
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleShareProduct}
+                        className="quickview-share-btn"
+                      >
+                        Share
+                      </button>
+                    </div>
                   </>
                 );
               })()} 

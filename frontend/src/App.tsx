@@ -18,6 +18,7 @@ import UpdateInventory from './pages/UpdateInventory';
 import OrdersQueue from './pages/OrdersQueue';
 import BannerManagementPage from './pages/BannerManagementPage';
 import OfferProductsPage from './pages/OfferProductsPage';
+import ProductShareRedirectPage from './pages/ProductShareRedirectPage';
 import SearchPage from './pages/SearchPage';
 import SellerPromoCode from './components/SellerPromoCode';
 import ViewCustomersPage from './pages/ViewCustomersPage';
@@ -134,6 +135,14 @@ function AppRoutes() {
             path="/products/offers/:offerCode"
             element={
               isSeller ? <Navigate to="/seller/dashboard" replace /> : <OfferProductsPage />
+            }
+          />
+
+          {/* Shared product quick view route */}
+          <Route
+            path="/product/:productId"
+            element={
+              isSeller ? <Navigate to="/seller/dashboard" replace /> : <ProductShareRedirectPage />
             }
           />
           

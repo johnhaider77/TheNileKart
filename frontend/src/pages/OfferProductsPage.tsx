@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { Product } from '../utils/types';
 import api from '../services/api';
@@ -140,6 +140,7 @@ const ProductName: React.FC<{ name: string }> = ({ name }) => {
 
 const OfferProductsPage: React.FC = () => {
   const { offerCode } = useParams<{ offerCode: string }>();
+  const [searchParams] = useSearchParams();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -153,6 +154,7 @@ const OfferProductsPage: React.FC = () => {
   const [offerPage, setOfferPage] = useState(1);
   const [offerHasMore, setOfferHasMore] = useState(true);
   const [offerLoading, setOfferLoading] = useState(true);
+  const sharedQuickViewAttempts = useRef<Set<string>>(new Set());
 
   // Initialize metrics tracking for offer page
   const { trackOfferPage } = useMetrics({ 
@@ -406,6 +408,40 @@ const OfferProductsPage: React.FC = () => {
     setIsQuickViewOpen(false);
     setQuickViewProduct(null);
   };
+
+  // Open quick view from shared URL: /products/offers/:offerCode?quickView=<productId>
+  useEffect(() => {
+    const quickViewId = searchParams.get('quickView');
+    if (!quickViewId) return;
+
+    const existingProduct = products.find((p: any) => String(p.id) === String(quickViewId));
+    if (existingProduct) {
+      setQuickViewProduct(existingProduct);
+      setIsQuickViewOpen(true);
+      return;
+    }
+
+    if (sharedQuickViewAttempts.current.has(quickViewId)) {
+      return;
+    }
+
+    sharedQuickViewAttempts.current.add(quickViewId);
+
+    const fetchSharedProduct = async () => {
+      try {
+        const response = await api.get(`/products/${quickViewId}`);
+        if (response?.data?.product) {
+          setQuickViewProduct(response.data.product);
+          setIsQuickViewOpen(true);
+        }
+      } catch (err) {
+        console.error('Failed to open shared quick view product on offer page:', err);
+      }
+    };
+
+    fetchSharedProduct();
+  }, [products, searchParams]);
+
   const closeSizePopup = () => {
     setShowSizeSelectionPopup(false);
     setPopupProduct(null);
@@ -618,6 +654,7 @@ const OfferProductsPage: React.FC = () => {
           isOpen={isQuickViewOpen}
           product={quickViewProduct}
           onClose={closeQuickView}
+          shareUrl={quickViewProduct ? `${window.location.origin}/product/${quickViewProduct.id}${offerCode ? `?offer=${encodeURIComponent(offerCode)}` : ''}` : undefined}
         />
       )}
     </div>

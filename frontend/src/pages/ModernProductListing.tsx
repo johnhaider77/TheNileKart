@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { productsAPI, sellerAPI } from '../services/api';
 import { useCart } from '../context/CartContext';
@@ -243,6 +243,7 @@ const ModernProductListing: React.FC = () => {
   const [isQuickViewOpen, setIsQuickViewOpen] = useState(false);
   const [showSizeSelectionPopup, setShowSizeSelectionPopup] = useState(false);
   const [popupProduct, setPopupProduct] = useState<Product | null>(null);
+  const sharedQuickViewAttempts = useRef<Set<string>>(new Set());
 
   const { addToCart } = useCart();
   const navigate = useNavigate();
@@ -510,6 +511,40 @@ const ModernProductListing: React.FC = () => {
     setIsQuickViewOpen(false);
     setQuickViewProduct(null);
   };
+
+  // Open quick view from shared URL: /products?quickView=<productId>
+  useEffect(() => {
+    const quickViewId = searchParams.get('quickView');
+    if (!quickViewId) return;
+
+    const existingProduct = products.find((p: any) => String(p.id) === String(quickViewId));
+    if (existingProduct) {
+      setQuickViewProduct(existingProduct);
+      setIsQuickViewOpen(true);
+      return;
+    }
+
+    if (sharedQuickViewAttempts.current.has(quickViewId)) {
+      return;
+    }
+
+    sharedQuickViewAttempts.current.add(quickViewId);
+
+    const fetchSharedProduct = async () => {
+      try {
+        const response = await productsAPI.getProduct(quickViewId);
+        if (response?.data?.product) {
+          setQuickViewProduct(response.data.product);
+          setIsQuickViewOpen(true);
+        }
+      } catch (err) {
+        console.error('Failed to open shared quick view product:', err);
+      }
+    };
+
+    fetchSharedProduct();
+  }, [products, searchParams]);
+
   const closeSizePopup = () => {
     setShowSizeSelectionPopup(false);
     setPopupProduct(null);
@@ -905,6 +940,7 @@ const ModernProductListing: React.FC = () => {
         product={quickViewProduct}
         isOpen={isQuickViewOpen}
         onClose={closeQuickView}
+        shareUrl={quickViewProduct ? `${window.location.origin}/product/${quickViewProduct.id}` : undefined}
       />
       
       {/* Footer */}
